@@ -1,0 +1,265 @@
+"""
+KEV Backend API
+~~~~~~~~~~~~~~~
+
+FastAPI backend for kev.
+"""
+
+import os
+import sys
+
+# Add the project root (constellation directory) to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+import uvicorn
+import logging
+
+# Import KEV Core Upgrades
+from kev.backend.core.infrastructure_integration import kev_infra
+from kev.backend.core.curriculum_engine import curriculum_engine, Subject
+from kev.backend.virtual_school_service import (
+    BookingRequest,
+    get_overview,
+    list_facilities,
+    book_facility,
+    release_facility,
+)
+from kev.backend.shared_resources_initializer import (
+    initialize_shared_resources,
+    get_shared_resources_status,
+)
+from kev.backend.agent_initialization import (
+    initialize_kev_learning_system,
+    tutor_registry,
+)
+from kev.backend.learning_service import learning_system
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(
+    title="KEV API",
+    description="Educational system with Central Library and Curriculum Framework for 185+ subjects",
+    version="2.0.0" # Upgraded version
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# --- Models ---
+class SubjectRequest(BaseModel):
+    name: str
+    description: str
+    dependencies: List[str] = []
+    complexity: float = 1.0
+
+class LearningPathRequest(BaseModel):
+    student_id: str
+    subject_id: str
+    current_knowledge: Dict[str, Any]
+
+class StudentRegistrationRequest(BaseModel):
+    student_id: str
+    name: str
+    age: int
+    education_level: str
+
+class LearningSessionRequest(BaseModel):
+    student_id: str
+    subject: str
+    topic: str
+    difficulty: str = "intermediate"
+    education_level: str
+
+class LearningSessionCompleteRequest(BaseModel):
+    session_id: str
+    score: float
+    feedback: str = ""
+
+# --- Lifespan/Startup ---
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 KEV System Startup Sequence Initiated")
+    initialize_shared_resources()
+    await kev_infra.initialize()
+    initialize_kev_learning_system()
+
+    # Seed initial subjects for robustness testing and learning progression
+    curriculum_engine.add_subject(Subject(id="math_101", name="Basic Algebra", description="Foundations of Algebra"))
+    curriculum_engine.add_subject(Subject(id="math_102", name="Calculus I", description="Limits and Derivatives", dependencies=["math_101"]))
+    curriculum_engine.add_subject(Subject(id="science_101", name="Foundations of Science", description="Scientific method and systems thinking"))
+    curriculum_engine.add_subject(Subject(id="science_102", name="Physics Principles", description="Mechanics, forces, and energy", dependencies=["science_101"]))
+    curriculum_engine.add_subject(Subject(id="cs_101", name="Intro to Computer Science", description="Algorithms, logic, and computational thinking"))
+    curriculum_engine.add_subject(Subject(id="cs_102", name="Programming Fundamentals", description="Core programming concepts and practice", dependencies=["cs_101"]))
+    curriculum_engine.add_subject(Subject(id="english_101", name="English Composition", description="Writing, grammar, and critical reading"))
+    curriculum_engine.add_subject(Subject(id="history_101", name="World History", description="Global cultures, timelines, and civic context"))
+    curriculum_engine.add_subject(Subject(id="art_101", name="Creative Arts", description="Visual expression, design, and media literacy"))
+    curriculum_engine.add_subject(Subject(id="business_101", name="Business Fundamentals", description="Entrepreneurship, finance, and strategy"))
+
+    logger.info("✅ KEV Infrastructure, Curriculum Engine, and Learning System Ready")
+
+# Health check
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "kev", "infra_ready": kev_infra.is_initialized}
+
+# Root endpoint
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Welcome to KEV API v2.0",
+        "version": "2.0.0",
+        "docs": "/docs"
+    }
+
+# --- New Robust Endpoints ---
+
+@app.post("/curriculum/subjects")
+async def add_subject(req: SubjectRequest):
+    """Adds a new subject to the scientific framework."""
+    subject_id = req.name.lower().replace(" ", "_")
+    new_subject = Subject(
+        id=subject_id, 
+        name=req.name, 
+        description=req.description, 
+        dependencies=req.dependencies, 
+        complexity_score=req.complexity
+    )
+    curriculum_engine.add_subject(new_subject)
+    return {"status": "success", "subject_id": subject_id}
+
+@app.post("/curriculum/optimize-path")
+async def optimize_path(req: LearningPathRequest):
+    """
+    Pulls from Shared Resources (Quantum) to optimize the learning path.
+    """
+    result = await kev_infra.optimize_learning_path(req.student_id, req.subject_id, req.current_knowledge)
+    return {"status": "success", "optimized_path": result}
+
+@app.get("/curriculum/subjects")
+async def list_curriculum_subjects():
+    """Return the current curriculum subject catalog."""
+    subjects = [
+        {
+            "id": subject.id,
+            "name": subject.name,
+            "description": subject.description,
+            "dependencies": subject.dependencies,
+            "complexity_score": subject.complexity_score,
+            "credits": subject.credits,
+        }
+        for subject in curriculum_engine.subjects.values()
+    ]
+    return {"status": "success", "subjects": subjects}
+
+@app.get("/curriculum/recommendations/{student_completed}")
+async def get_recommendations(student_completed: str):
+    """
+    Returns unlocked subjects based on a comma-separated list of completed IDs.
+    """
+    completed_set = set(student_completed.split(","))
+    recommendations = curriculum_engine.get_recommended_next_subjects(completed_set)
+    return {"status": "success", "recommended_subjects": recommendations}
+
+@app.get("/system/status")
+async def system_status():
+    """System-wide status for KEV learning, agents, shared resources, and virtual school."""
+    virtual_school_stats = get_overview()["statistics"]
+    system_status = tutor_registry.get_system_status()
+    return {
+        "status": "success",
+        "system": system_status,
+        "shared_resources": get_shared_resources_status(),
+        "virtual_school": virtual_school_stats,
+    }
+
+@app.get("/agents/available")
+async def available_agents(subject: Optional[str] = None, education_level: Optional[str] = None):
+    """Return agents available for a subject and education level."""
+    agents = tutor_registry.get_available_agents(subject=subject, education_level=education_level)
+    return {"status": "success", "agents": [agent.__dict__ for agent in agents]}
+
+@app.post("/students/register")
+async def register_student(req: StudentRegistrationRequest):
+    """Register or update a student profile."""
+    profile = learning_system.register_student(
+        student_id=req.student_id,
+        name=req.name,
+        age=req.age,
+        education_level=req.education_level,
+    )
+    return {"status": "success", "student": profile.__dict__}
+
+@app.post("/learning/session/start")
+async def start_learning_session(req: LearningSessionRequest):
+    """Start a new learning session for a student."""
+    session = learning_system.start_learning_session(
+        student_id=req.student_id,
+        subject=req.subject,
+        topic=req.topic,
+        difficulty=req.difficulty,
+        education_level=req.education_level,
+    )
+    return {"status": "success", "session": session}
+
+@app.post("/learning/session/complete")
+async def complete_learning_session(req: LearningSessionCompleteRequest):
+    """Complete an active learning session and store the result."""
+    session = learning_system.complete_learning_session(
+        session_id=req.session_id,
+        score=req.score,
+        feedback=req.feedback,
+    )
+    return {"status": "success", "session": session}
+
+@app.get("/students/{student_id}/progress")
+async def student_progress(student_id: str):
+    """Get progress and recommendations for a student."""
+    progress = learning_system.get_student_progress(student_id)
+    return {"status": "success", "progress": progress}
+
+@app.post("/virtual-school/initialize")
+async def initialize_virtual_school():
+    """Initialize the advanced virtual school environment."""
+    overview = get_overview()
+    return {"status": "success", "virtual_school": overview, "message": "Virtual school initialized"}
+
+@app.get("/virtual-school/overview")
+async def virtual_school_overview():
+    """Returns virtual school building overview and statistics."""
+    return {"status": "success", "virtual_school": get_overview()}
+
+@app.get("/virtual-school/facilities")
+async def virtual_school_facilities(available: Optional[bool] = False, type: Optional[str] = None):
+    """Returns virtual school facility inventory."""
+    facilities = list_facilities(only_available=available, facility_type=type)
+    return {"status": "success", "facilities": facilities}
+
+@app.post("/virtual-school/book/{facility_id}")
+async def virtual_school_book(facility_id: str, req: BookingRequest):
+    """Book a virtual school facility for a learning session."""
+    return book_facility(facility_id, req.session_id)
+
+@app.post("/virtual-school/release/{facility_id}")
+async def virtual_school_release(facility_id: str):
+    """Release a previously booked virtual school facility."""
+    return release_facility(facility_id)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
