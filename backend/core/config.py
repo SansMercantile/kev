@@ -36,8 +36,19 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     
     # Agent System
-    AGENT_REGISTRY_PATH: str = "/workspace/constellation/kev/multi_agents"
-    SHARED_RESOURCES_PATH: str = "/workspace/constellation/shared_resources"
+    # Resolved relative to this file so it works on any machine/container,
+    # instead of a hardcoded path that only existed on one dev box.
+    AGENT_REGISTRY_PATH: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "multi_agents")
+    SHARED_RESOURCES_PATH: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "shared_resources")
+
+    # Bedrock (AWS) - used for all agent LLM calls, invoked per-request so the
+    # server stays stateless and safe to run behind an ALB with N tasks.
+    # NOTE: these newer Claude models are only invocable via a cross-region
+    # inference profile ID (not the bare on-demand model ID) - confirmed via
+    # `aws bedrock list-inference-profiles`.
+    AWS_REGION: str = "us-east-1"
+    BEDROCK_DEFAULT_MODEL_ID: str = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+    BEDROCK_EXPERT_MODEL_ID: str = "us.anthropic.claude-sonnet-5"
     
     # Avatar System
     AVATAR_SERVICE_URL: str = "http://localhost:8001"
@@ -70,6 +81,9 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        # The shared .env also carries frontend VITE_* vars (Vite reads them
+        # directly) - don't fail backend startup just because they're present.
+        extra = "ignore"
 
 # Create settings instance
 settings = Settings()

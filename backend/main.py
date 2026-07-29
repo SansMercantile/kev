@@ -21,6 +21,7 @@ import uvicorn
 import logging
 
 # Import KEV Core Upgrades
+from kev.backend.core.config import settings
 from kev.backend.core.infrastructure_integration import kev_infra
 from kev.backend.core.curriculum_engine import curriculum_engine, Subject
 from kev.backend.virtual_school_service import (
@@ -39,6 +40,7 @@ from kev.backend.agent_initialization import (
     tutor_registry,
 )
 from kev.backend.learning_service import learning_system
+from kev.backend.services import bedrock_client
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -88,6 +90,16 @@ class LearningSessionCompleteRequest(BaseModel):
     session_id: str
     score: float
     feedback: str = ""
+
+class ChatMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+class AgentAskRequest(BaseModel):
+    message: str
+    history: List[ChatMessage] = []
+    education_level: Optional[str] = None
+    student_name: Optional[str] = None
 
 # --- Lifespan/Startup ---
 @app.on_event("startup")
@@ -193,6 +205,56 @@ async def available_agents(subject: Optional[str] = None, education_level: Optio
     """Return agents available for a subject and education level."""
     agents = tutor_registry.get_available_agents(subject=subject, education_level=education_level)
     return {"status": "success", "agents": [agent.__dict__ for agent in agents]}
+
+@app.post("/agents/{agent_id}/ask")
+async def ask_agent(agent_id: str, req: AgentAskRequest):
+    """
+    Stateless per-request call to a KEV agent via Bedrock.
+
+    The caller (frontend) owns conversation history and passes it in each
+    time via `history` - nothing is stored server-side, so this works the
+    same on any Fargate task behind the load balancer.
+    """
+    agent = tutor_registry.agents.get(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail=f"Unknown agent_id '{agent_id}'")
+
+    student_line = f" The student's name is {req.student_name}." if req.student_name else ""
+    level = req.education_level or (agent.education_levels[0] if agent.education_levels else "general")
+
+    system_prompt = (
+        f"You are a KEV {agent.role.value} specializing in {agent.specialization} "
+        f"within {agent.subject}. You are teaching at the {level} level."
+        f"{student_line} Be encouraging, clear, and age-appropriate. "
+        f"Keep answers focused and check for understanding."
+    )
+
+    messages = [{"role": m.role, "content": m.content} for m in req.history]
+    messages.append({"role": "user", "content": req.message})
+
+    model_id = (
+        settings.BEDROCK_EXPERT_MODEL_ID
+        if agent.role.name == "EXPERT"
+        else settings.BEDROCK_DEFAULT_MODEL_ID
+    )
+
+    try:
+        reply = bedrock_client.invoke_agent(
+            system_prompt=system_prompt,
+            messages=messages,
+            model_id=model_id,
+        )
+    except Exception as exc:
+        logger.error(f"Agent {agent_id} Bedrock call failed: {exc}")
+        raise HTTPException(status_code=502, detail="Agent is temporarily unavailable")
+
+    return {
+        "status": "success",
+        "agent_id": agent_id,
+        "subject": agent.subject,
+        "specialization": agent.specialization,
+        "reply": reply,
+    }
 
 @app.post("/students/register")
 async def register_student(req: StudentRegistrationRequest):
