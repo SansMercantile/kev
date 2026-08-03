@@ -142,7 +142,8 @@ class TestVRSchoolEnvironment:
         # End session
         success = vr_env.end_session(session_id)
         assert success is True
-        assert not vr_env.active_sessions[session_id]['active']
+        assert session_id not in vr_env.active_sessions
+        assert not vr_env.session_history[session_id]['active']
     
     def test_virtual_objects(self):
         """Test virtual object creation and management"""
@@ -262,11 +263,14 @@ class TestStudentIdentitySystem:
         """Test age-based validation"""
         system = StudentIdentitySystem()
         
-        # Test too young
+        # Test too young - computed relative to today so this test doesn't
+        # silently rot as real time passes (US min_age is 5; 2 years old
+        # is always too young, unlike a fixed historical date-of-birth).
+        too_young_dob = (date.today() - timedelta(days=365 * 2)).isoformat()
         invalid_data = {
             'first_name': 'Test',
             'last_name': 'Student',
-            'date_of_birth': '2020-01-01',  # Too young
+            'date_of_birth': too_young_dob,
             'gender': 'male',
             'nationality': 'US',
             'country_of_residence': 'US',

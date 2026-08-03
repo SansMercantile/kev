@@ -16,7 +16,7 @@ if project_root not in sys.path:
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 import uvicorn
 import logging
 
@@ -41,6 +41,7 @@ from kev.backend.agent_initialization import (
 )
 from kev.backend.learning_service import learning_system
 from kev.backend.services import bedrock_client
+from kev.virtual_school.vr_ar.vr_school_environment import VRSchoolEnvironment, VRPlatform
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +61,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Single in-process VR/AR environment instance. Session/user state here is
+# genuinely in-memory (not stateless like the agent endpoints) - if this
+# runs on multiple Fargate tasks, VR participants need sticky routing to the
+# same task, or this needs to move to a shared store (e.g. Redis) later.
+vr_environment = VRSchoolEnvironment()
 
 # --- Models ---
 class SubjectRequest(BaseModel):
@@ -101,6 +108,21 @@ class AgentAskRequest(BaseModel):
     education_level: Optional[str] = None
     student_name: Optional[str] = None
 
+class VRJoinRequest(BaseModel):
+    username: str
+    platform: str = "web_vr"
+    avatar_id: str = ""
+
+class VRMoveRequest(BaseModel):
+    position: Tuple[float, float, float]
+    rotation: Optional[Tuple[float, float, float]] = None
+
+class VRSessionStartRequest(BaseModel):
+    session_type: str
+    participants: List[str]
+    location: str
+    metadata: Dict[str, Any] = {}
+
 # --- Lifespan/Startup ---
 @app.on_event("startup")
 async def startup_event():
@@ -108,6 +130,7 @@ async def startup_event():
     initialize_shared_resources()
     await kev_infra.initialize()
     initialize_kev_learning_system()
+    vr_environment.initialize_school_objects()
 
     # Seed initial subjects for robustness testing and learning progression
     curriculum_engine.add_subject(Subject(id="math_101", name="Basic Algebra", description="Foundations of Algebra"))
@@ -321,6 +344,59 @@ async def virtual_school_book(facility_id: str, req: BookingRequest):
 async def virtual_school_release(facility_id: str):
     """Release a previously booked virtual school facility."""
     return release_facility(facility_id)
+
+# --- VR/AR Environment ---
+
+@app.post("/vr/join")
+async def vr_join(req: VRJoinRequest):
+    """Join the VR/AR school environment. Returns the new user + full scene."""
+    try:
+        platform = VRPlatform(req.platform)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Unknown platform '{req.platform}'")
+
+    user = vr_environment.add_user(req.username, platform, avatar_id=req.avatar_id)
+    return {"status": "success", "user": user.to_dict(), "scene": vr_environment.export_vr_scene()}
+
+@app.post("/vr/users/{user_id}/leave")
+async def vr_leave(user_id: str):
+    """Leave the VR/AR environment."""
+    success = vr_environment.remove_user(user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Unknown VR user_id")
+    return {"status": "success", "user_id": user_id}
+
+@app.post("/vr/users/{user_id}/move")
+async def vr_move(user_id: str, req: VRMoveRequest):
+    """Move a user within the VR/AR environment (triggers proximity interactions)."""
+    success = vr_environment.move_user(user_id, req.position, req.rotation)
+    if not success:
+        raise HTTPException(status_code=404, detail="Unknown VR user_id")
+    return {"status": "success", "user": vr_environment.users[user_id].to_dict()}
+
+@app.post("/vr/sessions")
+async def vr_start_session(req: VRSessionStartRequest):
+    """Start a VR class/meeting session."""
+    session_id = vr_environment.start_session(req.session_type, req.participants, req.location, req.metadata)
+    return {"status": "success", "session_id": session_id, "session": vr_environment.active_sessions[session_id]}
+
+@app.post("/vr/sessions/{session_id}/end")
+async def vr_end_session(session_id: str):
+    """End a VR class/meeting session."""
+    success = vr_environment.end_session(session_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Unknown or already-ended session_id")
+    return {"status": "success", "session": vr_environment.session_history[session_id]}
+
+@app.get("/vr/state")
+async def vr_state():
+    """Full current state of the VR/AR environment (users, objects, sessions)."""
+    return {"status": "success", "state": vr_environment.get_environment_state()}
+
+@app.get("/vr/scene")
+async def vr_scene():
+    """Exported VR scene for rendering (objects + active user positions)."""
+    return {"status": "success", "scene": vr_environment.export_vr_scene()}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

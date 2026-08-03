@@ -113,6 +113,7 @@ class VRSchoolEnvironment:
         self.users: Dict[str, VRUser] = {}
         self.virtual_objects: Dict[str, VirtualObject] = {}
         self.active_sessions: Dict[str, Dict] = {}
+        self.session_history: Dict[str, Dict] = {}
         self.environment_settings = self._initialize_environment()
         self.interaction_handlers = self._setup_interaction_handlers()
         
@@ -305,7 +306,12 @@ class VRSchoolEnvironment:
             session = self.active_sessions[session_id]
             session["active"] = False
             session["end_time"] = datetime.now().isoformat()
-            
+
+            # Move to history so active_sessions only ever holds sessions
+            # that are genuinely in progress.
+            self.session_history[session_id] = session
+            del self.active_sessions[session_id]
+
             # Release any booked facilities
             # (This would integrate with the building management system)
             
