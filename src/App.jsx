@@ -7,6 +7,8 @@ import Technical from './pages/Technical'
 import Categories from './pages/Categories'
 import Platform from './pages/Platform'
 import Integration from './pages/Integration'
+import VirtualSchoolMap from './pages/VirtualSchoolMap'
+import VRCampus from './pages/VRCampus'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
 
@@ -23,6 +25,8 @@ const App = () => {
   const navLinks = [
     { label: 'Explore', to: '/explore' },
     { label: 'Platform', to: '/platform' },
+    { label: 'Campus Map', to: '/campus-map' },
+    { label: 'VR Campus', to: '/vr' },
     { label: 'Docs', to: '/docs' },
     { label: 'Tech', to: '/tech' },
   ]
@@ -69,6 +73,8 @@ const App = () => {
             <Route path="/technical" element={<Technical />} />
             <Route path="/integration" element={<Integration />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/campus-map" element={<VirtualSchoolMap />} />
+            <Route path="/vr" element={<VRCampus />} />
           </Routes>
         </main>
 

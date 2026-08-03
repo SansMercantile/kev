@@ -41,3 +41,29 @@ export async function getCurriculumRecommendations(completedSubjects = []) {
   const completed = completedSubjects.join(',')
   return fetchJson(buildUrl(`/curriculum/recommendations/${encodeURIComponent(completed)}`))
 }
+
+export async function joinVrCampus(username, platform = 'web_vr') {
+  return fetchJson(buildUrl('/vr/join'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, platform }),
+  })
+}
+
+export async function moveVrUser(userId, position, rotation) {
+  return fetchJson(buildUrl(`/vr/users/${encodeURIComponent(userId)}/move`), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ position, rotation }),
+  })
+}
+
+export async function leaveVrCampus(userId) {
+  return fetchJson(buildUrl(`/vr/users/${encodeURIComponent(userId)}/leave`), {
+    method: 'POST',
+  })
+}
+
+export async function getVrScene() {
+  return fetchJson(buildUrl('/vr/scene'))
+}
