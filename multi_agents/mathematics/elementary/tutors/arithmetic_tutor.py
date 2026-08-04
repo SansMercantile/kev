@@ -3,7 +3,7 @@ Arithmetic Tutor for Elementary Level
 SansMercantile™ AI Development Team
 """
 
-from ..base_tutor_agent import BaseTutorAgent, EducationLevel, DifficultyLevel, StudentProfile
+from ....base_tutor_agent import BaseTutorAgent, EducationLevel, DifficultyLevel, StudentProfile
 from typing import Dict, Any, List
 
 class ElementaryArithmeticTutor(BaseTutorAgent):

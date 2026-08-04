@@ -41,6 +41,7 @@ from kev.backend.agent_initialization import (
 )
 from kev.backend.learning_service import learning_system
 from kev.backend.services import bedrock_client
+from kev.backend.services import agent_catalog
 from kev.virtual_school.vr_ar.vr_school_environment import VRSchoolEnvironment, VRPlatform
 
 # Configure logging
@@ -131,6 +132,7 @@ async def startup_event():
     await kev_infra.initialize()
     initialize_kev_learning_system()
     vr_environment.initialize_school_objects()
+    agent_catalog.build_index()
 
     # Seed initial subjects for robustness testing and learning progression
     curriculum_engine.add_subject(Subject(id="math_101", name="Basic Algebra", description="Foundations of Algebra"))
@@ -397,6 +399,64 @@ async def vr_state():
 async def vr_scene():
     """Exported VR scene for rendering (objects + active user positions)."""
     return {"status": "success", "scene": vr_environment.export_vr_scene()}
+
+# --- Real multi_agents/ catalog (1000+ actual per-subject tutor agents) ---
+
+@app.get("/multi-agents/catalog")
+async def multi_agents_catalog(subject: Optional[str] = None, education_level: Optional[str] = None,
+                                 tutor_type: Optional[str] = None):
+    """Metadata-only listing of the real multi_agents/ tutor roster - no imports happen here."""
+    entries = agent_catalog.list_agents(subject=subject, education_level=education_level, tutor_type=tutor_type)
+    return {
+        "status": "success",
+        "count": len(entries),
+        "agents": [
+            {"tutor_id": e.tutor_id, "subject": e.subject, "specialization": e.specialization,
+             "tutor_type": e.tutor_type, "education_levels": e.education_levels}
+            for e in entries
+        ],
+    }
+
+@app.post("/multi-agents/{tutor_id}/ask")
+async def multi_agents_ask(tutor_id: str, req: AgentAskRequest):
+    """
+    Stateless per-request call to a REAL multi_agents/ tutor file. Lazily
+    imports + instantiates only this one agent (agent_catalog.py), then
+    routes the actual reply through Bedrock using the agent's real
+    subject/specialization metadata - safe to run on any Fargate task.
+    """
+    entry = agent_catalog.get_entry(tutor_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail=f"Unknown tutor_id '{tutor_id}'")
+
+    try:
+        agent = agent_catalog.instantiate_agent(tutor_id)
+    except Exception as exc:
+        logger.error(f"Failed to load real agent {tutor_id} ({entry.module_path}): {exc}")
+        raise HTTPException(status_code=502, detail="Agent module failed to load")
+
+    student_line = f" The student's name is {req.student_name}." if req.student_name else ""
+    level = req.education_level or (entry.education_levels[0] if entry.education_levels else "general")
+    system_prompt = (
+        f"You are a KEV {entry.tutor_type} specializing in {entry.specialization} "
+        f"within {entry.subject}. You are teaching at the {level} level."
+        f"{student_line} Be encouraging, clear, and age-appropriate."
+    )
+
+    messages = [{"role": m.role, "content": m.content} for m in req.history]
+    messages.append({"role": "user", "content": req.message})
+    model_id = settings.BEDROCK_EXPERT_MODEL_ID if entry.tutor_type.lower() == "expert" else settings.BEDROCK_DEFAULT_MODEL_ID
+
+    try:
+        reply = bedrock_client.invoke_agent(system_prompt=system_prompt, messages=messages, model_id=model_id)
+    except Exception as exc:
+        logger.error(f"Agent {tutor_id} Bedrock call failed: {exc}")
+        raise HTTPException(status_code=502, detail="Agent is temporarily unavailable")
+
+    return {
+        "status": "success", "tutor_id": tutor_id, "subject": entry.subject,
+        "specialization": entry.specialization, "class_name": type(agent).__name__, "reply": reply,
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

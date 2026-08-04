@@ -3,7 +3,7 @@ Elementary Math Expert Agent
 SansMercantile™ AI Development Team
 """
 
-from ...base_tutor_agent import BaseTutorAgent, EducationLevel, TutorType
+from ....base_tutor_agent import BaseTutorAgent, EducationLevel, TutorType
 
 class ElementaryMathExpert(BaseTutorAgent):
     """Expert-level elementary mathematics tutor"""
