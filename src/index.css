@@ -61,6 +61,14 @@ a {
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #1e3a8a;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kev-brand-logo {
+  border-radius: 6px;
+  display: block;
 }
 
 .kev-brand span {

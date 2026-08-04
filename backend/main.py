@@ -44,6 +44,12 @@ from kev.backend.services import bedrock_client
 from kev.backend.services import agent_catalog
 from kev.virtual_school.vr_ar.vr_school_environment import VRSchoolEnvironment, VRPlatform
 
+try:
+    from shared_resources.central_library.integration.kev.kev_integration import KEVLibraryIntegration
+except Exception as _lib_exc:
+    logging.getLogger(__name__).warning(f"Central Library integration unavailable: {_lib_exc}")
+    KEVLibraryIntegration = None
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -55,9 +61,17 @@ app = FastAPI(
 )
 
 # CORS middleware
+# NOTE: allow_origins=["*"] + allow_credentials=True was invalid anyway
+# (browsers reject wildcard-origin-with-credentials) - locked down to the
+# real production/preview/dev origins instead.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://kev.sansmercantile.com",
+        "http://localhost:3004",
+        "http://localhost:5173",
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -68,6 +82,11 @@ app.add_middleware(
 # runs on multiple Fargate tasks, VR participants need sticky routing to the
 # same task, or this needs to move to a shared store (e.g. Redis) later.
 vr_environment = VRSchoolEnvironment()
+
+# Central Library integration - the Constellation's shared educational
+# content/knowledge layer. library_engine=None because KEVLibraryIntegration
+# only ever calls its own in-memory cache, never library_engine directly.
+library_integration = KEVLibraryIntegration(library_engine=None) if KEVLibraryIntegration else None
 
 # --- Models ---
 class SubjectRequest(BaseModel):
@@ -133,6 +152,8 @@ async def startup_event():
     initialize_kev_learning_system()
     vr_environment.initialize_school_objects()
     agent_catalog.build_index()
+    if library_integration:
+        await library_integration.initialize()
 
     # Seed initial subjects for robustness testing and learning progression
     curriculum_engine.add_subject(Subject(id="math_101", name="Basic Algebra", description="Foundations of Algebra"))
@@ -457,6 +478,22 @@ async def multi_agents_ask(tutor_id: str, req: AgentAskRequest):
         "status": "success", "tutor_id": tutor_id, "subject": entry.subject,
         "specialization": entry.specialization, "class_name": type(agent).__name__, "reply": reply,
     }
+
+# --- Central Library (Constellation shared knowledge layer) ---
+
+@app.get("/library/search")
+async def library_search(query: str, subject: Optional[str] = None, level: Optional[str] = None):
+    """Search the Constellation's shared educational content library."""
+    if not library_integration:
+        raise HTTPException(status_code=503, detail="Central Library integration unavailable")
+    return await library_integration.search_educational_content(query, subject=subject, level=level)
+
+@app.get("/library/resources")
+async def library_resources(subject: str, topic: str, level: str = "intermediate"):
+    """Get tutoring resources (teaching strategies, assessment methods) for a subject/topic."""
+    if not library_integration:
+        raise HTTPException(status_code=503, detail="Central Library integration unavailable")
+    return await library_integration.get_tutoring_resources(subject, topic, level=level)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
