@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+// Falls back to the Vercel same-origin proxy (see vercel.json rewrites),
+// which forwards to the ECS Fargate backend server-side - this avoids
+// mixed-content blocking, since the backend ALB doesn't have a TLS cert
+// yet and the frontend is always served over HTTPS. Local dev overrides
+// this via VITE_API_BASE_URL in .env (e.g. http://localhost:8000).
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 function buildUrl(path) {
   return `${API_BASE}${path}`
