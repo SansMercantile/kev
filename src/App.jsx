@@ -37,7 +37,10 @@ const App = () => {
         <a className="skip-link" href="#main">Skip to content</a>
         <header className={`kev-nav${scrolled ? ' kev-nav-scrolled' : ''}`} role="banner" aria-label="Top header">
           <div className="kev-nav-inner">
-            <Link to="/" className="kev-brand">KEV</Link>
+            <Link to="/" className="kev-brand">
+              <img src="/kev-logo.svg" alt="KEV" className="kev-brand-logo" width={32} height={32} />
+              KEV
+            </Link>
 
             <nav id="kev-nav-links" className={`kev-nav-links${menuOpen ? ' open' : ''}`} role="navigation" aria-label="Main navigation">
               {navLinks.map((item) => (
