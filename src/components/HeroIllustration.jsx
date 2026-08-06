@@ -1,32 +1,47 @@
 import React from 'react'
 
-export default function HeroIllustration(props) {
+// A real signature illustration tied to the KEV mark itself (open book,
+// gold ribbon bookmark) - not a generic gradient blob + dashboard card.
+export default function HeroIllustration() {
   return (
-    <svg
-      viewBox="0 0 600 420"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      role="img"
-      aria-hidden="true"
-      {...props}
-    >
+    <svg viewBox="0 0 420 420" width="100%" height="100%" role="img" aria-label="An open book with a gold ribbon bookmark, representing KEV's curriculum library">
       <defs>
-        <linearGradient id="kevGrad" x1="0" x2="1">
-          <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#7dd3fc" stopOpacity="0.08" />
+        <linearGradient id="kev-page" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#fffdf8" />
+          <stop offset="100%" stopColor="#f2e9d6" />
+        </linearGradient>
+        <linearGradient id="kev-ribbon" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#e2c874" />
+          <stop offset="100%" stopColor="#c9a227" />
         </linearGradient>
       </defs>
 
-      <rect x="0" y="0" width="600" height="420" rx="20" fill="url(#kevGrad)" />
-
-      <g transform="translate(40,60)">
-        <rect x="12" y="100" width="200" height="120" rx="10" fill="#fff" fillOpacity="0.92" />
-        <path d="M28 108h172" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
-        <path d="M28 124h140" stroke="#bfdbfe" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="380" cy="40" r="48" fill="#60a5fa" fillOpacity="0.08" />
-        <path d="M352 34c10 14 30 14 40 0" stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.9" />
-        <polygon points="480,160 492,190 524,190 498,208 510,240 480,220 450,240 462,208 436,190 468,190" fill="#fdba74" fillOpacity="0.08" />
+      {/* stacked subject "pages" fanning out behind the open book */}
+      <g opacity="0.5">
+        <rect x="70" y="60" width="130" height="170" rx="4" fill="#8a3324" transform="rotate(-14 135 145)" />
+        <rect x="220" y="55" width="130" height="170" rx="4" fill="#3c4a68" transform="rotate(11 285 140)" />
       </g>
+
+      {/* the open book */}
+      <g>
+        <path d="M60 320 L205 300 L205 130 L60 148 Z" fill="url(#kev-page)" stroke="#e2d8bd" strokeWidth="1.5" />
+        <path d="M350 320 L205 300 L205 130 L350 148 Z" fill="url(#kev-page)" stroke="#e2d8bd" strokeWidth="1.5" />
+        <path d="M60 148 L205 130 L350 148 L205 168 Z" fill="#0b1830" opacity="0.06" />
+
+        {/* text lines on each page, standing in for curriculum content */}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <rect key={`l-${i}`} x={82} y={172 + i * 24} width={100 - i * 6} height="4" rx="2" fill="#c9bfa0" />
+        ))}
+        {[0, 1, 2, 3, 4].map((i) => (
+          <rect key={`r-${i}`} x={222} y={172 + i * 24} width={100 - i * 6} height="4" rx="2" fill="#c9bfa0" />
+        ))}
+      </g>
+
+      {/* gold ribbon bookmark, threading down through the spine */}
+      <path d="M195 92 L215 92 L215 250 L205 236 L195 250 Z" fill="url(#kev-ribbon)" />
+
+      {/* small maroon tree emblem, echoing the KEV mark */}
+      <circle cx="205" cy="112" r="9" fill="#8a3324" />
     </svg>
   )
 }

@@ -9,22 +9,19 @@ export default function Landing() {
       <section className="kev-hero">
         <div className="kev-hero-content">
           <div className="kev-hero-copy">
-            <div className="kev-eyebrow">Next‑gen learning platform</div>
-            <h1 className="kev-hero-title">A next‑generation curriculum, AI tutors, and game-based pedagogy for scale.</h1>
+            <div className="kev-eyebrow">872+ specialist tutors, 14 subjects</div>
+            <h1 className="kev-hero-title">A curriculum library with <strong>real</strong> tutors behind every page.</h1>
             <p>
-              KEV combines a modular curriculum library with adaptive AI tutors, immersive game-based learning,
-              real‑time analytics, and governance controls to enable institutional‑grade, personalized learning at scale.
+              KEV pairs a central curriculum library covering 185+ subjects with hundreds of
+              specialist AI tutors, each one purpose-built for a subject, grade level, and role
+              - from elementary arithmetic to university-level music theory - and backed by
+              Claude on Amazon Bedrock.
             </p>
 
             <div className="kev-hero-actions">
-              <a
-                className="kev-btn kev-btn-primary"
-                href={import.meta.env.VITE_PLATFORM_URL ?? 'http://localhost:3002'}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Launch KEV Platform
-              </a>
+              <Link to="/portal" className="kev-btn kev-btn-primary">
+                Open the Portal
+              </Link>
               <Link to="/integration" className="kev-btn kev-btn-secondary">
                 Explore Integration
               </Link>
@@ -33,10 +30,11 @@ export default function Landing() {
 
           <HeroIllustration className="kev-hero-decor" />
           <div className="kev-hero-panel">
-            <h3>Live KEV Environment</h3>
+            <h3>What's actually running</h3>
             <p>
-              Active learning engines, policy orchestration, and real-time curriculum optimization
-              working together to serve students, educators, and institutional governance.
+              A live tutor catalog, a virtual campus with VR/AR classrooms, and a shared
+              curriculum library - all callable over a stateless API, so any tutor can be
+              reached on demand without holding session state between requests.
             </p>
             <div className="kev-hero-mini">
               {portalStats.slice(0, 2).map((stat) => (

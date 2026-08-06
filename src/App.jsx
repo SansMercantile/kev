@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom'
 
 import Landing from './pages/Landing'
 import Docs from './pages/Docs'
@@ -9,6 +9,7 @@ import Platform from './pages/Platform'
 import Integration from './pages/Integration'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
+import Portal from './pages/Portal'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
 
@@ -44,9 +45,14 @@ const App = () => {
 
             <nav id="kev-nav-links" className={`kev-nav-links${menuOpen ? ' open' : ''}`} role="navigation" aria-label="Main navigation">
               {navLinks.map((item) => (
-                <Link key={item.to} to={item.to} className="kev-nav-link" onClick={() => setMenuOpen(false)}>
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={({ isActive }) => `kev-nav-link${isActive ? ' kev-nav-link-active' : ''}`}
+                  onClick={() => setMenuOpen(false)}
+                >
                   {item.label}
-                </Link>
+                </NavLink>
               ))}
 
               <a
@@ -78,6 +84,7 @@ const App = () => {
             <Route path="/categories" element={<Categories />} />
             <Route path="/campus-map" element={<VirtualSchoolMap />} />
             <Route path="/vr" element={<VRCampus />} />
+            <Route path="/portal" element={<Portal />} />
           </Routes>
         </main>
 

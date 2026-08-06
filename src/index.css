@@ -1,14 +1,30 @@
 :root {
-  --kev-bg-start: #f8fafc;
-  --kev-bg-end: #ffffff;
-  --kev-primary: #1e3a8a;
-  --kev-accent: #2563eb;
-  --kev-accent-2: #3b82f6;
-  --kev-muted: #64748b;
+  /* Grounded in the KEV mark: navy book, gold ribbon bookmark, brick-red
+     tree emblem - an academic/library identity, not generic SaaS blue. */
+  --kev-ink: #0b1830;
+  --kev-ink-2: #142a52;
+  --kev-ink-soft: #3c4a68;
+  --kev-parchment: #f7f2e7;
+  --kev-parchment-2: #fffdf8;
+  --kev-gold: #c9a227;
+  --kev-gold-soft: #e2c874;
+  --kev-maroon: #8a3324;
+  --kev-line: #e2d8bd;
   --kev-card-bg: #ffffff;
-  --kev-glass: rgba(255,255,255,0.6);
+  /* Aliases so the rest of this file (not yet redesigned) doesn't break -
+     old names now resolve to the closest new token. */
+  --kev-primary: var(--kev-ink);
+  --kev-accent: var(--kev-gold);
+  --kev-accent-2: var(--kev-gold-soft);
+  --kev-muted: var(--kev-ink-soft);
+  --kev-bg-start: var(--kev-parchment);
+  --kev-bg-end: var(--kev-parchment-2);
+  --kev-glass: rgba(11, 24, 48, 0.06);
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   color-scheme: light;
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -23,8 +39,8 @@ body,
 
 body {
   margin: 0;
-  background: linear-gradient(180deg, var(--kev-bg-start) 0%, var(--kev-bg-end) 100%);
-  color: #0f172a;
+  background: var(--kev-parchment);
+  color: var(--kev-ink);
   font-size: 16px;
   line-height: 1.62;
 }
@@ -42,8 +58,8 @@ a {
   position: sticky;
   top: 0;
   z-index: 30;
-  backdrop-filter: blur(18px);
-  transition: all 220ms ease;
+  background: var(--kev-ink);
+  transition: box-shadow 220ms ease;
 }
 
 .kev-nav-inner {
@@ -57,13 +73,14 @@ a {
 }
 
 .kev-brand {
-  font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #1e3a8a;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--kev-parchment-2);
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .kev-brand-logo {
@@ -72,18 +89,18 @@ a {
 }
 
 .kev-brand span {
-  color: #2563eb;
+  color: var(--kev-gold-soft);
 }
 
 .kev-nav-links {
   display: flex;
-  gap: 1.5rem;
+  gap: 1.75rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
 .kev-nav-link {
-  color: #0f172a;
+  color: rgba(247, 242, 231, 0.78);
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 500;
@@ -91,36 +108,69 @@ a {
   position: relative;
 }
 
+.kev-nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 3px;
+  background: var(--kev-gold);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+}
+
+.kev-nav-link:hover {
+  color: var(--kev-parchment-2);
+}
+
+.kev-nav-link:hover::after {
+  transform: scaleX(0.5);
+}
+
+.kev-nav-link-active {
+  color: var(--kev-parchment-2);
+}
+
+.kev-nav-link-active::after {
+  transform: scaleX(1);
+}
+
 .kev-nav-link:focus-visible {
-  outline: 3px solid rgba(37,99,235,0.18);
-  border-radius: 6px;
+  outline: 2px solid var(--kev-gold);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .kev-menu-toggle {
   display: none;
   border: none;
   background: transparent;
-  color: #1f2937;
+  color: var(--kev-parchment-2);
   cursor: pointer;
 }
 
 .kev-nav-scrolled {
-  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 24px rgba(11, 24, 48, 0.18);
   border-bottom: 1px solid rgba(148, 163, 184, 0.16);
 }
 
-.kev-nav-link:hover,
-.kev-nav-link.active {
-  color: #1e40af;
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--kev-ink);
 }
 
 .kev-hero {
   position: relative;
   overflow: hidden;
-  padding: 96px 24px 64px;
-  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 42%),
-    radial-gradient(circle at top right, rgba(236, 72, 153, 0.14), transparent 28%),
-    linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+  padding: 96px 24px 72px;
+  background: var(--kev-ink);
+  background-image:
+    radial-gradient(circle at 15% 20%, rgba(201, 162, 39, 0.14), transparent 40%),
+    linear-gradient(180deg, var(--kev-ink) 0%, var(--kev-ink-2) 100%);
 }
 
 .kev-hero-content {
@@ -140,41 +190,49 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  margin-bottom: 1rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: #2563eb;
+  margin-bottom: 1.25rem;
+  padding: 0.3rem 0.85rem 0.3rem 0.6rem;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--kev-gold-soft);
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.12em;
 }
 
 .kev-eyebrow::before {
   content: '';
   display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: #2563eb;
+  width: 7px;
+  height: 7px;
+  background: var(--kev-gold);
   border-radius: 999px;
 }
 
 .kev-hero-title {
-  font-size: clamp(2.75rem, 4vw, 4.8rem);
-  line-height: 1.02;
-  letter-spacing: -0.05em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--kev-parchment-2);
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
   margin: 0 0 1.5rem;
   max-width: 680px;
 }
 
 .kev-hero-title strong {
-  color: #1d4ed8;
+  color: var(--kev-gold-soft);
+  font-style: italic;
 }
 
 .kev-hero-copy p {
-  font-size: 1.05rem;
-  line-height: 1.75;
-  color: #475569;
-  margin-bottom: 1.5rem;
-  max-width: 640px;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: rgba(247, 242, 231, 0.78);
+  margin-bottom: 1.75rem;
+  max-width: 600px;
 }
 
 .kev-hero-actions {
@@ -188,9 +246,9 @@ a {
   align-items: center;
   justify-content: center;
   border: none;
-  border-radius: 999px;
-  padding: 0.95rem 1.75rem;
-  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 600;
   cursor: pointer;
   transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
   text-decoration: none;
@@ -201,37 +259,46 @@ a {
 }
 
 .kev-btn-primary {
-  background: #1e3a8a;
-  color: white;
-  box-shadow: 0 18px 45px rgba(59, 130, 246, 0.18);
+  background: var(--kev-gold);
+  color: var(--kev-ink);
+  box-shadow: 0 14px 32px rgba(201, 162, 39, 0.22);
+}
+
+.kev-btn-primary:hover {
+  background: var(--kev-gold-soft);
+  box-shadow: 0 18px 40px rgba(201, 162, 39, 0.28);
 }
 
 .kev-btn-secondary {
-  background: white;
-  color: #1f2937;
-  border: 1px solid #cbd5e1;
+  background: transparent;
+  color: var(--kev-parchment-2);
+  border: 1px solid rgba(247, 242, 231, 0.3);
+}
+
+.kev-btn-secondary:hover {
+  border-color: var(--kev-gold-soft);
+  color: var(--kev-gold-soft);
 }
 
 .kev-hero-panel {
   position: relative;
   min-height: 420px;
-  border-radius: 2rem;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.95), rgba(59, 130, 246, 0.82));
+  border-radius: 12px;
+  background: var(--kev-ink-2);
+  border: 1px solid rgba(201, 162, 39, 0.25);
   padding: 2.5rem;
-  color: white;
+  color: var(--kev-parchment-2);
   overflow: hidden;
-  box-shadow: 0 36px 80px rgba(59, 130, 246, 0.18);
 }
 
 .kev-hero-panel::before {
   content: '';
   position: absolute;
-  right: -10%;
-  top: -20%;
-  width: 260px;
-  height: 260px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--kev-gold), var(--kev-maroon));
 }
 
 .kev-hero-panel h3,
@@ -243,18 +310,12 @@ a {
 .kev-hero-panel h3 {
   margin-top: 0;
   margin-bottom: 1rem;
-  font-size: 1.8rem;
+  font-size: 1.6rem;
 }
 
 .kev-hero-panel p {
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(247, 242, 231, 0.75);
   line-height: 1.7;
-}
-
-/* Hero decoration and UI polish */
-.kev-hero {
-  position: relative;
-  overflow: visible;
 }
 
 .kev-hero-decor {
@@ -263,33 +324,18 @@ a {
   top: -8%;
   width: 420px;
   height: 420px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.12), transparent 30%), radial-gradient(circle at 70% 70%, rgba(236,72,153,0.10), transparent 40%);
-  filter: blur(28px);
-  transform: scale(1);
-  animation: kev-float 12s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
-}
-
-@keyframes kev-float {
-  0% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-8px) rotate(6deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+  opacity: 0.9;
 }
 
 .kev-hero-content { position: relative; z-index: 2; }
 
-.kev-hero-title { text-shadow: 0 6px 20px rgba(30,58,138,0.06); font-weight: 800; }
+.kev-card { transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease; }
+.kev-card:hover { transform: translateY(-6px); box-shadow: 0 24px 60px rgba(11, 24, 48, 0.1); border-color: rgba(201, 162, 39, 0.3); }
 
-.kev-btn-primary { background: linear-gradient(90deg, var(--kev-primary), var(--kev-accent-2)); box-shadow: 0 14px 40px rgba(37,99,235,0.12); color: #fff; }
-.kev-btn-primary:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 22px 55px rgba(37,99,235,0.16); }
-
-.kev-card { transition: transform 260ms cubic-bezier(.2,.9,.2,1), box-shadow 260ms ease, border-color 260ms ease; }
-.kev-card:hover { transform: translateY(-8px); box-shadow: 0 34px 80px rgba(15,23,42,0.10); border-color: rgba(30,58,138,0.06); }
-
-.kev-section-title { position: relative; display: inline-block; }
-.kev-section-title::after { content: ''; display: block; height: 4px; width: 56px; background: linear-gradient(90deg, var(--kev-accent-2), #7dd3fc); border-radius: 999px; margin-top: 12px; opacity: 0.95; }
+.kev-section-title { position: relative; display: inline-block; font-family: var(--font-display); }
+.kev-section-title::after { content: ''; display: block; height: 3px; width: 48px; background: var(--kev-gold); border-radius: 999px; margin-top: 12px; }
 
 .kev-hero-mini { display: flex; gap: 1rem; margin-top: 0.75rem; z-index: 2; }
 .mini-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
@@ -298,6 +344,10 @@ a {
 .animated-icon:hover { transform: translateY(-6px) scale(1.08); opacity: 1; }
 
 html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 
 .kev-grid {
   display: grid;
