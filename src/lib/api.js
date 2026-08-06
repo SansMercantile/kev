@@ -72,3 +72,11 @@ export async function leaveVrCampus(userId) {
 export async function getVrScene() {
   return fetchJson(buildUrl('/vr/scene'))
 }
+
+export async function submitOnboardingApplication(data) {
+  return fetchJson(buildUrl('/onboarding/apply'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+}

@@ -43,6 +43,7 @@ from kev.backend.learning_service import learning_system
 from kev.backend.services import bedrock_client
 from kev.backend.services import agent_catalog
 from kev.virtual_school.vr_ar.vr_school_environment import VRSchoolEnvironment, VRPlatform
+from kev.virtual_school.identity.student_identity_system import StudentIdentitySystem
 
 try:
     from shared_resources.central_library.integration.kev.kev_integration import KEVLibraryIntegration
@@ -87,6 +88,13 @@ vr_environment = VRSchoolEnvironment()
 # content/knowledge layer. library_engine=None because KEVLibraryIntegration
 # only ever calls its own in-memory cache, never library_engine directly.
 library_integration = KEVLibraryIntegration(library_engine=None) if KEVLibraryIntegration else None
+
+# Student onboarding / KYC. Deliberately does not accept or store
+# ethnicity/religion via the API even though the underlying dataclass has
+# those fields - collecting protected attributes on minors during
+# onboarding is a real legal/ethical exposure (COPPA, discrimination law)
+# and isn't needed for anything this platform actually does.
+identity_system = StudentIdentitySystem()
 
 # --- Models ---
 class SubjectRequest(BaseModel):
@@ -142,6 +150,22 @@ class VRSessionStartRequest(BaseModel):
     participants: List[str]
     location: str
     metadata: Dict[str, Any] = {}
+
+class OnboardingRequest(BaseModel):
+    first_name: str
+    last_name: str
+    middle_name: str = ""
+    date_of_birth: str  # ISO date, e.g. "2015-04-12"
+    gender: str = ""
+    nationality: str
+    country_of_residence: str = ""
+    email: str
+    phone: str = ""
+    current_grade: str = ""
+    previous_school: str = ""
+    special_needs: List[str] = []
+    # NOTE: ethnicity/religion are intentionally not accepted here - see
+    # identity_system comment above.
 
 # --- Lifespan/Startup ---
 @app.on_event("startup")
@@ -494,6 +518,36 @@ async def library_resources(subject: str, topic: str, level: str = "intermediate
     if not library_integration:
         raise HTTPException(status_code=503, detail="Central Library integration unavailable")
     return await library_integration.get_tutoring_resources(subject, topic, level=level)
+
+# --- Student Onboarding / KYC ---
+
+@app.post("/onboarding/apply")
+async def onboarding_apply(req: OnboardingRequest):
+    """Submit a student admission application. Age is validated against
+    country-specific minimums server-side (see StudentIdentitySystem)."""
+    success, message, student = identity_system.create_student_application(req.dict())
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    return {
+        "status": "success",
+        "student_id": student.student_id,
+        "application_id": student.id,
+        "verification_status": student.verification_status.value,
+        "message": message,
+    }
+
+@app.get("/onboarding/status/{application_id}")
+async def onboarding_status(application_id: str):
+    """Check an application's verification status by its internal id."""
+    student = identity_system.students.get(application_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Unknown application_id")
+    return {
+        "status": "success",
+        "student_id": student.student_id,
+        "verification_status": student.verification_status.value,
+        "enrollment_status": student.status.value,
+    }
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

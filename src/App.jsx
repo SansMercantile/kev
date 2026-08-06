@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom'
+import { useAuth0 } from '@auth0/auth0-react'
 
 import Landing from './pages/Landing'
 import Docs from './pages/Docs'
@@ -10,8 +11,32 @@ import Integration from './pages/Integration'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
 import Portal from './pages/Portal'
+import Onboarding from './pages/Onboarding'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
+
+function AuthButton() {
+  const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
+
+  if (isLoading) return null
+
+  if (isAuthenticated) {
+    return (
+      <button
+        className="kev-btn kev-btn-secondary"
+        onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+      >
+        {user?.given_name || user?.name || 'Account'} · Sign out
+      </button>
+    )
+  }
+
+  return (
+    <button className="kev-btn kev-btn-secondary" onClick={() => loginWithRedirect()}>
+      Sign in
+    </button>
+  )
+}
 
 const App = () => {
   const [scrolled, setScrolled] = useState(false)
@@ -28,6 +53,7 @@ const App = () => {
     { label: 'Platform', to: '/platform' },
     { label: 'Campus Map', to: '/campus-map' },
     { label: 'VR Campus', to: '/vr' },
+    { label: 'Onboarding', to: '/onboarding' },
     { label: 'Docs', to: '/docs' },
     { label: 'Tech', to: '/tech' },
   ]
@@ -64,6 +90,7 @@ const App = () => {
                 Contact
                 <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
               </a>
+              <AuthButton />
             </nav>
 
             <button className="kev-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-controls="kev-nav-links" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close menu' : 'Open menu'}>
@@ -85,6 +112,7 @@ const App = () => {
             <Route path="/campus-map" element={<VirtualSchoolMap />} />
             <Route path="/vr" element={<VRCampus />} />
             <Route path="/portal" element={<Portal />} />
+            <Route path="/onboarding" element={<Onboarding />} />
           </Routes>
         </main>
 
