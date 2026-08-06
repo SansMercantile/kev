@@ -12,7 +12,9 @@
     "preview:app": "vite preview --port 3004"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.23.0",
     "lucide-react": "^1.14.0",
+    "posthog-js": "^1.413.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0"
