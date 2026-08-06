@@ -9,6 +9,23 @@ const OBJECT_SHAPE = {
   sports_equipment: 'a-sphere',
 }
 
+// Mirrors backend/../vr_ar/vr_school_environment.py's _ROOM_COLOR_BY_TYPE
+// so a room reads the same way here as it was designed server-side.
+const ROOM_COLOR_BY_TYPE = {
+  classroom: '#d9cc9e',
+  lecture_hall: '#b3a6bf',
+  laboratory: '#b3d9cc',
+  library: '#bf9973',
+  gymnasium: '#8cb3d9',
+  music_room: '#cc8c8c',
+  art_studio: '#d9b3d9',
+  computer_lab: '#8c99bf',
+  cafeteria: '#e6bf8c',
+  office: '#a6a6a6',
+  common_area: '#d9d9cc',
+  auditorium: '#736680',
+}
+
 export default function VRCampus() {
   const [username, setUsername] = useState('')
   const [session, setSession] = useState(null) // { user, scene }
@@ -47,11 +64,11 @@ export default function VRCampus() {
     setSession(null)
   }
 
-  const handleGroundClick = async (evt) => {
+  const handleRoomClick = async (room) => async (evt) => {
     if (!session?.user?.id) return
     const point = evt.detail?.intersection?.point
-    if (!point) return
-    const position = [point.x, 0, point.z]
+    const [rx, ry, rz] = room.coordinates
+    const position = point ? [point.x, ry + 0.05, point.z] : [rx, ry + 0.05, rz]
     try {
       const result = await moveVrUser(session.user.id, position)
       setSession((prev) => ({ ...prev, user: result.user }))
@@ -66,8 +83,9 @@ export default function VRCampus() {
         <section className="kev-section" aria-label="VR Campus">
           <h2 className="kev-section-title">VR Campus</h2>
           <p className="kev-section-copy">
-            Step into the KEV virtual school - join to load the live 3D environment and
-            walk around the classroom by clicking the floor.
+            Step into the KEV virtual school building - 14 real rooms across 5 floors,
+            from the basement gymnasium to the third-floor auditorium. Join to load it and
+            walk around by clicking a room floor.
           </p>
           <form onSubmit={handleJoin} className="kev-card" style={{ maxWidth: 420, display: 'grid', gap: '0.75rem' }}>
             <label htmlFor="vr-username">Your name</label>
@@ -89,6 +107,7 @@ export default function VRCampus() {
   }
 
   const { scene, user } = session
+  const rooms = scene.rooms || []
 
   return (
     <main className="kev-section">
@@ -98,30 +117,50 @@ export default function VRCampus() {
           <button className="kev-btn" onClick={handleLeave}>Leave</button>
         </div>
         <p className="kev-section-copy">
-          Click the classroom floor to walk there. Objects are the real KEV school
-          inventory returned by the backend.
+          Drag to look around, WASD to walk, or click a room floor to jump there.
+          {rooms.length} rooms, {scene.objects.length} interactive objects - all real KEV
+          building data, not placeholder shapes.
         </p>
 
-        <a-scene ref={sceneRef} embedded style={{ width: '100%', height: '520px', borderRadius: '0.75rem', overflow: 'hidden' }}>
+        <a-scene ref={sceneRef} embedded style={{ width: '100%', height: '560px', borderRadius: '0.75rem', overflow: 'hidden' }}>
           <a-assets></a-assets>
 
           <a-sky color={scene.environment.skybox.weather === 'clear' ? '#87CEEB' : '#94a3b8'}></a-sky>
 
-          <a-entity
-            light={`type: ambient; intensity: ${scene.environment.lighting.ambient_intensity}`}
-          ></a-entity>
+          <a-entity light={`type: ambient; intensity: ${scene.environment.lighting.ambient_intensity}`}></a-entity>
           <a-entity
             light={`type: directional; intensity: ${scene.environment.lighting.directional_light.intensity}`}
             position="0 10 5"
           ></a-entity>
 
-          <a-plane
-            rotation="-90 0 0"
-            width="30"
-            height="30"
-            color="#7c8b6f"
-            onClick={handleGroundClick}
-          ></a-plane>
+          {rooms.map((room) => {
+            const [rx, ry, rz] = room.coordinates
+            const [w, h, d] = room.dimensions
+            const color = ROOM_COLOR_BY_TYPE[room.facility_type] || '#cccccc'
+            return (
+              <a-entity key={room.name}>
+                <a-box
+                  position={`${rx} ${ry} ${rz}`}
+                  width={w} height={0.1} depth={d}
+                  color={color}
+                  onClick={handleRoomClick(room)}
+                ></a-box>
+                <a-box
+                  position={`${rx} ${ry + h / 2} ${rz}`}
+                  width={w} height={h} depth={d}
+                  color={color}
+                  material="opacity: 0.12; transparent: true; side: back"
+                ></a-box>
+                <a-text
+                  value={room.name}
+                  align="center"
+                  position={`${rx} ${ry + h + 0.3} ${rz}`}
+                  scale="1.6 1.6 1.6"
+                  color="#0b1830"
+                ></a-text>
+              </a-entity>
+            )
+          })}
 
           {scene.objects.map((obj) => {
             const Tag = OBJECT_SHAPE[obj.object_type] || 'a-box'
@@ -146,7 +185,7 @@ export default function VRCampus() {
 
           <a-entity id="player" position={user.position.join(' ')}>
             <a-sphere radius="0.3" color="#e63946"></a-sphere>
-            <a-camera position="0 1.6 0" cursor="rayOrigin: mouse"></a-camera>
+            <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
           </a-entity>
         </a-scene>
       </section>

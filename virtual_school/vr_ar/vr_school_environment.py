@@ -12,6 +12,25 @@ from enum import Enum
 import uuid
 from datetime import datetime
 
+from kev.virtual_school.core.virtual_school_building import VirtualSchoolBuilding, FacilityType
+
+# Rough per-facility-type wall/floor tint, purely visual, so different
+# room types read differently at a glance (library warmer, gym cooler...).
+_ROOM_COLOR_BY_TYPE = {
+    FacilityType.CLASSROOM: [0.85, 0.80, 0.62],
+    FacilityType.LECTURE_HALL: [0.70, 0.65, 0.75],
+    FacilityType.LABORATORY: [0.70, 0.85, 0.80],
+    FacilityType.LIBRARY: [0.75, 0.60, 0.45],
+    FacilityType.GYMNASIUM: [0.55, 0.70, 0.85],
+    FacilityType.MUSIC_ROOM: [0.80, 0.55, 0.55],
+    FacilityType.ART_STUDIO: [0.85, 0.70, 0.85],
+    FacilityType.COMPUTER_LAB: [0.55, 0.60, 0.75],
+    FacilityType.CAFETERIA: [0.90, 0.75, 0.55],
+    FacilityType.OFFICE: [0.65, 0.65, 0.65],
+    FacilityType.COMMON_AREA: [0.80, 0.80, 0.75],
+    FacilityType.AUDITORIUM: [0.45, 0.40, 0.55],
+}
+
 class VRPlatform(Enum):
     OCULUS = "oculus"
     HTC_VIVE = "htc_vive"
@@ -114,6 +133,7 @@ class VRSchoolEnvironment:
         self.virtual_objects: Dict[str, VirtualObject] = {}
         self.active_sessions: Dict[str, Dict] = {}
         self.session_history: Dict[str, Dict] = {}
+        self.building = VirtualSchoolBuilding()
         self.environment_settings = self._initialize_environment()
         self.interaction_handlers = self._setup_interaction_handlers()
         
@@ -215,51 +235,84 @@ class VRSchoolEnvironment:
         return obj
     
     def initialize_school_objects(self):
-        """Initialize all interactive objects for the school environment"""
-        
-        # Classroom objects
+        """Initialize the actual school building (real rooms, walls, floors
+        from VirtualSchoolBuilding's 14-room layout) plus the interactive
+        objects placed inside their correct matching rooms - previously
+        this created 5 objects floating in open space with no building
+        around them at all."""
+
+        room_by_name = {f.name: f for f in self.building.facilities.values()}
+
+        for facility in self.building.facilities.values():
+            self._create_room_shell(facility)
+
+        self._place_in_room("Interactive Whiteboard", "display_device", "Mathematics Classroom A",
+                             offset=(0, 1.5, -3.5),
+                             interaction_scripts=["write", "erase", "change_slide", "share_screen"],
+                             visual_properties={"color": [1, 1, 1], "size": [2, 1.5, 0.1]})
+
+        self._place_in_room("Virtual Microscope", "scientific_instrument", "Science Laboratory A",
+                             offset=(-2, 1.2, 0),
+                             interaction_scripts=["zoom", "focus", "change_sample", "capture_image"],
+                             physics_properties={"weight": 2.5, "fragile": True})
+
+        self._place_in_room("Virtual Piano", "musical_instrument", "Music Room A",
+                             offset=(0, 0.8, 1),
+                             interaction_scripts=["play_note", "change_octave", "record", "playback"],
+                             visual_properties={"color": [0.8, 0.6, 0.4], "size": [1.5, 0.8, 1.2]})
+
+        self._place_in_room("Virtual Canvas", "art_supply", "Art Studio A",
+                             offset=(-3, 1.6, 1),
+                             interaction_scripts=["paint", "erase", "change_brush", "save_artwork"],
+                             visual_properties={"color": [1, 1, 1], "size": [1, 1.2, 0.05]})
+
+        self._place_in_room("Virtual Basketball", "sports_equipment", "Main Gymnasium",
+                             offset=(0, 1, 5),
+                             interaction_scripts=["grab", "throw", "bounce", "shoot"],
+                             physics_properties={"weight": 0.6, "bounciness": 0.8, "gravity_affected": True})
+
+    def _create_room_shell(self, facility) -> None:
+        """Create a floor + 4 walls for one real facility, sized and
+        positioned from its actual coordinates/dimensions."""
+        w, h, d = facility.dimensions
+        x, y, z = facility.coordinates
+        color = _ROOM_COLOR_BY_TYPE.get(facility.facility_type, [0.8, 0.8, 0.8])
+        wall_color = [min(1.0, c + 0.08) for c in color]
+
         self.create_virtual_object(
-            name="Interactive Whiteboard",
-            object_type="display_device",
-            position=(0, 1.5, -3),
-            interaction_scripts=["write", "erase", "change_slide", "share_screen"],
-            visual_properties={"color": [1, 1, 1], "size": [2, 1.5, 0.1]}
+            name=f"{facility.name} - Floor", object_type="room_floor",
+            position=(x, y, z),
+            visual_properties={"color": color, "size": [w, 0.1, d]},
+            interaction_scripts=[],
         )
-        
-        # Laboratory equipment
-        self.create_virtual_object(
-            name="Virtual Microscope",
-            object_type="scientific_instrument",
-            position=(-2, 1.2, 0),
-            interaction_scripts=["zoom", "focus", "change_sample", "capture_image"],
-            physics_properties={"weight": 2.5, "fragile": True}
-        )
-        
-        # Musical instruments
-        self.create_virtual_object(
-            name="Virtual Piano",
-            object_type="musical_instrument",
-            position=(3, 0.8, 2),
-            interaction_scripts=["play_note", "change_octave", "record", "playback"],
-            visual_properties={"color": [0.8, 0.6, 0.4], "size": [1.5, 0.8, 1.2]}
-        )
-        
-        # Art supplies
-        self.create_virtual_object(
-            name="Virtual Canvas",
-            object_type="art_supply",
-            position=(-3, 1.6, 1),
-            interaction_scripts=["paint", "erase", "change_brush", "save_artwork"],
-            visual_properties={"color": [1, 1, 1], "size": [1, 1.2, 0.05]}
-        )
-        
-        # Sports equipment
-        self.create_virtual_object(
-            name="Virtual Basketball",
-            object_type="sports_equipment",
-            position=(0, 1, 5),
-            interaction_scripts=["grab", "throw", "bounce", "shoot"],
-            physics_properties={"weight": 0.6, "bounciness": 0.8, "gravity_affected": True}
+        wall_thickness = 0.15
+        wall_height = h if h > 0 else 3.0
+        walls = [
+            ((x, y + wall_height / 2, z - d / 2), (w, wall_height, wall_thickness)),
+            ((x, y + wall_height / 2, z + d / 2), (w, wall_height, wall_thickness)),
+            ((x - w / 2, y + wall_height / 2, z), (wall_thickness, wall_height, d)),
+            ((x + w / 2, y + wall_height / 2, z), (wall_thickness, wall_height, d)),
+        ]
+        for i, (pos, size) in enumerate(walls):
+            self.create_virtual_object(
+                name=f"{facility.name} - Wall {i + 1}", object_type="room_wall",
+                position=pos,
+                visual_properties={"color": wall_color, "size": list(size)},
+                interaction_scripts=[],
+            )
+
+    def _place_in_room(self, name: str, object_type: str, room_name: str, offset: Tuple[float, float, float],
+                        interaction_scripts: List[str] = None, physics_properties: Dict = None,
+                        visual_properties: Dict = None) -> VirtualObject:
+        """Place an interactive object at `offset` relative to a real
+        room's center, instead of an arbitrary world-space coordinate."""
+        facility = next((f for f in self.building.facilities.values() if f.name == room_name), None)
+        base = facility.coordinates if facility else (0, 0, 0)
+        position = (base[0] + offset[0], base[1] + offset[1], base[2] + offset[2])
+        return self.create_virtual_object(
+            name=name, object_type=object_type, position=position,
+            interaction_scripts=interaction_scripts, physics_properties=physics_properties,
+            visual_properties=visual_properties,
         )
     
     def move_user(self, user_id: str, new_position: Tuple[float, float, float], 
@@ -688,7 +741,17 @@ class VRSchoolEnvironment:
                 "platform_compatibility": [p.value for p in VRPlatform]
             },
             "environment": self.environment_settings,
-            "objects": [obj.to_dict() for obj in self.virtual_objects.values()],
+            "rooms": [
+                {
+                    "name": f.name, "facility_type": f.facility_type.value, "level": f.level.value,
+                    "coordinates": f.coordinates, "dimensions": f.dimensions,
+                }
+                for f in self.building.facilities.values()
+            ],
+            "objects": [
+                obj.to_dict() for obj in self.virtual_objects.values()
+                if obj.object_type not in ("room_floor", "room_wall")
+            ],
             "user_positions": {uid: user.position for uid, user in self.users.items() if user.is_active}
         }
 
