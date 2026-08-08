@@ -97,8 +97,8 @@ export const portalSubjects = [
 ]
 
 export const portalStats = [
-  { label: 'Total Students', value: '45,847', icon: UsersIcon, accent: '#2563eb' },
-  { label: 'Active Sessions', value: '3,847', icon: ActivityIcon, accent: '#10b981' },
-  { label: 'Completion Rate', value: '94.2%', icon: StarIcon, accent: '#f59e0b' },
-  { label: 'Active Tutors', value: '230+', icon: BookOpenIcon, accent: '#8b5cf6' },
+  { label: 'Specialist Tutors', value: '872+', icon: UsersIcon, accent: '#2563eb' },
+  { label: 'Subjects Covered', value: '14', icon: BookOpenIcon, accent: '#10b981' },
+  { label: 'Campus Floors', value: '5', icon: ActivityIcon, accent: '#f59e0b' },
+  { label: 'Architecture', value: 'Stateless', icon: StarIcon, accent: '#8b5cf6' },
 ]

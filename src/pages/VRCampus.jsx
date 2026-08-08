@@ -26,11 +26,14 @@ const ROOM_COLOR_BY_TYPE = {
   auditorium: '#736680',
 }
 
+const FLOORS = ['basement', 'ground', 'first', 'second', 'third', 'roof']
+
 export default function VRCampus() {
   const [username, setUsername] = useState('')
   const [session, setSession] = useState(null) // { user, scene }
   const [error, setError] = useState(null)
   const [joining, setJoining] = useState(false)
+  const [floor, setFloor] = useState('ground')
   const sceneRef = useRef(null)
 
   useEffect(() => {
@@ -107,7 +110,26 @@ export default function VRCampus() {
   }
 
   const { scene, user } = session
-  const rooms = scene.rooms || []
+  const allRooms = scene.rooms || []
+  const rooms = allRooms.filter((r) => r.level === floor)
+  // Object positions don't carry a room name, so approximate "on this
+  // floor" by y-proximity to any room's y on the selected floor.
+  const floorYs = rooms.map((r) => r.coordinates[1])
+  const objects = scene.objects.filter((o) => floorYs.some((y) => Math.abs(o.position[1] - y) < 3))
+
+  const handleFloorChange = async (nextFloor) => {
+    setFloor(nextFloor)
+    const target = allRooms.find((r) => r.level === nextFloor)
+    if (target && session?.user?.id) {
+      const [rx, ry, rz] = target.coordinates
+      try {
+        const result = await moveVrUser(session.user.id, [rx, ry + 0.05, rz])
+        setSession((prev) => ({ ...prev, user: result.user }))
+      } catch (err) {
+        setError(err.message)
+      }
+    }
+  }
 
   return (
     <main className="kev-section">
@@ -118,9 +140,22 @@ export default function VRCampus() {
         </div>
         <p className="kev-section-copy">
           Drag to look around, WASD to walk, or click a room floor to jump there.
-          {rooms.length} rooms, {scene.objects.length} interactive objects - all real KEV
-          building data, not placeholder shapes.
+          {rooms.length} rooms on this floor, {allRooms.length} total across the building -
+          all real KEV building data, not placeholder shapes.
         </p>
+
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          {FLOORS.filter((f) => allRooms.some((r) => r.level === f)).map((f) => (
+            <button
+              key={f}
+              className="kev-btn"
+              style={floor === f ? { background: '#c9a227', color: '#0b1830' } : undefined}
+              onClick={() => handleFloorChange(f)}
+            >
+              {f[0].toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
 
         <a-scene ref={sceneRef} embedded style={{ width: '100%', height: '560px', borderRadius: '0.75rem', overflow: 'hidden' }}>
           <a-assets></a-assets>
@@ -137,20 +172,17 @@ export default function VRCampus() {
             const [rx, ry, rz] = room.coordinates
             const [w, h, d] = room.dimensions
             const color = ROOM_COLOR_BY_TYPE[room.facility_type] || '#cccccc'
+            const wallColor = '#f2ede0'
+            const wt = 0.15 // wall thickness
             return (
               <a-entity key={room.name}>
-                <a-box
-                  position={`${rx} ${ry} ${rz}`}
-                  width={w} height={0.1} depth={d}
-                  color={color}
-                  onClick={handleRoomClick(room)}
-                ></a-box>
-                <a-box
-                  position={`${rx} ${ry + h / 2} ${rz}`}
-                  width={w} height={h} depth={d}
-                  color={color}
-                  material="opacity: 0.12; transparent: true; side: back"
-                ></a-box>
+                <a-box position={`${rx} ${ry} ${rz}`} width={w} height={0.1} depth={d} color={color}
+                  onClick={handleRoomClick(room)}></a-box>
+                {/* 4 real perimeter walls, not one solid interior block */}
+                <a-box position={`${rx} ${ry + h / 2} ${rz - d / 2}`} width={w} height={h} depth={wt} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
+                <a-box position={`${rx} ${ry + h / 2} ${rz + d / 2}`} width={w} height={h} depth={wt} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
+                <a-box position={`${rx - w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
+                <a-box position={`${rx + w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
                 <a-text
                   value={room.name}
                   align="center"
@@ -162,7 +194,7 @@ export default function VRCampus() {
             )
           })}
 
-          {scene.objects.map((obj) => {
+          {objects.map((obj) => {
             const Tag = OBJECT_SHAPE[obj.object_type] || 'a-box'
             return (
               <Tag
