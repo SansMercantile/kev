@@ -38,6 +38,32 @@ function AuthButton() {
   )
 }
 
+// KEV is a work-in-progress product with real costs (Bedrock calls) and
+// real data collection (onboarding/KYC) - the interactive/functional
+// surface requires sign-in, not just the marketing pages.
+function RequireAuth({ children }) {
+  const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
+
+  if (isLoading) return null
+
+  if (!isAuthenticated) {
+    return (
+      <section className="kev-section" aria-label="Sign in required">
+        <h2 className="kev-section-title">Sign in required</h2>
+        <p className="kev-section-copy">
+          This is a work-in-progress area of KEV and isn't open to the public yet.
+          Sign in to continue.
+        </p>
+        <button className="kev-btn kev-btn-primary" onClick={() => loginWithRedirect()}>
+          Sign in
+        </button>
+      </section>
+    )
+  }
+
+  return children
+}
+
 const App = () => {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -109,10 +135,10 @@ const App = () => {
             <Route path="/technical" element={<Technical />} />
             <Route path="/integration" element={<Integration />} />
             <Route path="/categories" element={<Categories />} />
-            <Route path="/campus-map" element={<VirtualSchoolMap />} />
-            <Route path="/vr" element={<VRCampus />} />
-            <Route path="/portal" element={<Portal />} />
-            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/campus-map" element={<RequireAuth><VirtualSchoolMap /></RequireAuth>} />
+            <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />
+            <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
+            <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           </Routes>
         </main>
 

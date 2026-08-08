@@ -172,22 +172,26 @@ export default function VRCampus() {
             const [rx, ry, rz] = room.coordinates
             const [w, h, d] = room.dimensions
             const color = ROOM_COLOR_BY_TYPE[room.facility_type] || '#cccccc'
-            const wallColor = '#f2ede0'
-            const wt = 0.15 // wall thickness
+            const wallColor = '#ede4cf'
+            const wt = 0.2 // wall thickness
             return (
               <a-entity key={room.name}>
                 <a-box position={`${rx} ${ry} ${rz}`} width={w} height={0.1} depth={d} color={color}
                   onClick={handleRoomClick(room)}></a-box>
-                {/* 4 real perimeter walls, not one solid interior block */}
-                <a-box position={`${rx} ${ry + h / 2} ${rz - d / 2}`} width={w} height={h} depth={wt} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
-                <a-box position={`${rx} ${ry + h / 2} ${rz + d / 2}`} width={w} height={h} depth={wt} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
-                <a-box position={`${rx - w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
-                <a-box position={`${rx + w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor} material="opacity: 0.55; transparent: true"></a-box>
+                {/* Ceiling - closes the room off from the sky so it reads as
+                    an actual enclosed room, not an open-air platform. */}
+                <a-box position={`${rx} ${ry + h} ${rz}`} width={w} height={0.1} depth={d} color="#f7f2e7"></a-box>
+                {/* 4 real, solid perimeter walls */}
+                <a-box position={`${rx} ${ry + h / 2} ${rz - d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
+                <a-box position={`${rx} ${ry + h / 2} ${rz + d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
+                <a-box position={`${rx - w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
+                <a-box position={`${rx + w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
                 <a-text
                   value={room.name}
                   align="center"
-                  position={`${rx} ${ry + h + 0.3} ${rz}`}
-                  scale="1.6 1.6 1.6"
+                  position={`${rx} ${ry + h - 0.3} ${rz - d / 2 + 0.3}`}
+                  rotation="0 0 0"
+                  scale="1.4 1.4 1.4"
                   color="#0b1830"
                 ></a-text>
               </a-entity>
