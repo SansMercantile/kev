@@ -9,8 +9,20 @@ function buildUrl(path) {
   return `${API_BASE}${path}`
 }
 
+// Kept in sync by an effect in App.jsx (useAuth0().getAccessTokenSilently),
+// so every call below can attach the real Auth0-issued JWT without
+// threading it through each function/caller individually.
+let authToken = null
+export function setAuthToken(token) {
+  authToken = token
+}
+
 async function fetchJson(url, options = {}) {
-  const response = await fetch(url, options)
+  const headers = { ...(options.headers || {}) }
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`
+  }
+  const response = await fetch(url, { ...options, headers })
   if (!response.ok) {
     const message = await response.text()
     throw new Error(`API request failed: ${response.status} ${response.statusText} - ${message}`)

@@ -24,7 +24,10 @@ const root = (
       <Auth0Provider
         domain={auth0Domain}
         clientId={auth0ClientId}
-        authorizationParams={{ redirect_uri: window.location.origin }}
+        authorizationParams={{
+          redirect_uri: window.location.origin,
+          audience: 'https://api.kev.sansmercantile.com',
+        }}
       >
         <App />
       </Auth0Provider>
