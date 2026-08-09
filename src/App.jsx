@@ -14,6 +14,7 @@ import Portal from './pages/Portal'
 import Onboarding from './pages/Onboarding'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
+import { setAuthToken } from './lib/api'
 
 function AuthButton() {
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
@@ -67,12 +68,28 @@ function RequireAuth({ children }) {
 const App = () => {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 48)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Keeps api.js's outgoing Authorization header in sync with the current
+  // Auth0 session, so protected endpoints (onboarding, agents, vr,
+  // library) get a real, verifiable JWT rather than being called anonymously.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAuthToken(null)
+      return
+    }
+    let cancelled = false
+    getAccessTokenSilently()
+      .then((token) => { if (!cancelled) setAuthToken(token) })
+      .catch(() => { if (!cancelled) setAuthToken(null) })
+    return () => { cancelled = true }
+  }, [isAuthenticated, getAccessTokenSilently])
 
   const navLinks = [
     { label: 'Explore', to: '/explore' },

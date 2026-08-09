@@ -13,7 +13,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any, Tuple
@@ -42,6 +42,7 @@ from kev.backend.agent_initialization import (
 from kev.backend.learning_service import learning_system
 from kev.backend.services import bedrock_client
 from kev.backend.services import agent_catalog
+from kev.backend.services.auth import require_auth
 from kev.virtual_school.vr_ar.vr_school_environment import VRSchoolEnvironment, VRPlatform
 from kev.virtual_school.identity.student_identity_system import StudentIdentitySystem
 
@@ -277,7 +278,7 @@ async def available_agents(subject: Optional[str] = None, education_level: Optio
     return {"status": "success", "agents": [agent.__dict__ for agent in agents]}
 
 @app.post("/agents/{agent_id}/ask")
-async def ask_agent(agent_id: str, req: AgentAskRequest):
+async def ask_agent(agent_id: str, req: AgentAskRequest, auth_user: Dict = Depends(require_auth)):
     """
     Stateless per-request call to a KEV agent via Bedrock.
 
@@ -395,7 +396,7 @@ async def virtual_school_release(facility_id: str):
 # --- VR/AR Environment ---
 
 @app.post("/vr/join")
-async def vr_join(req: VRJoinRequest):
+async def vr_join(req: VRJoinRequest, auth_user: Dict = Depends(require_auth)):
     """Join the VR/AR school environment. Returns the new user + full scene."""
     try:
         platform = VRPlatform(req.platform)
@@ -414,7 +415,7 @@ async def vr_leave(user_id: str):
     return {"status": "success", "user_id": user_id}
 
 @app.post("/vr/users/{user_id}/move")
-async def vr_move(user_id: str, req: VRMoveRequest):
+async def vr_move(user_id: str, req: VRMoveRequest, auth_user: Dict = Depends(require_auth)):
     """Move a user within the VR/AR environment (triggers proximity interactions)."""
     success = vr_environment.move_user(user_id, req.position, req.rotation)
     if not success:
@@ -422,13 +423,13 @@ async def vr_move(user_id: str, req: VRMoveRequest):
     return {"status": "success", "user": vr_environment.users[user_id].to_dict()}
 
 @app.post("/vr/sessions")
-async def vr_start_session(req: VRSessionStartRequest):
+async def vr_start_session(req: VRSessionStartRequest, auth_user: Dict = Depends(require_auth)):
     """Start a VR class/meeting session."""
     session_id = vr_environment.start_session(req.session_type, req.participants, req.location, req.metadata)
     return {"status": "success", "session_id": session_id, "session": vr_environment.active_sessions[session_id]}
 
 @app.post("/vr/sessions/{session_id}/end")
-async def vr_end_session(session_id: str):
+async def vr_end_session(session_id: str, auth_user: Dict = Depends(require_auth)):
     """End a VR class/meeting session."""
     success = vr_environment.end_session(session_id)
     if not success:
@@ -463,7 +464,7 @@ async def multi_agents_catalog(subject: Optional[str] = None, education_level: O
     }
 
 @app.post("/multi-agents/{tutor_id}/ask")
-async def multi_agents_ask(tutor_id: str, req: AgentAskRequest):
+async def multi_agents_ask(tutor_id: str, req: AgentAskRequest, auth_user: Dict = Depends(require_auth)):
     """
     Stateless per-request call to a REAL multi_agents/ tutor file. Lazily
     imports + instantiates only this one agent (agent_catalog.py), then
@@ -506,14 +507,14 @@ async def multi_agents_ask(tutor_id: str, req: AgentAskRequest):
 # --- Central Library (Constellation shared knowledge layer) ---
 
 @app.get("/library/search")
-async def library_search(query: str, subject: Optional[str] = None, level: Optional[str] = None):
+async def library_search(query: str, subject: Optional[str] = None, level: Optional[str] = None, auth_user: Dict = Depends(require_auth)):
     """Search the Constellation's shared educational content library."""
     if not library_integration:
         raise HTTPException(status_code=503, detail="Central Library integration unavailable")
     return await library_integration.search_educational_content(query, subject=subject, level=level)
 
 @app.get("/library/resources")
-async def library_resources(subject: str, topic: str, level: str = "intermediate"):
+async def library_resources(subject: str, topic: str, level: str = "intermediate", auth_user: Dict = Depends(require_auth)):
     """Get tutoring resources (teaching strategies, assessment methods) for a subject/topic."""
     if not library_integration:
         raise HTTPException(status_code=503, detail="Central Library integration unavailable")
@@ -522,7 +523,7 @@ async def library_resources(subject: str, topic: str, level: str = "intermediate
 # --- Student Onboarding / KYC ---
 
 @app.post("/onboarding/apply")
-async def onboarding_apply(req: OnboardingRequest):
+async def onboarding_apply(req: OnboardingRequest, auth_user: Dict = Depends(require_auth)):
     """Submit a student admission application. Age is validated against
     country-specific minimums server-side (see StudentIdentitySystem)."""
     success, message, student = identity_system.create_student_application(req.dict())
@@ -537,7 +538,7 @@ async def onboarding_apply(req: OnboardingRequest):
     }
 
 @app.get("/onboarding/status/{application_id}")
-async def onboarding_status(application_id: str):
+async def onboarding_status(application_id: str, auth_user: Dict = Depends(require_auth)):
     """Check an application's verification status by its internal id."""
     student = identity_system.students.get(application_id)
     if not student:
