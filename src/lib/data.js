@@ -3,8 +3,8 @@ import { BookOpenIcon, BrainCircuitIcon, ShieldCheckIcon, StarIcon, UsersIcon, A
 export const heroFeatures = [
   {
     icon: BookOpenIcon,
-    title: '185+ Standalone Subjects',
-    description: 'Curriculum coverage for elementary through professional development across 185+ standalone disciplines.',
+    title: 'Live Curriculum Engine',
+    description: 'Dependency-mapped live subjects with recommendations, study levels, and a tutor for every subject.',
   },
   {
     icon: BrainCircuitIcon,

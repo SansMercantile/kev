@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { getVirtualSchoolFacilities, getVirtualSchoolOverview } from '../lib/api'
+import { xrClient } from '../lib/xrClient'
+import SurfaceLinks from '../components/SurfaceLinks'
 
 export default function VirtualSchoolMap() {
+  const { t } = useTranslation()
   const [overview, setOverview] = useState(null)
   const [facilitiesByLevel, setFacilitiesByLevel] = useState({})
+  const [xrCounterparts, setXrCounterparts] = useState({})
   const [selectedLevel, setSelectedLevel] = useState('ground')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -70,6 +75,18 @@ export default function VirtualSchoolMap() {
         }
 
         setFacilitiesByLevel(grouped)
+
+        // XR counterparts (best-effort): match live rooms to XR Academy floors.
+        try {
+          const live = await xrClient.liveFacilities()
+          const byName = {}
+          ;(live.facilities || []).forEach((f) => {
+            if (f.name && f.xrCounterpart) byName[f.name] = f.xrCounterpart
+          })
+          setXrCounterparts(byName)
+        } catch {
+          /* XR crosswalk stays empty when unreachable */
+        }
       } catch (err) {
         setError(err.message)
       } finally {
@@ -239,6 +256,13 @@ export default function VirtualSchoolMap() {
                                   Equipment: {facility.equipment.join(', ')}
                                 </div>
                               )}
+                              {xrCounterparts[facility.name] && (
+                                <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>
+                                  <a href="/xr-academy" title="Open the matching XR Academy space">
+                                    XR counterpart: {xrCounterparts[facility.name].label}
+                                  </a>
+                                </div>
+                              )}
                             </div>
                             <span
                               style={{
@@ -297,6 +321,15 @@ export default function VirtualSchoolMap() {
             </div>
           </section>
         )}
+
+        <SurfaceLinks
+          title="Take it into 3D"
+          links={[
+            { to: '/xr-academy', label: t('nav.xrAcademy'), text: 'Walk the 4-floor science campus with matching labs.' },
+            { to: '/vr', label: t('nav.vrCampus'), text: 'Enter these rooms in virtual reality.' },
+            { to: '/anatomy', label: t('nav.immersiveLab'), text: 'Dissect the science behind the labs.' },
+          ]}
+        />
       </section>
     </main>
   )

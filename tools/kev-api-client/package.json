@@ -1,0 +1,10 @@
+{
+  "name": "kev-api-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generate a typed TypeScript client for the KEV FastAPI backend (pattern from tools/fastapi-typescript)",
+  "scripts": {
+    "fetch-spec": "node fetch-openapi.cjs",
+    "api-build": "node fetch-openapi.cjs && openapi-generator-cli generate -i ../../src/generated/api/openapi.json -g typescript-fetch -o ../../src/generated/api --additional-properties=stringEnums=true,removeEnumValuePrefix=false --global-property supportingFiles,models,apis=Core"
+  }
+}

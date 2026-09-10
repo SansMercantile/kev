@@ -1,6 +1,22 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import { getCurriculumSubjects, getMultiAgentsCatalog } from '../lib/api'
 
 export default function Technical() {
+  const [counts, setCounts] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([getCurriculumSubjects().catch(() => null), getMultiAgentsCatalog().catch(() => null)])
+      .then(([subjects, catalog]) => {
+        if (cancelled || !subjects?.subjects) return
+        setCounts({ subjects: subjects.subjects.length, agents: catalog?.count || 0 })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <main className="kev-section">
       <section id="technical" className="kev-section" aria-label="Technical snapshot">
@@ -29,8 +45,10 @@ export default function Technical() {
           <div className="kev-card">
             <strong>Agent Coverage</strong>
             <p className="kev-card-text" style={{ marginTop: '0.5rem' }}>
-              <span style={{ fontSize: '1.6rem', fontWeight: 800 }}>1,000+</span>
-              <br />multi-agent implementations across 185+ subjects
+              <span style={{ fontSize: '1.6rem', fontWeight: 800 }}>
+                {counts ? `${counts.agents}+` : '…'}
+              </span>
+              <br />multi-agent implementations across {counts ? `${counts.subjects} live subjects` : 'live curriculum subjects'}
             </p>
           </div>
 

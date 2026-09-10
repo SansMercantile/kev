@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getVirtualSchoolFacilities, getVirtualSchoolOverview, bookVirtualSchoolFacility } from '../lib/api'
+import { getVirtualSchoolFacilities, getVirtualSchoolOverview, bookVirtualSchoolFacility, releaseVirtualSchoolFacility } from '../lib/api'
 
 export default function Portal() {
   const [overview, setOverview] = useState(null)
@@ -39,6 +39,23 @@ export default function Portal() {
         )
       )
       setBookingSuccess('Facility booked successfully. Refreshing availability.')
+    } catch (err) {
+      setBookingError(err.message)
+    }
+  }
+
+  const handleReleaseFacility = async (facilityId) => {
+    setBookingError(null)
+    setBookingSuccess(null)
+
+    try {
+      await releaseVirtualSchoolFacility(facilityId)
+      setFacilities((currentFacilities) =>
+        currentFacilities.map((facility) =>
+          facility.id === facilityId ? { ...facility, is_booked: false, current_session: null } : facility
+        )
+      )
+      setBookingSuccess('Facility released and available again.')
     } catch (err) {
       setBookingError(err.message)
     }
@@ -120,6 +137,15 @@ export default function Portal() {
                   >
                     {facility.is_booked ? 'Booked' : 'Book Facility'}
                   </button>
+                  {facility.is_booked && (
+                    <button
+                      className="kev-btn kev-btn-secondary"
+                      style={{ marginTop: '1rem', marginLeft: '0.5rem' }}
+                      onClick={() => handleReleaseFacility(facility.id)}
+                    >
+                      Release
+                    </button>
+                  )}
                 </div>
               ))
             ) : (

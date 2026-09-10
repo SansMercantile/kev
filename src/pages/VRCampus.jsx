@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { joinVrCampus, moveVrUser, leaveVrCampus } from '../lib/api'
+import { useTranslation } from 'react-i18next'
+import { joinVrCampus, moveVrUser, leaveVrCampus, getVrScene, interactVrObject } from '../lib/api'
+import SurfaceLinks from '../components/SurfaceLinks'
 
 const OBJECT_SHAPE = {
   display_device: 'a-box',
@@ -29,11 +31,13 @@ const ROOM_COLOR_BY_TYPE = {
 const FLOORS = ['basement', 'ground', 'first', 'second', 'third', 'roof']
 
 export default function VRCampus() {
+  const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [session, setSession] = useState(null) // { user, scene }
   const [error, setError] = useState(null)
   const [joining, setJoining] = useState(false)
   const [floor, setFloor] = useState('ground')
+  const [xrAvailable, setXrAvailable] = useState(true)
   const sceneRef = useRef(null)
 
   useEffect(() => {
@@ -44,6 +48,21 @@ export default function VRCampus() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) return undefined
+    setXrAvailable(Boolean(window.AFRAME))
+    const refreshScene = async () => {
+      try {
+        const result = await getVrScene()
+        setSession((prev) => prev ? { ...prev, scene: result.scene } : prev)
+      } catch (err) {
+        setError(err.message)
+      }
+    }
+    const interval = window.setInterval(refreshScene, 2000)
+    return () => window.clearInterval(interval)
   }, [session?.user?.id])
 
   const handleJoin = async (event) => {
@@ -75,6 +94,27 @@ export default function VRCampus() {
     try {
       const result = await moveVrUser(session.user.id, position)
       setSession((prev) => ({ ...prev, user: result.user }))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const handleObjectClick = async (object) => {
+    if (!session?.user?.id) return
+    try {
+      const result = await interactVrObject(session.user.id, object.id, 'touch', {
+        touch_point: object.position,
+        force: 1,
+        timestamp: new Date().toISOString(),
+      })
+      setSession((prev) => ({
+        ...prev,
+        user: result.user,
+        scene: {
+          ...prev.scene,
+          objects: prev.scene.objects.map((item) => item.id === result.object.id ? result.object : item),
+        },
+      }))
     } catch (err) {
       setError(err.message)
     }
@@ -116,6 +156,7 @@ export default function VRCampus() {
   // floor" by y-proximity to any room's y on the selected floor.
   const floorYs = rooms.map((r) => r.coordinates[1])
   const objects = scene.objects.filter((o) => floorYs.some((y) => Math.abs(o.position[1] - y) < 3))
+  const otherUsers = Object.entries(scene.user_positions || {}).filter(([id]) => id !== user.id)
 
   const handleFloorChange = async (nextFloor) => {
     setFloor(nextFloor)
@@ -143,6 +184,11 @@ export default function VRCampus() {
           {rooms.length} rooms on this floor, {allRooms.length} total across the building -
           all real KEV building data, not placeholder shapes.
         </p>
+        {!xrAvailable && (
+          <p role="alert" style={{ color: '#b45309' }}>
+            The immersive renderer is unavailable. Check the A-Frame runtime and reload this page.
+          </p>
+        )}
 
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
           {FLOORS.filter((f) => allRooms.some((r) => r.level === f)).map((f) => (
@@ -200,30 +246,49 @@ export default function VRCampus() {
 
           {objects.map((obj) => {
             const Tag = OBJECT_SHAPE[obj.object_type] || 'a-box'
+            const size = obj.visual_properties?.size || [0.6, 0.6, 0.6]
+            const shapeProps = Tag === 'a-sphere'
+              ? { radius: Math.max(...size) / 2 }
+              : { width: size[0], height: size[1], depth: size[2] }
             return (
               <Tag
                 key={obj.id}
                 position={obj.position.join(' ')}
+                scale={obj.scale?.join(' ') || '1 1 1'}
+                onClick={() => handleObjectClick(obj)}
+                {...shapeProps}
                 color={
                   obj.visual_properties?.color
                     ? `rgb(${obj.visual_properties.color.map((c) => Math.round(c * 255)).join(',')})`
                     : '#4f83cc'
                 }
-                width={obj.visual_properties?.size?.[0] || 0.6}
-                height={obj.visual_properties?.size?.[1] || 0.6}
-                depth={obj.visual_properties?.size?.[2] || 0.6}
-                radius="0.4"
               >
                 <a-text value={obj.name} align="center" position="0 0.7 0" scale="0.6 0.6 0.6"></a-text>
               </Tag>
             )
           })}
 
+          {otherUsers.map(([id, position]) => (
+            <a-entity key={id} position={position.join(' ')}>
+              <a-sphere radius="0.25" color="#f59e0b"></a-sphere>
+              <a-text value="Learner" align="center" position="0 0.45 0" scale="0.5 0.5 0.5" color="#0b1830"></a-text>
+            </a-entity>
+          ))}
+
           <a-entity id="player" position={user.position.join(' ')}>
             <a-sphere radius="0.3" color="#e63946"></a-sphere>
             <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
           </a-entity>
         </a-scene>
+
+        <SurfaceLinks
+          title="Keep exploring"
+          links={[
+            { to: '/xr-academy', label: t('nav.xrAcademy'), text: '3D labs with tutors for every science.' },
+            { to: '/campus-map', label: t('nav.campusMap'), text: 'Book the rooms you just walked through.' },
+            { to: '/anatomy', label: t('nav.immersiveLab'), text: 'Anatomy, vehicle & earth systems in 3D.' },
+          ]}
+        />
       </section>
     </main>
   )

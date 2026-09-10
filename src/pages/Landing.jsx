@@ -12,10 +12,9 @@ export default function Landing() {
             <div className="kev-eyebrow">872+ specialist tutors, 14 subjects</div>
             <h1 className="kev-hero-title">A curriculum library with <strong>real</strong> tutors behind every page.</h1>
             <p>
-              KEV pairs a central curriculum library covering 185+ subjects with hundreds of
+              KEV pairs a central curriculum library of live, dependency-mapped subjects with hundreds of
               specialist AI tutors, each one purpose-built for a subject, grade level, and role
-              - from elementary arithmetic to university-level music theory - and backed by
-              Claude on Amazon Bedrock.
+              - from elementary arithmetic to university-level music theory.
             </p>
 
             <div className="kev-hero-actions">

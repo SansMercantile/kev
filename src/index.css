@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Grounded in the KEV mark: navy book, gold ribbon bookmark, brick-red
      tree emblem - an academic/library identity, not generic SaaS blue. */
@@ -488,6 +492,24 @@ html { scroll-behavior: smooth; }
   color: #475569;
   max-width: 720px;
   margin-bottom: 2rem;
+}
+
+.immersive-subjects {
+  display: flex;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.immersive-lab-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 1rem;
+}
+
+@media (max-width: 760px) {
+  .immersive-lab-grid { grid-template-columns: 1fr; }
+  .immersive-lab-grid > div:first-child { min-height: 420px !important; }
 }
 
 .kev-category-card {

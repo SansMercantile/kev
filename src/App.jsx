@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './components/LanguageSwitcher'
+import OfflineBanner from './components/OfflineBanner'
 
 import Landing from './pages/Landing'
 import Docs from './pages/Docs'
@@ -10,13 +13,18 @@ import Platform from './pages/Platform'
 import Integration from './pages/Integration'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
+const ImmersiveLab = lazy(() => import('./pages/ImmersiveLab'))
+const XRAcademy = lazy(() => import('./pages/XRAcademy'))
 import Portal from './pages/Portal'
 import Onboarding from './pages/Onboarding'
+import Pricing from './pages/Pricing'
+import Billing from './pages/Billing'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
-import { setAuthToken } from './lib/api'
+import { setAuthToken, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
 
 function AuthButton() {
+  const { t } = useTranslation()
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
 
   if (isLoading) return null
@@ -27,14 +35,14 @@ function AuthButton() {
         className="kev-btn kev-btn-secondary"
         onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
       >
-        {user?.given_name || user?.name || 'Account'} · Sign out
+        {user?.given_name || user?.name || t('nav.account')} · {t('nav.signOut')}
       </button>
     )
   }
 
   return (
     <button className="kev-btn kev-btn-secondary" onClick={() => loginWithRedirect()}>
-      Sign in
+      {t('nav.signIn')}
     </button>
   )
 }
@@ -43,20 +51,20 @@ function AuthButton() {
 // real data collection (onboarding/KYC) - the interactive/functional
 // surface requires sign-in, not just the marketing pages.
 function RequireAuth({ children }) {
+  const { t } = useTranslation()
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
 
   if (isLoading) return null
 
   if (!isAuthenticated) {
     return (
-      <section className="kev-section" aria-label="Sign in required">
-        <h2 className="kev-section-title">Sign in required</h2>
+      <section className="kev-section" aria-label={t('nav.signInRequired')}>
+        <h2 className="kev-section-title">{t('nav.signInRequired')}</h2>
         <p className="kev-section-copy">
-          This is a work-in-progress area of KEV and isn't open to the public yet.
-          Sign in to continue.
+          {t('nav.signInRequiredBody')}
         </p>
         <button className="kev-btn kev-btn-primary" onClick={() => loginWithRedirect()}>
-          Sign in
+          {t('nav.signIn')}
         </button>
       </section>
     )
@@ -66,14 +74,31 @@ function RequireAuth({ children }) {
 }
 
 const App = () => {
+  const { t } = useTranslation()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [liveCounts, setLiveCounts] = useState(null)
   const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 48)
     window.addEventListener('scroll', onScroll)
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Live footer counts (subjects + tutors) so marketing numbers are real.
+  // Silent fallback to the neutral plain string when the backend is down.
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([getCurriculumSubjects().catch(() => null), getAgentsAvailable().catch(() => null)])
+      .then(([subjects, agents]) => {
+        if (cancelled || !subjects?.subjects) return
+        setLiveCounts({ subjects: subjects.subjects.length, tutors: agents?.agents?.length || 0 })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Keeps api.js's outgoing Authorization header in sync with the current
@@ -92,19 +117,22 @@ const App = () => {
   }, [isAuthenticated, getAccessTokenSilently])
 
   const navLinks = [
-    { label: 'Explore', to: '/explore' },
-    { label: 'Platform', to: '/platform' },
-    { label: 'Campus Map', to: '/campus-map' },
-    { label: 'VR Campus', to: '/vr' },
-    { label: 'Onboarding', to: '/onboarding' },
-    { label: 'Docs', to: '/docs' },
-    { label: 'Tech', to: '/tech' },
+    { label: t('nav.explore'), to: '/explore' },
+    { label: t('nav.platform'), to: '/platform' },
+    { label: t('nav.campusMap'), to: '/campus-map' },
+    { label: t('nav.vrCampus'), to: '/vr' },
+    { label: t('nav.immersiveLab'), to: '/anatomy' },
+    { label: t('nav.xrAcademy'), to: '/xr-academy' },
+    { label: t('nav.pricing'), to: '/pricing' },
+    { label: t('nav.onboarding'), to: '/onboarding' },
+    { label: t('nav.docs'), to: '/docs' },
+    { label: t('nav.tech'), to: '/tech' },
   ]
 
   return (
     <Router>
       <div className="kev-app">
-        <a className="skip-link" href="#main">Skip to content</a>
+        <a className="skip-link" href="#main">{t('nav.skipToContent')}</a>
         <header className={`kev-nav${scrolled ? ' kev-nav-scrolled' : ''}`} role="banner" aria-label="Top header">
           <div className="kev-nav-inner">
             <Link to="/" className="kev-brand">
@@ -130,17 +158,20 @@ const App = () => {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Contact
+                {t('nav.contact')}
                 <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
               </a>
+              <LanguageSwitcher compact />
               <AuthButton />
             </nav>
 
-            <button className="kev-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-controls="kev-nav-links" aria-expanded={menuOpen} aria-label={menuOpen ? 'Close menu' : 'Open menu'}>
+            <button className="kev-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-controls="kev-nav-links" aria-expanded={menuOpen} aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}>
               {menuOpen ? <XIcon width={22} height={22} aria-hidden="true" /> : <MenuIcon width={22} height={22} aria-hidden="true" />}
             </button>
           </div>
         </header>
+
+        <OfflineBanner />
 
         <main id="main" role="main">
           <Routes>
@@ -154,7 +185,11 @@ const App = () => {
             <Route path="/categories" element={<Categories />} />
             <Route path="/campus-map" element={<RequireAuth><VirtualSchoolMap /></RequireAuth>} />
             <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />
+            <Route path="/anatomy" element={<Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense>} />
+            <Route path="/xr-academy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading XR Academy...</section>}><XRAcademy /></Suspense></RequireAuth>} />
             <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
           </Routes>
         </main>
@@ -163,11 +198,10 @@ const App = () => {
           <div className="kev-footer-inner">
             <p style={{ fontWeight: 700, color: '#0f172a' }}>KEV</p>
             <p style={{ maxWidth: '740px', color: '#475569' }}>
-              KEV provides the curriculum, tutor orchestration, and analytics needed to scale
-              personalized learning across institutions and immersive environments.
+              {t('nav.footerTagline')}
             </p>
             <p style={{ color: '#68778c', fontSize: '0.95rem' }}>
-              © 2026 KEV • 185+ subjects • 230+ specialized tutors • Constellation-ready
+              {liveCounts ? t('nav.footerRights', liveCounts) : t('nav.footerRightsPlain')}
             </p>
           </div>
         </footer>
