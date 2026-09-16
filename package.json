@@ -22,7 +22,8 @@
     "agents:report": "../.venv-kev/bin/python tools/agent-catalog-sync/report.py",
     "i18n:glossary": "node tools/i18n-glossary/check.cjs",
     "claims:mock": "../.venv-kev/bin/python tools/claims-mock/generate.py",
-    "gates": "npm run typecheck && npm run i18n:check && npm run i18n:glossary && npm run packs:check && npm run attribution:check && npm run api:drift && npm run curriculum:validate && npm run agents:report && npm run claims:mock && ../.venv-kev/bin/python -m pytest tests/ -q && npm run verify:campus"
+    "gates": "npm run typecheck && npm run i18n:check && npm run i18n:glossary && npm run packs:check && npm run atlas:check && npm run attribution:check && npm run api:drift && npm run curriculum:validate && npm run agents:report && npm run claims:mock && ../.venv-kev/bin/python -m pytest tests/ -q && npm run verify:campus",
+    "atlas:check": "node scripts/check-atlas.cjs"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.23.0",
@@ -42,8 +43,8 @@
   "devDependencies": {
     "@types/canvas-confetti": "^1.6.4",
     "@types/d3": "^7.4.3",
-    "@types/react": "^18.3.12",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@types/three": "^0.185.0",
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.20",

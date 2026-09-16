@@ -65,7 +65,7 @@ import { DigitalAdmissionCard } from './DigitalAdmissionCard';
 import { useToast } from '../toast/ToastContext';
 import { soundManager } from '../../utils/soundEffects';
 import { libApi } from '../../lib/xrApi';
-import { cachedFetch } from '../../lib/offline';
+import { cachedFetch, queueOutbox } from '../../lib/offline';
 
 interface Props {
   currentStudentName: string;
@@ -198,18 +198,27 @@ export const VisitorsPortal: React.FC<Props> = ({
     setIsSubmitting(true);
 
     try {
-      // Post to backend
-      const data = await cachedFetch<{ success?: boolean; admission?: AdmissionApplication }>(
-        libApi('/admissions/apply'),
-        {
+      // Post to backend (queued offline and replayed on reconnect)
+      let data: { success?: boolean; admission?: AdmissionApplication };
+      try {
+        const res = await fetch(libApi('/admissions/apply'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             student: studentForm,
             guardian: guardianForm
           }),
-        }
-      );
+        });
+        data = await res.json();
+      } catch {
+        await queueOutbox({
+          url: libApi('/admissions/apply'),
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ student: studentForm, guardian: guardianForm }),
+        });
+        data = {};
+      }
 
       let admissionRecord: AdmissionApplication;
 

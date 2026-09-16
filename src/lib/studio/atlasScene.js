@@ -29,6 +29,13 @@ import { createStudio } from './studioRenderer'
 import { packCells } from './explosionLayout'
 import { PointerTap } from '../pointerTap'
 
+/** Catalogue generation pinned into every model URL. Bump whenever
+ * public/models/atlas.json or its geometry chunks change, so a stale
+ * service-worker cache can never mix catalogue generations with code that
+ * sized its typed arrays from a different one (previously an out-of-bounds
+ * crash loop in _frame). */
+export const ATLAS_CATALOG_VERSION = '2026-09-16-bodyparts3d-4.0'
+
 /** Static hosts may serve .gz pre-compressed or as a plain gzip file; the
  * magic-byte check avoids decoding twice. (Adapted from human-atlas, MIT.) */
 async function decodeModelResponse(response, expectedBytes, compressed) {
@@ -161,7 +168,11 @@ export class AtlasViewer {
   async load() {
     const { onError, onProgress, onAtlas } = this.opts
     try {
-      const res = await fetch('/models/atlas.json', { signal: this.abort.signal })
+      // Version-pinned catalogue: the service worker caches /models/* for
+      // 30 days, so the catalogue generation travels in the URL. A stale
+      // cached catalogue mixed with newer code (or vice versa) previously
+      // crashed the frame loop with an out-of-bounds typed-array write.
+      const res = await fetch(`/models/atlas.json?v=${ATLAS_CATALOG_VERSION}`, { signal: this.abort.signal })
       if (!res.ok) throw new Error('The anatomy catalogue could not be loaded.')
       const atlas = await res.json()
       if (this.disposed) return
@@ -194,6 +205,9 @@ export class AtlasViewer {
   }
 
   _initPartState(atlas) {
+    if (!atlas || !Array.isArray(atlas.parts) || atlas.parts.length === 0) {
+      throw new Error('The anatomy catalogue arrived empty.')
+    }
     const width = THREE.MathUtils.ceilPowerOfTwo(atlas.parts.length)
     this.stateWidth = width
     this.data = new Float32Array(width * 4)
@@ -257,7 +271,8 @@ export class AtlasViewer {
     const atlas = this.atlas
     const chunk = atlas.chunks[ci]
     const compressed = Boolean(chunk.gzip)
-    const response = await fetch(compressed ? chunk.gzip : chunk.url, { signal: this.abort.signal })
+    const chunkUrl = `${compressed ? chunk.gzip : chunk.url}?v=${ATLAS_CATALOG_VERSION}`
+    const response = await fetch(chunkUrl, { signal: this.abort.signal })
     const buffer = await decodeModelResponse(response, chunk.bytes, compressed)
     if (this.disposed) return
     const groups = new Map()
@@ -421,6 +436,21 @@ export class AtlasViewer {
 
     if (changed || moving || !this.lastState) {
       if (!this.ready) return animating
+      try {
+        // Self-heal: if the catalogue changed under us (stale cache mixed
+        // with newer code or vice versa), the state arrays sized at init no
+        // longer fit the parts list. Rebuild them instead of writing
+        // out of bounds (previously an uncaught per-frame crash loop).
+        if (!this.data || this.atlas.parts.length * 4 > this.data.length) {
+          try {
+            this.partTexture && this.partTexture.dispose()
+            this.selectionTexture && this.selectionTexture.dispose()
+          } catch {
+            /* dispose is best-effort */
+          }
+          this._initPartState(this.atlas)
+        }
+        const capacity = Math.floor(this.data.length / 4)
       const visible = new Set(s.visible)
       const selection = new Set(s.selected)
       const visibleParts = this.atlas.parts.filter((p) => (s.isolate ? selection.has(p.id) : visible.has(p.system) || selection.has(p.id)))
@@ -444,6 +474,7 @@ export class AtlasViewer {
 
       const systemIds = (this.opts.systems || []).map((x) => x.id)
       this.atlas.parts.forEach((p, i) => {
+        if (i >= capacity) return // never write past the state arrays
         const c = this.centers[i]
         const destination = this.offsets[i]
         let dx = 0
@@ -485,6 +516,15 @@ export class AtlasViewer {
       this.markerGeometry.attributes.position.needsUpdate = true
       this.lastState = { visible: s.visible, selected: s.selected, isolate: s.isolate }
       this.studio.invalidate()
+      } catch (e) {
+        // A render-loop exception must never become a per-frame crash loop:
+        // report once so the host swaps in the honest box-catalog fallback.
+        if (!this._frameFailed && !this.disposed) {
+          this._frameFailed = true
+          this.opts.onError && this.opts.onError('The full atlas hit a rendering problem; showing the lightweight model instead.')
+        }
+        return animating
+      }
     }
 
     if (s.view !== this.lastView || s.reset !== this.lastReset) {
