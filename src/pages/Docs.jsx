@@ -9,7 +9,7 @@ export default function Docs() {
 
         <div className="kev-grid kev-grid-3">
           <article className="kev-card">
-            <a href="/KEV_DETAILED_ASSESSMENT.md" target="_blank" rel="noreferrer">
+            <a href="/docs/KEV_DETAILED_ASSESSMENT.md" target="_blank" rel="noreferrer">
               <strong>Detailed Assessment</strong>
             </a>
             <p className="kev-card-text" style={{ marginTop: '0.5rem' }}>
@@ -18,7 +18,7 @@ export default function Docs() {
           </article>
 
           <article className="kev-card">
-            <a href="/KEV_ECOSYSTEM_COMPLETE_SUMMARY.md" target="_blank" rel="noreferrer">
+            <a href="/docs/KEV_ECOSYSTEM_COMPLETE_SUMMARY.md" target="_blank" rel="noreferrer">
               <strong>Ecosystem Summary</strong>
             </a>
             <p className="kev-card-text" style={{ marginTop: '0.5rem' }}>
@@ -27,11 +27,11 @@ export default function Docs() {
           </article>
 
           <article className="kev-card">
-            <a href="/README.md" target="_blank" rel="noreferrer">
-              <strong>Developer README</strong>
+            <a href="/docs/KEV_WEBSITE_DEPLOYMENT_SUMMARY.md" target="_blank" rel="noreferrer">
+              <strong>Deployment Summary</strong>
             </a>
             <p className="kev-card-text" style={{ marginTop: '0.5rem' }}>
-              Installation and quick-start instructions for backend and frontend development.
+              How the site and platform build, deploy, and stay in sync.
             </p>
           </article>
         </div>

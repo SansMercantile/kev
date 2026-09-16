@@ -64,6 +64,8 @@ import { LibraryTreatiseReaderModal } from './LibraryTreatiseReaderModal';
 import { DigitalAdmissionCard } from './DigitalAdmissionCard';
 import { useToast } from '../toast/ToastContext';
 import { soundManager } from '../../utils/soundEffects';
+import { libApi } from '../../lib/xrApi';
+import { cachedFetch } from '../../lib/offline';
 
 interface Props {
   currentStudentName: string;
@@ -163,8 +165,9 @@ export const VisitorsPortal: React.FC<Props> = ({
   useEffect(() => {
     async function fetchAdmissions() {
       try {
-        const res = await fetch('/api/admissions/list');
-        const data = await res.json();
+        const data = await cachedFetch<{ admissions?: AdmissionApplication[] }>(
+          libApi('/admissions/list')
+        );
         if (data.admissions && data.admissions.length > 0) {
           setAdmissionsList(data.admissions);
         }
@@ -196,16 +199,17 @@ export const VisitorsPortal: React.FC<Props> = ({
 
     try {
       // Post to backend
-      const res = await fetch('/api/admissions/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student: studentForm,
-          guardian: guardianForm
-        })
-      });
-
-      const data = await res.json();
+      const data = await cachedFetch<{ success?: boolean; admission?: AdmissionApplication }>(
+        libApi('/admissions/apply'),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student: studentForm,
+            guardian: guardianForm
+          }),
+        }
+      );
 
       let admissionRecord: AdmissionApplication;
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Wifi, WifiOff, RefreshCw, CheckCircle2, AlertTriangle, Cloud, HardDrive, Zap } from 'lucide-react';
 import { getPendingOfflineObservations } from '../../utils/indexedDBStorage';
+import { libApi } from '../../lib/xrApi';
 
 type ConnectionState = 'synced' | 'checking' | 'offline';
 
@@ -26,7 +27,7 @@ export const ConnectivityIndicator: React.FC = () => {
     const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     try {
-      const res = await fetch('/api/health', {
+      const res = await fetch(libApi('/health'), {
         signal: controller.signal,
         cache: 'no-store',
       });
