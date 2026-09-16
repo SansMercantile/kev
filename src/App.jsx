@@ -15,6 +15,7 @@ import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
 const ImmersiveLab = lazy(() => import('./pages/ImmersiveLab'))
 const XRAcademy = lazy(() => import('./pages/XRAcademy'))
+const TeacherStudio = lazy(() => import('./pages/TeacherStudio'))
 import Portal from './pages/Portal'
 import Onboarding from './pages/Onboarding'
 import Pricing from './pages/Pricing'
@@ -22,6 +23,7 @@ import Billing from './pages/Billing'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
 import { setAuthToken, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
+import { DEV_BYPASS_AUTH, DevAuthBypassBanner } from './lib/devAuthBypass'
 
 function AuthButton() {
   const { t } = useTranslation()
@@ -53,6 +55,11 @@ function AuthButton() {
 function RequireAuth({ children }) {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
+
+  // Dev-only shortcut, after the hooks so their order is unconditional. Gated on
+  // two compile-time constants and stripped from production builds — see
+  // lib/devAuthBypass.jsx.
+  if (DEV_BYPASS_AUTH) return children
 
   if (isLoading) return null
 
@@ -110,6 +117,11 @@ const App = () => {
       return
     }
     let cancelled = false
+    // SWAP-POINT (kev/docs/AUTH0_ROLES_AND_COHORTS.md): once the tenant emits
+    // role / study_level claims, decode them from this token (or read
+    // useAuth0().user) and seed the role session from the verified claims
+    // instead of the landing-page choice; roleHeaders() then stops asserting
+    // what the token already proves.
     getAccessTokenSilently()
       .then((token) => { if (!cancelled) setAuthToken(token) })
       .catch(() => { if (!cancelled) setAuthToken(null) })
@@ -133,6 +145,7 @@ const App = () => {
     <Router>
       <div className="kev-app">
         <a className="skip-link" href="#main">{t('nav.skipToContent')}</a>
+        <DevAuthBypassBanner />
         <header className={`kev-nav${scrolled ? ' kev-nav-scrolled' : ''}`} role="banner" aria-label="Top header">
           <div className="kev-nav-inner">
             <Link to="/" className="kev-brand">
@@ -152,17 +165,19 @@ const App = () => {
                 </NavLink>
               ))}
 
-              <a
-                className="kev-btn kev-btn-primary"
-                href="https://sansmercantile.com/contact"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('nav.contact')}
-                <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
-              </a>
-              <LanguageSwitcher compact />
-              <AuthButton />
+              <div className="kev-nav-actions">
+                <a
+                  className="kev-btn kev-btn-primary"
+                  href="https://sansmercantile.com/contact"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('nav.contact')}
+                  <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
+                </a>
+                <LanguageSwitcher compact />
+                <AuthButton />
+              </div>
             </nav>
 
             <button className="kev-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-controls="kev-nav-links" aria-expanded={menuOpen} aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}>
@@ -191,6 +206,7 @@ const App = () => {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+            <Route path="/teacher" element={<Suspense fallback={<section className="kev-section">Loading teaching studio...</section>}><TeacherStudio /></Suspense>} />
           </Routes>
         </main>
 

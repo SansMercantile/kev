@@ -5,10 +5,14 @@ import { ANATOMY_SYSTEMS, ANATOMY_PARTS } from './anatomySystems'
 // keyTerms -> in-viewer search) so floors, facilities, subjects, and tutors
 // stay linked. Mirrors GET /xr/subjects on the backend.
 //
-// Part format: [name, position XYZ, size XYZ, description, sourceUrl?]
-// Anatomy systems + vocabulary come from tools/human-atlas (15 systems).
-// Vehicle systems adapt tools/model-x-studio component descriptions
-// (component text; the 16.7MB GLB stays in tools/ under its own license).
+// Part format: [name, position XYZ, size XYZ, description, sourceUrl?, pieceId?]
+// Anatomy systems + vocabulary come from tools/human-atlas (15 systems); the
+// full 2,234-mesh BodyParts3D 4.0 geometry streams from public/models
+// (CC BY 4.0), with these box parts kept as the offline fallback catalog.
+// Vehicle systems adapt tools/model-x-studio component descriptions; the
+// 334-piece Model X geometry (cgi Moon via BlendKit, Royalty Free) is
+// embedded for study with no download UI, and pieceId maps each catalog
+// entry onto its component group in the model.
 
 const TESLA_MANUAL = 'https://www.tesla.com/ownersmanual/modelx/en_us/'
 const VEHICLE_SOURCES = {
@@ -119,10 +123,12 @@ export const IMMERSIVE_SUBJECTS = {
     eyebrow: 'ENGINEERING',
     description: 'Take apart an electric SUV: energy storage, drive units, chassis, and body systems.',
     tutorId: 'dr-ward',
-    labId: 'optics',
+    // M4 wiring fix (docs/KEV_TOOLS_ROADMAP.md): an EV subject belongs in the
+    // Physics Playground (energy, forces, motion), not the optics lab.
+    labId: 'physics',
     floor: 3,
     keyTerms: ['battery', 'motor', 'suspension', 'brake', 'cabin', 'door', 'glass', 'chassis', 'tire', 'drive'],
-    attribution: 'Component descriptions adapted from the Model X Studio tool. Geometry is illustrative; see docs/ATTRIBUTION-model-x.md.',
+    attribution: 'Component descriptions adapted from the Model X Studio tool; the 334-piece Model X geometry (cgi Moon via BlendKit, Royalty Free) is embedded for study - no download UI. Battery, drive units and suspension are illustrative teaching geometry. See docs/ATTRIBUTION-model-x.md.',
     pieceSearch: { manifestUrl: '/models/model-x-manifest.json', placeholder: 'Search 334 vehicle pieces...' },
     systems: [
       { id: 'exterior', label: 'Exterior', color: '#8fb8d8' },
@@ -133,26 +139,26 @@ export const IMMERSIVE_SUBJECTS = {
     ],
     parts: {
       exterior: [
-        ['Body & structure', [0, 0.85, 0], [4.4, 0.8, 1.9], 'The body brings the vehicle together: an enclosed passenger space, crumple zones at either end, and a smooth exterior that guides air around the car. The structure carries loads around the cabin.', VEHICLE_SOURCES.body],
-        ['Panoramic glass', [0, 1.45, 0], [2.2, 0.45, 1.7], 'The expansive windshield sweeps up above the front seats. The windshield and side glazing create visibility around the vehicle.', VEHICLE_SOURCES.glass],
-        ['Falcon wing door', [0.9, 1.05, 0.95], [1.1, 1.0, 0.1], 'Two hinges give each rear door its distinctive upward motion. The door folds as it rises, making access possible in tighter spaces.', VEHICLE_SOURCES.doors],
+        ['Body & structure', [0, 0.85, 0], [4.4, 0.8, 1.9], 'The body brings the vehicle together: an enclosed passenger space, crumple zones at either end, and a smooth exterior that guides air around the car. The structure carries loads around the cabin.', VEHICLE_SOURCES.body, 'body'],
+        ['Panoramic glass', [0, 1.45, 0], [2.2, 0.45, 1.7], 'The expansive windshield sweeps up above the front seats. The windshield and side glazing create visibility around the vehicle.', VEHICLE_SOURCES.glass, 'glass'],
+        ['Falcon wing door', [0.9, 1.05, 0.95], [1.1, 1.0, 0.1], 'Two hinges give each rear door its distinctive upward motion. The door folds as it rises, making access possible in tighter spaces.', VEHICLE_SOURCES.doors, 'doors'],
       ],
       interior: [
-        ['Passenger cabin', [-0.2, 0.85, 0], [2.6, 0.65, 1.6], 'The passenger space sits above the battery. Seats, restraints, controls and displays form the part of the vehicle you interact with every day.', VEHICLE_SOURCES.cabin],
+        ['Passenger cabin', [-0.2, 0.85, 0], [2.6, 0.65, 1.6], 'The passenger space sits above the battery. Seats, restraints, controls and displays form the part of the vehicle you interact with every day.', VEHICLE_SOURCES.cabin, 'cabin'],
       ],
       energy: [
-        ['High-voltage battery', [0, 0.12, 0], [3.2, 0.18, 1.5], 'A liquid-cooled lithium-ion battery stores the energy that powers the vehicle. During regenerative braking, the motors convert motion back into stored energy.', VEHICLE_SOURCES.battery],
+        ['High-voltage battery', [0, 0.12, 0], [3.2, 0.18, 1.5], 'A liquid-cooled lithium-ion battery stores the energy that powers the vehicle. During regenerative braking, the motors convert motion back into stored energy.', VEHICLE_SOURCES.battery, 'battery'],
       ],
       powertrain: [
-        ['Front drive unit', [-1.6, 0.35, 0], [0.6, 0.5, 0.8], 'An electric motor turns stored energy into wheel torque. An inverter controls the motor and a fixed-ratio gearbox transfers rotation to the wheels.', VEHICLE_SOURCES.drive],
-        ['Rear drive unit', [1.6, 0.35, 0], [0.6, 0.5, 0.8], 'An electric motor turns stored energy into wheel torque. The motors also help slow the vehicle through regenerative braking.', VEHICLE_SOURCES.drive],
+        ['Front drive unit', [-1.6, 0.35, 0], [0.6, 0.5, 0.8], 'An electric motor turns stored energy into wheel torque. An inverter controls the motor and a fixed-ratio gearbox transfers rotation to the wheels.', VEHICLE_SOURCES.drive, 'drive'],
+        ['Rear drive unit', [1.6, 0.35, 0], [0.6, 0.5, 0.8], 'An electric motor turns stored energy into wheel torque. The motors also help slow the vehicle through regenerative braking.', VEHICLE_SOURCES.drive, 'drive'],
       ],
       chassis: [
-        ['Adaptive suspension', [0, 0.32, 0], [3.8, 0.18, 2.0], 'Air springs support the car while adaptive dampers control body movement. The system adjusts ride height and road response.', VEHICLE_SOURCES.suspension],
-        ['Front-left wheel', [-1.5, 0.35, 0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels],
-        ['Front-right wheel', [-1.5, 0.35, -0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels],
-        ['Rear-left wheel', [1.5, 0.35, 0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels],
-        ['Rear-right wheel', [1.5, 0.35, -0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels],
+        ['Adaptive suspension', [0, 0.32, 0], [3.8, 0.18, 2.0], 'Air springs support the car while adaptive dampers control body movement. The system adjusts ride height and road response.', VEHICLE_SOURCES.suspension, 'suspension'],
+        ['Front-left wheel', [-1.5, 0.35, 0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels, 'wheels'],
+        ['Front-right wheel', [-1.5, 0.35, -0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels, 'wheels'],
+        ['Rear-left wheel', [1.5, 0.35, 0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels, 'wheels'],
+        ['Rear-right wheel', [1.5, 0.35, -0.95], [0.5, 0.7, 0.35], 'Tires are the contact with the road. Behind each wheel, a ventilated brake disc and caliper provide friction braking with ABS.', VEHICLE_SOURCES.wheels, 'wheels'],
       ],
     },
   },

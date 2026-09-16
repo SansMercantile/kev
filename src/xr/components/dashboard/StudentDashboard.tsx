@@ -50,6 +50,13 @@ interface Props {
   onUpdateAvatar?: (avatar: AvatarConfig) => void;
   onOpenShop?: () => void;
   onOpenPeerMentors?: () => void;
+  /**
+   * Extra sections rendered at the end of the dashboard's own scroll flow.
+   * The dashboard root is the scroller (`flex-1 overflow-y-auto`), so panels
+   * that belong to it are passed in rather than stacked outside it — wrapping it
+   * would create a second, competing scrollbar.
+   */
+  footerSections?: React.ReactNode;
 }
 
 export const StudentDashboard: React.FC<Props> = ({
@@ -62,6 +69,7 @@ export const StudentDashboard: React.FC<Props> = ({
   onUpdateAvatar,
   onOpenShop,
   onOpenPeerMentors,
+  footerSections,
 }) => {
   const [activeTab, setActiveTab] = useState<'streak' | 'missions' | 'careers' | 'tournaments' | 'growth' | 'gradebook' | 'remedial' | 'testing' | 'leaderboard'>('missions');
   const { t } = useTranslation();
@@ -542,6 +550,8 @@ export const StudentDashboard: React.FC<Props> = ({
       </div>
 
       {/* 3D Avatar Customizer Modal */}
+      {footerSections}
+
       {isAvatarModalOpen && (
         <AvatarCustomizerModal
           currentAvatar={studentStats.avatar}

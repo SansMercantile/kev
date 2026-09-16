@@ -10,49 +10,93 @@ interface Props {
   onBackToCampus: () => void;
 }
 
-const PRESETS: { [key: string]: Partial<PhysicsEnvironmentConfig> } = {
+/**
+ * Gravity presets.
+ *
+ * These used to be `Partial<PhysicsEnvironmentConfig>` and set only the two
+ * `surface*` fields, while the simulation reads `config.surfaceElasticity` and
+ * `config.surfaceFriction` directly. Because those fields are optional on the
+ * type, any config that lacked them produced `undefined` arithmetic — NaN
+ * trajectories — and `config.surfaceElasticity.toFixed(2)` in the UI threw.
+ *
+ * Each preset is now a complete config: `friction`/`elasticity` carry the same
+ * physical quantities as their `surface*` counterparts, and `presetName` is set
+ * so a config always knows which world it describes.
+ */
+const PRESETS: { [key: string]: PhysicsEnvironmentConfig } = {
   earth: {
     gravity: 9.81,
     airResistance: 0.02,
+    friction: 0.1,
+    elasticity: 0.75,
     surfaceElasticity: 0.75,
     surfaceFriction: 0.1,
+    timeScale: 1.0,
+    presetName: 'earth',
   },
   moon: {
     gravity: 1.62,
     airResistance: 0.0,
+    friction: 0.05,
+    elasticity: 0.85,
     surfaceElasticity: 0.85,
     surfaceFriction: 0.05,
+    timeScale: 1.0,
+    presetName: 'moon',
   },
   mars: {
     gravity: 3.72,
     airResistance: 0.005,
+    friction: 0.08,
+    elasticity: 0.78,
     surfaceElasticity: 0.78,
     surfaceFriction: 0.08,
+    timeScale: 1.0,
+    presetName: 'mars',
   },
   jupiter: {
     gravity: 24.79,
     airResistance: 0.08,
+    friction: 0.25,
+    elasticity: 0.6,
     surfaceElasticity: 0.6,
     surfaceFriction: 0.25,
+    timeScale: 1.0,
+    presetName: 'jupiter',
   },
   zero_g: {
     gravity: 0.0,
     airResistance: 0.0,
+    friction: 0.01,
+    elasticity: 0.95,
     surfaceElasticity: 0.95,
     surfaceFriction: 0.01,
+    timeScale: 1.0,
+    presetName: 'zero_g',
   },
 };
+
+/**
+ * Restitution and friction with guaranteed numeric values.
+ *
+ * The `surface*` fields stay optional on the shared type (other callers may not
+ * set them), so the integrator resolves them here rather than risking NaN.
+ */
+function restitutionOf(config: PhysicsEnvironmentConfig): number {
+  return config.surfaceElasticity ?? config.elasticity ?? 0.75;
+}
+
+function surfaceFrictionOf(config: PhysicsEnvironmentConfig): number {
+  return config.surfaceFriction ?? config.friction ?? 0.1;
+}
 
 export const PhysicsPlayground: React.FC<Props> = ({ studentStats, onAwardXP, onBackToCampus }) => {
   const { showToast } = useToast();
 
-  const [config, setConfig] = useState<PhysicsEnvironmentConfig>({
-    gravity: 9.81,
-    airResistance: 0.02,
-    surfaceFriction: 0.1,
-    surfaceElasticity: 0.75,
-    timeScale: 1.0,
-  });
+  // Full config from the start: the previous literal omitted the required
+  // `friction`, `elasticity` and `presetName`, so the integrator could read
+  // undefined surface properties before a preset was ever applied.
+  const [config, setConfig] = useState<PhysicsEnvironmentConfig>({ ...PRESETS.earth });
 
   const [activePreset, setActivePreset] = useState<string>('earth');
   const [launchAngle, setLaunchAngle] = useState<number>(45); // degrees
@@ -143,8 +187,8 @@ export const PhysicsPlayground: React.FC<Props> = ({ studentStats, onAwardXP, on
       // Ground Collision with Restitution and Friction
       if (y <= 0) {
         y = 0;
-        vy = -vy * config.surfaceElasticity;
-        vx = vx * (1 - config.surfaceFriction);
+        vy = -vy * restitutionOf(config);
+        vx = vx * (1 - surfaceFrictionOf(config));
 
         if (Math.abs(vy) < 0.8) {
           // Stop bouncing
@@ -423,15 +467,21 @@ export const PhysicsPlayground: React.FC<Props> = ({ studentStats, onAwardXP, on
             <div className="space-y-1.5 text-xs font-mono">
               <div className="flex justify-between items-center text-slate-300">
                 <span>Restitution / Elasticity (e):</span>
-                <span className="font-bold text-emerald-400">{config.surfaceElasticity.toFixed(2)}</span>
+                <span className="font-bold text-emerald-400">{restitutionOf(config).toFixed(2)}</span>
               </div>
               <input
                 type="range"
                 min="0.1"
                 max="0.95"
                 step="0.05"
-                value={config.surfaceElasticity}
-                onChange={(e) => setConfig({ ...config, surfaceElasticity: Number(e.target.value) })}
+                value={restitutionOf(config)}
+                onChange={(e) => {
+                  // Keep both names for the same quantity in step: `elasticity`
+                  // is the required field other consumers read, `surfaceElasticity`
+                  // is what this integrator prefers.
+                  const value = Number(e.target.value);
+                  setConfig({ ...config, surfaceElasticity: value, elasticity: value });
+                }}
                 className="w-full accent-emerald-500 cursor-pointer"
               />
             </div>

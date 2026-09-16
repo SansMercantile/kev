@@ -94,6 +94,21 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
   const [activeTab, setActiveTab] = useState<'cell' | 'dna'>('cell');
   const [selectedOrganelle, setSelectedOrganelle] = useState<Organelle>(ORGANELLES[0]);
   const [xrayMode, setXrayMode] = useState<boolean>(false);
+
+  // Smart Lab Sketch-to-Simulation: a sketched cell cross-section dispatches
+  // 'kev:lab-load'; open the 3D cell view (and x-ray if the sketch asked).
+  useEffect(() => {
+    const onLabLoad = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        lab?: string; action?: string; xray?: boolean;
+      };
+      if (detail.lab !== 'biology' || detail.action !== 'cell-view') return;
+      setActiveTab('cell');
+      if (detail.xray) setXrayMode(true);
+    };
+    window.addEventListener('kev:lab-load', onLabLoad);
+    return () => window.removeEventListener('kev:lab-load', onLabLoad);
+  }, []);
   const [atpPulsing, setAtpPulsing] = useState<boolean>(true);
 
   // DNA transcription demo state
@@ -496,6 +511,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
         {/* View Mode Toggle: Cell vs DNA */}
         <div className="flex items-center p-1 bg-slate-950 rounded-xl border border-slate-800">
           <button
+            data-guide="bio-cell-tab"
             onClick={() => setActiveTab('cell')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
               activeTab === 'cell'
@@ -507,6 +523,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
             3D Eukaryotic Cell
           </button>
           <button
+            data-guide="bio-dna-tab"
             onClick={() => setActiveTab('dna')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
               activeTab === 'dna'
@@ -523,6 +540,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
         <div className="flex items-center gap-2">
           {activeTab === 'cell' && (
             <button
+              data-guide="bio-xray"
               onClick={() => setXrayMode(!xrayMode)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                 xrayMode
@@ -535,6 +553,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
             </button>
           )}
           <button
+            data-guide="bio-capture"
             onClick={handleSnapshot}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
           >
@@ -585,7 +604,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
             </div>
 
             {/* Organelle selector chips */}
-            <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap gap-1.5">
+            <div data-guide="bio-organelle" className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap gap-1.5">
               {ORGANELLES.map((org) => (
                 <button
                   key={org.id}

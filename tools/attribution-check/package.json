@@ -1,0 +1,9 @@
+{
+  "name": "attribution-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "License/attribution compliance gate for the Model X Studio and Human Atlas assets (docs/KEV_TOOLS_ROADMAP.md M0)",
+  "scripts": {
+    "check": "node check.cjs"
+  }
+}

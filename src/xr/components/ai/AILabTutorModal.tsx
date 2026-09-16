@@ -3,6 +3,7 @@ import { Sparkles, X, Send, Volume2, VolumeX, Loader2, BookOpen, Lightbulb } fro
 import { LabId } from '../../types';
 import { xrApi, xrAuthHeaders } from '../../lib/xrApi';
 import { getStudyLevelId } from '../../lib/studyLevel';
+import { getTierId } from '../../lib/studyTier';
 import { getAnswerLanguage } from '../../../i18n/index.js';
 
 interface Props {
@@ -52,6 +53,7 @@ export const AILabTutorModal: React.FC<Props> = ({
           currentLab: activeLab,
           context: `Student is actively running the 3D ${activeLab} simulation at KEV XR Science Academy (https://kev.sansmercantile.com/).`,
           studentLevel: getStudyLevelId(),
+          tier: getTierId(),
           language: getAnswerLanguage(),
         }),
       });

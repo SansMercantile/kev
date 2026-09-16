@@ -1,0 +1,12 @@
+{
+  "comment": "Curated discipline- and safeguarding-facing keys. requireTranslation=true means a non-English locale still holding the English value is a FAILURE - these are the strings a guardian or student must not misread. Extend per discipline as packs land (T4).",
+  "keys": [
+    { "key": "xr.labs", "why": "Science Labs navigation - discipline entry point", "requireTranslation": true },
+    { "key": "xr.curriculum", "why": "Curriculum navigation - discipline entry point", "requireTranslation": true },
+    { "key": "xr.dashboard", "why": "Dashboard navigation - progress and XP surface", "requireTranslation": true },
+    { "key": "viewer.resetView", "why": "Immersive viewer control shared by Human Atlas and vehicle benches", "requireTranslation": true },
+    { "key": "tutor.askGeneric", "why": "Tutor ask panel heading - the help affordance in every discipline", "requireTranslation": true },
+    { "key": "studyLevels.elementary.label", "why": "Safeguarding: guardians choose the age band; a misread label mis-cohorts a child", "requireTranslation": true },
+    { "key": "subjects.anatomy.label", "why": "Human Atlas subject label (BodyParts3D-derived surface)", "requireTranslation": true }
+  ]
+}

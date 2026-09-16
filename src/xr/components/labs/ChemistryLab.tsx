@@ -30,6 +30,27 @@ const PRESETS: MoleculePreset[] = [
     ],
   },
   {
+    // The daily Twin Challenge's canonical bent molecule: same VSEPR family
+    // as water, but with sulfur's lone pair opening the angle to ~119°.
+    id: 'so2',
+    name: 'Sulfur Dioxide',
+    formula: 'SO₂',
+    description: 'Bent polar molecule from volcanic and combustion sources. One lone pair on sulfur pushes the O=S=O bonds to about 119°.',
+    geometry: 'Bent (V-Shaped)',
+    bondAngle: '119°',
+    dipoleMoment: '1.63 Debye (Polar)',
+    funFact: 'SO2 scatters sunlight into sulfates that can cool the whole planet - volcanoes are natural climate engineers!',
+    atoms: [
+      { element: 'S', pos: [0, 0.35, 0], label: 'Sulfur (S)' },
+      { element: 'O', pos: [-1.35, -0.55, 0], label: 'Oxygen (O₁)' },
+      { element: 'O', pos: [1.35, -0.55, 0], label: 'Oxygen (O₂)' },
+    ],
+    bonds: [
+      { from: 0, to: 1, order: 2 },
+      { from: 0, to: 2, order: 2 },
+    ],
+  },
+  {
     id: 'ch4',
     name: 'Methane',
     formula: 'CH₄',
@@ -138,6 +159,7 @@ const ELEMENT_COLORS: Record<string, { hex: number; colorStr: string; radius: nu
   O: { hex: 0xef4444, colorStr: '#ef4444', radius: 0.55, electronegativity: 3.44 },
   N: { hex: 0x3b82f6, colorStr: '#3b82f6', radius: 0.60, electronegativity: 3.04 },
   Cl: { hex: 0x22c55e, colorStr: '#22c55e', radius: 0.70, electronegativity: 3.16 },
+  S: { hex: 0xeab308, colorStr: '#eab308', radius: 0.62, electronegativity: 2.58 },
 };
 
 export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor }) => {
@@ -149,6 +171,19 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
   const [selectedAtom, setSelectedAtom] = useState<any | null>(null);
   const [isReacting, setIsReacting] = useState<boolean>(false);
   const [reactionEnergy, setReactionEnergy] = useState<number | null>(null);
+
+  // Smart Lab Sketch-to-Simulation: the bench doodle recogniser dispatches
+  // 'kev:lab-load' with a preset id; honour it by loading that molecule.
+  useEffect(() => {
+    const onLabLoad = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as { lab?: string; presetId?: string };
+      if (detail.lab !== 'chemistry') return;
+      const preset = PRESETS.find((p) => p.id === detail.presetId);
+      if (preset) setSelectedPreset(preset);
+    };
+    window.addEventListener('kev:lab-load', onLabLoad);
+    return () => window.removeEventListener('kev:lab-load', onLabLoad);
+  }, []);
 
   // Three.js instances ref
   const threeRef = useRef<{
@@ -490,7 +525,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
     });
 
     // Dipole vector arrow
-    if (showDipole && selectedPreset.id === 'h2o') {
+    if (showDipole && (selectedPreset.id === 'h2o' || selectedPreset.id === 'so2')) {
       const from = new THREE.Vector3(0, -0.6, 0);
       const to = new THREE.Vector3(0, 0.8, 0);
       const dir = to.clone().sub(from).normalize();
@@ -566,7 +601,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
         </div>
 
         {/* Preset Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+        <div data-guide="chem-preset" className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950/80 rounded-xl border border-slate-800">
           {PRESETS.map((m) => (
             <button
               key={m.id}
@@ -585,6 +620,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           <button
+            data-guide="chem-capture"
             onClick={handleSnapshot}
             title="Capture 3D Snapshot to Lab Notebook"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
@@ -611,7 +647,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
         <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
         {/* 3D Viewport HUD Overlay */}
-        <div className="absolute top-4 left-4 p-4 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-800/80 max-w-xs pointer-events-auto">
+        <div data-guide="chem-info" className="absolute top-4 left-4 p-4 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-800/80 max-w-xs pointer-events-auto">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-xs uppercase tracking-wider text-cyan-400 font-mono font-semibold">
               Molecular Telemetry
@@ -690,7 +726,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
         {/* Bottom Interaction Ribbon */}
         <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 pointer-events-auto">
           {/* Temperature slider */}
-          <div className="flex items-center gap-3 min-w-[240px]">
+          <div data-guide="chem-temperature" className="flex items-center gap-3 min-w-[240px]">
             <Thermometer className="w-4 h-4 text-cyan-400 shrink-0" />
             <div className="flex-1">
               <div className="flex justify-between text-[11px] text-slate-300 mb-1">
@@ -712,6 +748,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
           {/* Visualization Toggles */}
           <div className="flex items-center gap-2">
             <button
+              data-guide="chem-dipole"
               onClick={() => setShowDipole(!showDipole)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                 showDipole

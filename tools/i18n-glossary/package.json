@@ -1,0 +1,8 @@
+{
+  "name": "@kev/tools-i18n-glossary",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Discipline glossary gate over src/i18n/locales.",
+  "type": "commonjs",
+  "scripts": { "check": "node check.cjs" }
+}

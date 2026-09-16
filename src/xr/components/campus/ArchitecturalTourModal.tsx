@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { X, Building2, Compass, Sparkles, MapPin, Eye, Maximize2, Shield, Info, ArrowRight } from 'lucide-react';
 import { PHOTOREALISTIC_ASSETS } from '../../assets/images';
+import {
+  CAMPUS_FLOORS,
+  CAMPUS_STATISTICS,
+  CORRIDOR,
+  VIRTUAL_SCHOOL,
+} from '../../data/schoolCampus';
 
 interface Props {
   isOpen: boolean;
@@ -8,10 +14,25 @@ interface Props {
   onTeleportToFacility?: (facilityId: string) => void;
 }
 
+/**
+ * Tour categories.
+ *
+ * The four original categories are kept; two more cover the consolidated
+ * school — the subject wings on floors 5-10 and the KEV International Virtual
+ * School building reachable through the concourse portal.
+ */
+type TourCategory =
+  | 'Exterior Grounds'
+  | 'Central Concourse'
+  | 'Advanced Research'
+  | 'Recreation & Athletics'
+  | 'Subject Wings'
+  | 'Virtual School';
+
 interface ArchitecturalZone {
   id: string;
   title: string;
-  category: 'Exterior Grounds' | 'Central Concourse' | 'Advanced Research' | 'Recreation & Athletics';
+  category: TourCategory;
   subtitle: string;
   image: string;
   architecturalStyle: string;
@@ -25,7 +46,10 @@ interface ArchitecturalZone {
   highlightFeatures: string[];
 }
 
-const ZONES: ArchitecturalZone[] = [
+/**
+ * The eight hand-authored architectural zones, kept exactly as written.
+ */
+const AUTHORED_ZONES: ArchitecturalZone[] = [
   {
     id: 'exterior-grounds',
     title: 'University Science Quadrangle & Solar Canopies',
@@ -202,6 +226,147 @@ const ZONES: ArchitecturalZone[] = [
       'Hydrotherapy recovery whirlpools and high-altitude hypoxia training pods',
     ],
   },
+
+];
+
+/** Local campus photography, cycled for the generated floor zones. */
+const CAMPUS_IMAGE_POOL: string[] = [
+  PHOTOREALISTIC_ASSETS.campus.atriumHero,
+  PHOTOREALISTIC_ASSETS.campus.cleanroomBio,
+  PHOTOREALISTIC_ASSETS.campus.opticsLabLaser,
+  PHOTOREALISTIC_ASSETS.campus.modernAuditorium,
+  PHOTOREALISTIC_ASSETS.campus.libraryArchive,
+  PHOTOREALISTIC_ASSETS.campus.observatoryPanoramic,
+];
+
+/**
+ * One tour zone per floor of the actual school.
+ *
+ * The authored zones above describe the four original XR wings and the grounds,
+ * but the consolidated campus has eleven floors and 199 rooms. Rather than
+ * hand-writing prose that drifts from the data, these zones are generated from
+ * `CAMPUS_FLOORS` — the mirror of `GET /xr/campus/school` — so the tour states
+ * the real room counts, subject areas, class counts and tutor-agent rosters, and
+ * picks up any new subject wing automatically.
+ */
+function buildFloorZones(): ArchitecturalZone[] {
+  return CAMPUS_FLOORS.map((floor, index) => {
+    const isHallway = Boolean(floor.isHallway) || floor.floorNumber === 0;
+    const rooms = floor.facilities.length;
+    const subjects = floor.subjectAreas ?? [];
+    const annexNote = floor.annex
+      ? `${floor.annex.classCount} annex classes across ${floor.annex.subjects.length} subjects`
+      : null;
+
+    const category: TourCategory = isHallway
+      ? 'Central Concourse'
+      : floor.floorNumber <= 4
+        ? 'Advanced Research'
+        : 'Subject Wings';
+
+    return {
+      id: `floor-${floor.floorNumber}`,
+      title: floor.name.replace(/^Floor \d+:\s*/, `Floor ${floor.floorNumber} — `),
+      category,
+      subtitle: floor.subtitle,
+      image: isHallway
+        ? PHOTOREALISTIC_ASSETS.campus.exteriorHero
+        : CAMPUS_IMAGE_POOL[index % CAMPUS_IMAGE_POOL.length],
+      architecturalStyle: isHallway
+        ? 'Volumetric Light-Cove Circulation Spine'
+        : floor.kind === 'legacy_xr_wing'
+          ? 'Legacy XR Research Pavilion'
+          : 'Modular Subject Wing / Glazed Corridor',
+      specifications: {
+        sqMeters: isHallway
+          ? `${Math.round(CORRIDOR.length * CORRIDOR.halfWidth * 2).toLocaleString()} m² corridor`
+          : `${rooms} rooms`,
+        naturalLightIndex: isHallway ? 'Recessed cove + skylight wash' : 'Full-height glazed partitions',
+        materials: isHallway
+          ? 'Polished terrazzo, carpet acoustic runner, brushed metal dado, frosted glazing'
+          : 'Terrazzo slab, acoustic panel walls, walnut joinery, frosted vision panels',
+        purpose: subjects.length
+          ? subjects.join(' · ')
+          : isHallway
+            ? 'Wayfinding, subject banners, elevator core and virtual-school portal'
+            : floor.subtitle,
+      },
+      description: isHallway
+        ? `The Grand Concourse is the ${CORRIDOR.length}-metre circulation spine of the school. ` +
+          `Polished terrazzo under a continuous volumetric light cove, a carpet acoustic runner the ` +
+          `length of the hall, and ${floor.facilities.length} named concourse facilities: ` +
+          `${floor.facilities.map((f) => f.name).join(', ')}. ` +
+          `Fourteen floor-to-ceiling subject banners carry every one of the ` +
+          `${CAMPUS_STATISTICS.specializations} specializations, and the pneumatic elevator core ` +
+          `serves all ${CAMPUS_FLOORS.length} floors.`
+        : `Floor ${floor.floorNumber} houses ${rooms} rooms. ${floor.subtitle}` +
+          (annexNote ? ` The wing annex adds ${annexNote}.` : '') +
+          (floor.corridor
+            ? ` A ${Math.round(floor.corridor.length)}-metre glazed corridor links every door, with a lit room-number sign and subject accent strip above each.`
+            : ''),
+      highlightFeatures: isHallway
+        ? [
+            `${floor.facilities.length} concourse facilities, each interactive in 3D`,
+            `${CAMPUS_STATISTICS.subjectAreas} illuminated subject banners with holographic projectors`,
+            `Elevator core serving floors 0-${CAMPUS_FLOORS.length - 1} with a live ring per floor`,
+            'Step-through portal to the KEV International Virtual School',
+          ]
+        : [
+            `${rooms} rooms on this floor`,
+            subjects.length
+              ? `${subjects.length} subject areas: ${subjects.slice(0, 4).join(', ')}${subjects.length > 4 ? '…' : ''}`
+              : 'Legacy XR research wing',
+            annexNote ?? 'Corridor doors with lit signage and subject accent strips',
+            'Procedural PBR materials: terrazzo, acoustic panel, walnut and frosted glass',
+          ],
+    };
+  });
+}
+
+/** A tour zone for the KEV International Virtual School building. */
+function buildVirtualSchoolZone(): ArchitecturalZone[] {
+  if (!VIRTUAL_SCHOOL?.available) return [];
+  const levels = VIRTUAL_SCHOOL.levels;
+  const facilityCount = VIRTUAL_SCHOOL.building?.totalFacilities
+    ?? levels.reduce((sum, level) => sum + level.facilitiesCount, 0);
+
+  return [
+    {
+      id: 'virtual-school-building',
+      title: VIRTUAL_SCHOOL.building?.name ?? 'KEV International Virtual School',
+      category: 'Virtual School',
+      subtitle: `${levels.length} levels · basement to roof · ${facilityCount} bookable facilities`,
+      image: PHOTOREALISTIC_ASSETS.campus.sportsArenaPool,
+      architecturalStyle: 'Six-Storey Glazed Academic Building',
+      specifications: {
+        sqMeters: `${facilityCount} facilities`,
+        naturalLightIndex: 'Full-height glazed facade on every storey',
+        materials: 'Terrazzo plate, vinyl and carpet room finishes, acoustic walls, brushed metal facade',
+        purpose: VIRTUAL_SCHOOL.building?.address ?? 'Bookable through the virtual-school API',
+      },
+      description:
+        `Reached through the portal at the north end of the Grand Concourse, the virtual school ` +
+        `building is a separate ${levels.length}-level structure generated from the live ` +
+        `VirtualSchoolBuilding service. It holds ${facilityCount} bookable facilities — ` +
+        `gymnasium, library, cafeteria, laboratories, computer lab, music room, art studio, ` +
+        `dance studio, auditorium and lecture hall — each placed at its own coordinates with its ` +
+        `own capacity, equipment list and accessibility features.`,
+      highlightFeatures: levels.map(
+        (level) => `${level.levelDisplayName}: ${level.themeAndSubject} (${level.facilitiesCount})`
+      ),
+    },
+  ];
+}
+
+/**
+ * The full tour: the eight authored zones plus one zone per real floor plus the
+ * virtual school. Nothing authored was removed.
+ */
+const ZONES: ArchitecturalZone[] = [
+  ...AUTHORED_ZONES,
+  ...buildFloorZones(),
+  ...buildVirtualSchoolZone(),
+
 ];
 
 export const ArchitecturalTourModal: React.FC<Props> = ({ isOpen, onClose, onTeleportToFacility }) => {
@@ -210,7 +375,15 @@ export const ArchitecturalTourModal: React.FC<Props> = ({ isOpen, onClose, onTel
 
   if (!isOpen) return null;
 
-  const categories = ['All', 'Exterior Grounds', 'Central Concourse', 'Advanced Research', 'Recreation & Athletics'];
+  const categories = [
+    'All',
+    'Exterior Grounds',
+    'Central Concourse',
+    'Advanced Research',
+    'Recreation & Athletics',
+    'Subject Wings',
+    'Virtual School',
+  ];
 
   const filteredZones = activeCategory === 'All'
     ? ZONES
@@ -235,7 +408,9 @@ export const ArchitecturalTourModal: React.FC<Props> = ({ isOpen, onClose, onTel
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                Explore the engineering specifications, architectural zones, and research facilities of KEV Academy
+                {ZONES.length} zones · floors 0-{CAMPUS_FLOORS.length - 1} ·{' '}
+                {CAMPUS_STATISTICS.totalRooms} rooms · {CAMPUS_STATISTICS.classes} classes ·{' '}
+                {CAMPUS_STATISTICS.tutorAgents} tutor agents
               </p>
             </div>
           </div>

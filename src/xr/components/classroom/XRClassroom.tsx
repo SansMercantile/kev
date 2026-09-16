@@ -4,6 +4,7 @@ import { Sparkles, Hand, Volume2, VolumeX, Users, Monitor, Maximize2, MessageSqu
 import confetti from 'canvas-confetti';
 import { xrApi, xrAuthHeaders } from '../../lib/xrApi';
 import { getStudyLevelId } from '../../lib/studyLevel';
+import { getTierId } from '../../lib/studyTier';
 import { getAnswerLanguage } from '../../../i18n/index.js';
 
 interface Props {
@@ -477,6 +478,7 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
         currentLab: 'XR Auditorium',
         context: 'Student asked a question during a live XR Auditorium lecture at KEV XR Science Academy.',
         studentLevel: getStudyLevelId(),
+        tier: getTierId(),
         language: getAnswerLanguage(),
       }),
     })

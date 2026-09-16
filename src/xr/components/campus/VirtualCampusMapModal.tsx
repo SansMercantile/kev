@@ -1,6 +1,8 @@
 import { xrApi } from '../../lib/xrApi';
 import { cachedFetch, onReconnect } from '../../lib/offline';
 import { STATIC_FLOORS } from '../../data/campusFloors';
+import { CAMPUS_FLOORS } from '../../data/schoolCampus';
+import type { CampusFloorNumber } from './VirtualCampus';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,13 +26,50 @@ import { CampusFacility, CampusFloor, LabId } from '../../types';
 
 interface Props {
   isOpen?: boolean;
-  currentFloor?: 1 | 2 | 3 | 4;
-  initialFloor?: 1 | 2 | 3 | 4;
-  onSelectFloor?: (floor: 1 | 2 | 3 | 4) => void;
-  onTeleportToRoom?: (facility: CampusFacility, floor: 1 | 2 | 3 | 4) => void;
-  onTeleportToFacility?: (facility: CampusFacility, floor: 1 | 2 | 3 | 4) => void;
+  currentFloor?: CampusFloorNumber;
+  initialFloor?: CampusFloorNumber;
+  onSelectFloor?: (floor: CampusFloorNumber) => void;
+  onTeleportToRoom?: (facility: CampusFacility, floor: CampusFloorNumber) => void;
+  onTeleportToFacility?: (facility: CampusFacility, floor: CampusFloorNumber) => void;
   onDirectLaunchLab?: (labId: LabId) => void;
   onClose: () => void;
+}
+
+/**
+ * Offline floor set for the 2D map.
+ *
+ * `CAMPUS_FLOORS` is the generated mirror of `GET /xr/campus/school` and carries
+ * all eleven floors (0 = Grand Concourse Hallway, 1-4 legacy wings, 5-10 subject
+ * wings). `STATIC_FLOORS` is the older hand-authored 4-floor mirror; it is merged
+ * in floor-by-floor so any richer legacy facility record survives, and nothing is
+ * dropped when the API is unreachable.
+ */
+const OFFLINE_FLOORS: CampusFloor[] = (() => {
+  const unified = CAMPUS_FLOORS as unknown as CampusFloor[];
+  const legacy = STATIC_FLOORS as unknown as CampusFloor[];
+  const merged = unified.map((floor) => {
+    const legacyFloor = legacy.find((f) => f.floorNumber === floor.floorNumber);
+    if (!legacyFloor) return floor;
+    // Prefer whichever source has more facility detail for this floor.
+    const legacyFacilities = legacyFloor.facilities ?? [];
+    const unifiedFacilities = floor.facilities ?? [];
+    if (legacyFacilities.length <= unifiedFacilities.length) return floor;
+    return { ...floor, facilities: legacyFacilities };
+  });
+  // Any legacy floor absent from the unified mirror is still worth showing.
+  legacy.forEach((floor) => {
+    if (!merged.some((f) => f.floorNumber === floor.floorNumber)) merged.push(floor);
+  });
+  return merged.sort((a, b) => a.floorNumber - b.floorNumber);
+})();
+
+/** Compact tab label for a floor number. */
+function shortFloorName(num: number): string {
+  const floor = OFFLINE_FLOORS.find((f) => f.floorNumber === num);
+  const name = floor?.name ?? `Floor ${num}`;
+  // Names look like "Floor 5: Mathematics & Computing Wing" — keep the tail.
+  const tail = name.split(':').slice(1).join(':').trim();
+  return tail || name;
 }
 
 export const VirtualCampusMapModal: React.FC<Props> = ({
@@ -44,8 +83,10 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const startingFloor = initialFloor || currentFloor || 1;
-  const [selectedFloorNum, setSelectedFloorNum] = useState<1 | 2 | 3 | 4>(startingFloor);
+  // Floor 0 (the Grand Concourse Hallway) is a real destination, so resolve
+  // with ?? rather than || — `|| 1` would silently discard it.
+  const startingFloor = initialFloor ?? currentFloor ?? 0;
+  const [selectedFloorNum, setSelectedFloorNum] = useState<CampusFloorNumber>(startingFloor);
   const [floors, setFloors] = useState<CampusFloor[]>([]);
   const [selectedFacility, setSelectedFacility] = useState<CampusFacility | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -53,8 +94,8 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
 
   // Sync if initialFloor or currentFloor changes
   useEffect(() => {
-    if (initialFloor) setSelectedFloorNum(initialFloor);
-    else if (currentFloor) setSelectedFloorNum(currentFloor);
+    if (initialFloor != null) setSelectedFloorNum(initialFloor);
+    else if (currentFloor != null) setSelectedFloorNum(currentFloor);
   }, [initialFloor, currentFloor]);
 
   // Fetch campus floor layout from API (cached; static bundle offline)
@@ -62,7 +103,7 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
     async function loadFloors() {
       try {
         const data = await cachedFetch<{ floors?: CampusFloor[] }>(xrApi('/campus/floors'), {
-          fallback: { floors: STATIC_FLOORS as unknown as CampusFloor[] },
+          fallback: { floors: OFFLINE_FLOORS },
         });
         if (data.floors) {
           setFloors(data.floors);
@@ -84,7 +125,12 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
 
   const currentFloorData = floors.find((f) => f.floorNumber === selectedFloorNum);
 
-  const handleFloorChange = (fNum: 1 | 2 | 3 | 4) => {
+  /** Every floor number the map can show, in ascending order. */
+  const floorTabs: CampusFloorNumber[] = (floors.length ? floors : OFFLINE_FLOORS)
+    .map((f) => f.floorNumber as CampusFloorNumber)
+    .sort((a, b) => a - b);
+
+  const handleFloorChange = (fNum: CampusFloorNumber) => {
     setSelectedFloorNum(fNum);
     onSelectFloor?.(fNum);
     const floorObj = floors.find((f) => f.floorNumber === fNum);
@@ -177,13 +223,13 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
         <div className="px-6 py-2.5 bg-slate-900/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
           {/* Floor Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto">
-            {[1, 2, 3, 4].map((num) => {
+            {floorTabs.map((num) => {
               const fl = floors.find((f) => f.floorNumber === num);
               const isActive = selectedFloorNum === num;
               return (
                 <button
                   key={num}
-                  onClick={() => handleFloorChange(num as any)}
+                  onClick={() => handleFloorChange(num)}
                   className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/25 font-bold'
@@ -198,7 +244,7 @@ export const VirtualCampusMapModal: React.FC<Props> = ({
                         isActive ? 'bg-slate-950/30 text-slate-950 font-bold' : 'text-slate-400'
                       }`}
                     >
-                      {num === 1 ? 'Atrium & Commons' : num === 2 ? 'Bio & Optics' : num === 3 ? 'Astrophysics' : 'XR Labs'}
+                      {fl?.subtitle?.split('—')[0]?.trim() || shortFloorName(num)}
                     </span>
                   )}
                 </button>

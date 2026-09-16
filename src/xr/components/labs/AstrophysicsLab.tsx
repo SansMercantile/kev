@@ -68,6 +68,23 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
   const [timeScale, setTimeScale] = useState<number>(1.0);
   const [gravityG, setGravityG] = useState<number>(1.0);
   const [selectedBodyId, setSelectedBodyId] = useState<string>('earth');
+
+  // Smart Lab Sketch-to-Simulation: a sketched orbit dispatches 'kev:lab-load';
+  // focus the requested body and make sure the integration is running.
+  useEffect(() => {
+    const onLabLoad = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        lab?: string; action?: string; bodyId?: string; playing?: boolean;
+      };
+      if (detail.lab !== 'astrophysics' || detail.action !== 'orbit') return;
+      if (detail.bodyId && DEFAULT_BODIES.some((b) => b.id === detail.bodyId)) {
+        setSelectedBodyId(detail.bodyId);
+      }
+      if (detail.playing !== undefined) setIsPlaying(detail.playing);
+    };
+    window.addEventListener('kev:lab-load', onLabLoad);
+    return () => window.removeEventListener('kev:lab-load', onLabLoad);
+  }, []);
   const [liveTelemetry, setLiveTelemetry] = useState<{ speed: number; distance: number; period: number }>({
     speed: 15.8,
     distance: 4.8,
@@ -484,7 +501,7 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
         </div>
 
         {/* Tracked Body Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950/80 rounded-xl border border-slate-800">
+        <div data-guide="astro-body" className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-950/80 rounded-xl border border-slate-800">
           {DEFAULT_BODIES.map((b) => (
             <button
               key={b.id}
@@ -542,7 +559,7 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
         <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
         {/* Telemetry HUD */}
-        <div className="absolute top-4 left-4 p-4 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-800/80 max-w-xs pointer-events-auto">
+        <div data-guide="astro-telemetry" className="absolute top-4 left-4 p-4 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-800/80 max-w-xs pointer-events-auto">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-xs uppercase tracking-wider text-violet-400 font-mono font-semibold">
               Orbital Telemetry
@@ -602,7 +619,7 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
         {/* Bottom Simulation Physics Controls */}
         <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 pointer-events-auto">
           {/* Gravitational Multiplier */}
-          <div className="flex items-center gap-3 min-w-[220px]">
+          <div data-guide="astro-gravity" className="flex items-center gap-3 min-w-[220px]">
             <span className="text-xs font-mono text-violet-400 font-bold">G</span>
             <div className="flex-1">
               <div className="flex justify-between text-[11px] text-slate-300 mb-1">
@@ -622,7 +639,7 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
           </div>
 
           {/* Time scale slider */}
-          <div className="flex items-center gap-3 min-w-[200px]">
+          <div data-guide="astro-timescale" className="flex items-center gap-3 min-w-[200px]">
             <FastForward className="w-4 h-4 text-cyan-400 shrink-0" />
             <div className="flex-1">
               <div className="flex justify-between text-[11px] text-slate-300 mb-1">

@@ -1,23 +1,49 @@
-import React, { useEffect, useRef, useState } from 'react'
-import * as THREE from 'three'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { IMMERSIVE_SUBJECTS, IMMERSIVE_SUBJECT_ORDER } from '../lib/immersiveSubjects'
-import { PointerTap } from '../lib/pointerTap'
 import { xrClient } from '../lib/xrClient'
 import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from '../xr/lib/studyLevel'
+import { getTierId, setTierId, SCIENCE_TIERS } from '../xr/lib/studyTier'
+import { anatomyExplanation } from '../lib/anatomySystems'
+import StudyKitModal from '../xr/components/programs/StudyKitModal'
+import SketchBench from '../xr/components/programs/SketchBench'
 import TutorAskPanel from '../components/TutorAskPanel'
+import { VehicleViewer } from '../lib/studio/vehicleScene'
+import { SubjectViewer } from '../lib/studio/subjectScenes'
+import { useAtlasViewer, ATLAS_DEFAULT_VISIBLE } from '../lib/studio/useAtlasViewer'
+import '../styles/studio-viewer.css'
 
-function createPartMesh(part, color) {
-  const [name, position, size, description, source] = part
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(...size),
-    new THREE.MeshStandardMaterial({ color, roughness: 0.6, metalness: 0.05 })
-  )
-  mesh.position.set(...position)
-  mesh.userData = { name, description, source: source || null, basePosition: new THREE.Vector3(...position) }
-  return mesh
+// Subjects with a compiled study-kit pack (tools/challenge-packs seeds):
+// Human Atlas (BodyParts3D, CC BY 4.0), Electric Vehicle Systems
+// (Model X Studio) and the plants / bridge / earth systems benches.
+const STUDY_KIT_SUBJECTS = ['anatomy', 'vehicle', 'plants', 'engineering', 'earth']
+
+// KEV's five vehicle systems map onto the eight Model X component groups
+// (the grouping the imported 334-piece model and the tool use).
+const VEHICLE_SYSTEM_GROUPS = {
+  exterior: ['body', 'glass', 'doors'],
+  interior: ['cabin'],
+  energy: ['battery'],
+  powertrain: ['drive'],
+  chassis: ['suspension', 'wheels'],
 }
+const VEHICLE_SYSTEM_PRIMARY = { exterior: 'body', interior: 'cabin', energy: 'battery', powertrain: 'drive', chassis: 'wheels' }
+const VEHICLE_PART_LABELS = [
+  { id: 'body', name: 'Body & structure' },
+  { id: 'glass', name: 'Panoramic glass' },
+  { id: 'doors', name: 'Falcon wing doors' },
+  { id: 'cabin', name: 'Passenger cabin' },
+  { id: 'battery', name: 'High-voltage battery' },
+  { id: 'drive', name: 'Drive units' },
+  { id: 'suspension', name: 'Suspension' },
+  { id: 'wheels', name: 'Wheels & brakes' },
+]
+const ANATOMY_VIEWS = [
+  { id: 'three-quarter', label: '¾', title: 'Three-quarter view' },
+  { id: 'front', label: 'F', title: 'Front view' },
+  { id: 'side', label: 'S', title: 'Side view' },
+  { id: 'back', label: 'B', title: 'Back view' },
+]
 
 function searchLocalParts(subject, query) {
   const q = query.toLowerCase().trim()
@@ -37,11 +63,6 @@ function searchLocalParts(subject, query) {
 export default function ImmersiveLab() {
   const { t } = useTranslation()
   const mountRef = useRef(null)
-  const sceneRef = useRef(null)
-  const tapRef = useRef(new PointerTap())
-  const activeSystemRef = useRef('skeletal')
-  const isolateRef = useRef(false)
-  const selectedRef = useRef(null)
   const [activeSubjectId, setActiveSubjectId] = useState('anatomy')
   const [activeSystem, setActiveSystem] = useState('skeletal')
   const [explode, setExplode] = useState(0)
@@ -52,20 +73,150 @@ export default function ImmersiveLab() {
   const [externalResults, setExternalResults] = useState(null)
   const [externalLoading, setExternalLoading] = useState(false)
   const [studyLevel, setStudyLevel] = useState(() => getStudyLevelId())
+  const [scienceTier, setScienceTier] = useState(() => getTierId())
+  const [studyKitOpen, setStudyKitOpen] = useState(false)
+  const [sketchOpen, setSketchOpen] = useState(false)
+  // Studio-viewer state (quality pass): per-engine toggles and overlays.
+  const [anatomyVisible, setAnatomyVisible] = useState(ATLAS_DEFAULT_VISIBLE)
+  const [anatomyView, setAnatomyView] = useState('three-quarter')
+  const [labelsOn, setLabelsOn] = useState(true)
+  const [rotateOn, setRotateOn] = useState(false)
+  const [vehicleReady, setVehicleReady] = useState(false)
+  const [vehiclePiece, setVehiclePiece] = useState('')
+  const [sceneError, setSceneError] = useState(null)
+  // Live subject id for the lab-load listener, which mounts once (the same
+  // ref pattern as before - the closure must not go stale).
+  const subjectRef = useRef(activeSubjectId)
+  const selectedRef = useRef(selectedPart)
   const [meta, setMeta] = useState({})
   const [webglReady, setWebglReady] = useState(true)
   const subject = IMMERSIVE_SUBJECTS[activeSubjectId]
 
-  useEffect(() => {
-    activeSystemRef.current = activeSystem
-  }, [activeSystem])
-  useEffect(() => {
-    isolateRef.current = isolated
-  }, [isolated])
-  useEffect(() => {
-    selectedRef.current = selectedPart
-  }, [selectedPart])
+  useEffect(() => { subjectRef.current = activeSubjectId }, [activeSubjectId])
+  useEffect(() => { selectedRef.current = selectedPart }, [selectedPart])
 
+  // ---------------------------------------------------------------- anatomy
+  // Full BodyParts3D atlas engine (2,234 streamed meshes) with an automatic
+  // fallback to the representative box catalog when streaming fails.
+  const handleAtlasSelect = useCallback((sel) => {
+    setSelectedSystemId(sel.systemId)
+    setActiveSystem(sel.systemId)
+    setSelectedPart(sel)
+    setIsolated(false)
+  }, [])
+  const atlas = useAtlasViewer(mountRef, {
+    enabled: activeSubjectId === 'anatomy' && webglReady,
+    theme: 'light',
+    onSelectPart: handleAtlasSelect,
+  })
+
+  // Sync React state into whichever anatomy engine is live.
+  useEffect(() => {
+    if (activeSubjectId !== 'anatomy') return
+    atlas.setState({
+      explode,
+      visible: anatomyVisible,
+      activeSystem,
+      selected: selectedPart?.partId ? [selectedPart.partId] : [],
+      selectedName: selectedPart?.name ?? null,
+      isolate: isolated && Boolean(selectedPart),
+      view: anatomyView,
+      rotate: rotateOn,
+    })
+  }, [activeSubjectId, explode, anatomyVisible, activeSystem, selectedPart, isolated, anatomyView, rotateOn, atlas.fallback]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ---------------------------------------------------------------- vehicle
+  const vehicleRef = useRef(null)
+  useEffect(() => {
+    if (activeSubjectId !== 'vehicle' || !webglReady) return undefined
+    const host = mountRef.current
+    if (!host) return undefined
+    setVehicleReady(false)
+    setSceneError(null)
+    let viewer = null
+    try {
+      viewer = new VehicleViewer(host, {
+        partLabels: VEHICLE_PART_LABELS,
+        onReady: () => setVehicleReady(true),
+        onError: (m) => setSceneError(m),
+        onSelect: (partId) => {
+          // Map the tool's 8 component groups back onto KEV's part catalog.
+          const sysId = Object.keys(VEHICLE_SYSTEM_GROUPS).find((k) => VEHICLE_SYSTEM_GROUPS[k].includes(partId))
+          const entry = sysId && (subject.parts[sysId] || []).find((p) => p[5] === partId)
+          setSelectedSystemId(sysId || null)
+          if (sysId) setActiveSystem(sysId)
+          setSelectedPart(
+            entry
+              ? { name: entry[0], description: entry[3], source: entry[4] || null, piece: entry[5] }
+              : { name: (VEHICLE_PART_LABELS.find((l) => l.id === partId) || {}).name || partId, description: '', source: null, piece: partId }
+          )
+        },
+        onInspect: (pieceId) => setVehiclePiece(pieceId || ''),
+      })
+      vehicleRef.current = viewer
+    } catch {
+      setWebglReady(false)
+    }
+    return () => {
+      vehicleRef.current = null
+      if (viewer && viewer.dispose) viewer.dispose()
+    }
+  }, [activeSubjectId, webglReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const v = vehicleRef.current
+    if (activeSubjectId !== 'vehicle' || !v) return
+    v.setState({
+      selected: selectedPart?.piece || VEHICLE_SYSTEM_PRIMARY[activeSystem] || 'body',
+      focusedMesh: vehiclePiece,
+      explode,
+      labels: labelsOn,
+      autoRotate: rotateOn,
+      isolated: isolated && Boolean(selectedPart),
+    })
+  }, [activeSubjectId, selectedPart, vehiclePiece, explode, labelsOn, rotateOn, isolated, activeSystem, vehicleReady])
+
+  // ------------------------------------------------------- procedural subjects
+  const subjectViewerRef = useRef(null)
+  useEffect(() => {
+    if (['anatomy', 'vehicle'].includes(activeSubjectId) || !webglReady) return undefined
+    const host = mountRef.current
+    if (!host) return undefined
+    setSceneError(null)
+    let viewer = null
+    try {
+      viewer = new SubjectViewer(host, activeSubjectId, subject, {
+        onError: (m) => setSceneError(m),
+        onSelect: (systemId, userData) => {
+          setSelectedSystemId(systemId)
+          setActiveSystem(systemId)
+          setSelectedPart({ name: userData.name, description: userData.description, source: userData.source || null })
+        },
+      })
+      subjectViewerRef.current = viewer
+    } catch {
+      setWebglReady(false)
+    }
+    return () => {
+      subjectViewerRef.current = null
+      if (viewer && viewer.dispose) viewer.dispose()
+    }
+  }, [activeSubjectId, webglReady]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const v = subjectViewerRef.current
+    if (!v || ['anatomy', 'vehicle'].includes(activeSubjectId)) return
+    v.setState({
+      activeSystem,
+      explode,
+      isolated: isolated && Boolean(selectedPart),
+      selectedName: selectedPart?.name ?? null,
+      labels: labelsOn,
+      autoRotate: rotateOn,
+    })
+  }, [activeSubjectId, activeSystem, explode, isolated, selectedPart, labelsOn, rotateOn])
+
+  // ---------------------------------------------------------------- crosswalk
   // Enrich subject cards from the backend crosswalk (tutor + track names +
   // level guidance). Silent fallback to the bundled catalog when unreachable.
   useEffect(() => {
@@ -86,131 +237,7 @@ export default function ImmersiveLab() {
     }
   }, [studyLevel])
 
-  useEffect(() => {
-    const mount = mountRef.current
-    if (!mount) return undefined
-    const currentSubject = IMMERSIVE_SUBJECTS[activeSubjectId]
-    let renderer
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    } catch {
-      setWebglReady(false)
-      return undefined
-    }
-
-    setWebglReady(true)
-    const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#07111f')
-    const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
-    camera.position.set(5.4, 2.4, 7.8)
-    const controls = new OrbitControls(camera, renderer.domElement)
-    controls.enableDamping = true
-    controls.target.set(0, 1.25, 0)
-    scene.add(new THREE.HemisphereLight('#fff2d5', '#18324d', 2.2))
-    const keyLight = new THREE.DirectionalLight('#ffffff', 3)
-    keyLight.position.set(4, 7, 6)
-    scene.add(keyLight)
-
-    const groups = {}
-    currentSubject.systems.forEach(({ id, color }) => {
-      const group = new THREE.Group()
-      ;(currentSubject.parts[id] || []).forEach((part) => group.add(createPartMesh(part, color)))
-      scene.add(group)
-      groups[id] = group
-    })
-    const floor = new THREE.Mesh(
-      new THREE.CircleGeometry(4.5, 64),
-      new THREE.MeshBasicMaterial({ color: '#0d2136', transparent: true, opacity: 0.9 })
-    )
-    floor.rotation.x = -Math.PI / 2
-    floor.position.y = -2.05
-    scene.add(floor)
-
-    const resize = () => {
-      const width = mount.clientWidth || 640
-      const height = mount.clientHeight || 560
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-      renderer.setSize(width, height, false)
-      camera.aspect = width / height
-      camera.updateProjectionMatrix()
-    }
-    resize()
-    mount.appendChild(renderer.domElement)
-    const raycaster = new THREE.Raycaster()
-    const pointer = new THREE.Vector2()
-    const pick = (event) => {
-      const bounds = renderer.domElement.getBoundingClientRect()
-      pointer.x = ((event.clientX - bounds.left) / bounds.width) * 2 - 1
-      pointer.y = -((event.clientY - bounds.top) / bounds.height) * 2 + 1
-      raycaster.setFromCamera(pointer, camera)
-      const activeGroup = groups[activeSystemRef.current]
-      const hit = activeGroup && raycaster.intersectObjects(activeGroup.children.filter((m) => m.visible))[0]
-      if (hit) {
-        const { name, description, source } = hit.object.userData
-        setSelectedSystemId(activeSystemRef.current)
-        setSelectedPart({ name, description, source })
-      }
-    }
-    // Tap-vs-drag: only a clean tap selects, so orbiting never misfires.
-    const tap = tapRef.current
-    const onPointerDown = (event) => tap.down(event.pointerId, event.clientX, event.clientY, 6)
-    const onPointerMove = (event) => tap.move(event.pointerId, event.clientX, event.clientY)
-    const onPointerUp = (event) => {
-      if (tap.up(event.pointerId, event.clientX, event.clientY)) pick(event)
-    }
-    const onPointerCancel = (event) => tap.cancel(event.pointerId)
-    renderer.domElement.addEventListener('pointerdown', onPointerDown)
-    renderer.domElement.addEventListener('pointermove', onPointerMove)
-    renderer.domElement.addEventListener('pointerup', onPointerUp)
-    renderer.domElement.addEventListener('pointercancel', onPointerCancel)
-    window.addEventListener('resize', resize)
-    sceneRef.current = { renderer, camera, controls, groups }
-
-    let animationFrame
-    const animate = () => {
-      controls.update()
-      renderer.render(scene, camera)
-      animationFrame = window.requestAnimationFrame(animate)
-    }
-    animate()
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame)
-      window.removeEventListener('resize', resize)
-      renderer.domElement.removeEventListener('pointerdown', onPointerDown)
-      renderer.domElement.removeEventListener('pointermove', onPointerMove)
-      renderer.domElement.removeEventListener('pointerup', onPointerUp)
-      renderer.domElement.removeEventListener('pointercancel', onPointerCancel)
-      controls.dispose()
-      renderer.dispose()
-      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement)
-      scene.traverse((object) => {
-        if (object.geometry) object.geometry.dispose()
-        if (object.material) object.material.dispose()
-      })
-      sceneRef.current = null
-    }
-  }, [activeSubjectId])
-
-  useEffect(() => {
-    const current = sceneRef.current
-    if (!current) return
-    const selectedName = selectedRef.current?.name
-    Object.entries(current.groups).forEach(([id, group]) => {
-      group.visible = id === activeSystem
-      group.children.forEach((mesh, index) => {
-        // Isolation mode: show only the inspected structure.
-        if (isolateRef.current && mesh.userData.name !== selectedName) {
-          mesh.visible = false
-          return
-        }
-        mesh.visible = true
-        const direction = new THREE.Vector3(index % 2 === 0 ? 1 : -1, (index - 2) * 0.08, 0.8)
-        mesh.position.copy(mesh.userData.basePosition).addScaledVector(direction, explode / 100 * 1.7)
-      })
-    })
-  }, [activeSystem, explode, isolated, selectedPart, activeSubjectId])
-
+  // ------------------------------------------------------------------ actions
   const selectSubject = (subjectId) => {
     const next = IMMERSIVE_SUBJECTS[subjectId]
     setActiveSubjectId(subjectId)
@@ -221,37 +248,101 @@ export default function ImmersiveLab() {
     setSelectedSystemId(null)
     setSearch('')
     setExternalResults(null)
+    setSceneError(null)
+    setVehiclePiece('')
+    if (subjectId === 'anatomy') {
+      setAnatomyVisible(ATLAS_DEFAULT_VISIBLE)
+      setAnatomyView('three-quarter')
+    }
   }
 
-  const selectLocalPart = (systemId, name, description, source) => {
+  const selectLocalPart = (systemId, name, description, source, piece) => {
     setActiveSystem(systemId)
     setSelectedSystemId(systemId)
-    setSelectedPart({ name, description, source: source || null })
+    setSelectedPart({ name, description, source: source || null, piece })
+    if (piece) setVehiclePiece(piece)
   }
 
-  // External concept/piece catalogs (lazy): atlas.json for anatomy
-  // (tools/human-atlas, 3,432 concepts), model-x-manifest.json for the
-  // vehicle subject (tools/model-x-studio, 334 pieces).
+  const clickSystem = (systemId) => {
+    setActiveSystem(systemId)
+    setSelectedPart(null)
+    setSelectedSystemId(null)
+    if (activeSubjectId === 'anatomy') {
+      setAnatomyVisible([systemId])
+    } else if (activeSubjectId === 'vehicle') {
+      // Component groups highlight in-scene; the part list below drills in.
+      setVehiclePiece('')
+    }
+  }
+
+  // Smart Lab Sketch-to-Simulation (M3 second wave): body-outline and
+  // vehicle-profile sketches dispatch 'kev:lab-load'. XRAcademyApp stashes the
+  // action in sessionStorage before navigating here, because the window event
+  // fires before this page exists - so consume the stash on mount as well.
+  const applyLabLoad = (detail) => {
+    if (!detail || (detail.lab !== 'anatomy' && detail.lab !== 'vehicle')) return
+    if (detail.lab !== subjectRef.current) selectSubject(detail.lab)
+    if (detail.lab === 'anatomy') {
+      const anatomySubject = IMMERSIVE_SUBJECTS.anatomy
+      if (detail.systemId && anatomySubject.systems.some((s) => s.id === detail.systemId)) {
+        setActiveSystem(detail.systemId)
+        setAnatomyVisible([detail.systemId])
+        setSelectedPart(null)
+        setSelectedSystemId(null)
+      }
+    } else if (typeof detail.explode === 'number') {
+      setExplode(Math.max(0, Math.min(100, detail.explode)))
+    }
+  }
+
+  useEffect(() => {
+    const onLabLoad = (event) => applyLabLoad(event.detail)
+    window.addEventListener('kev:lab-load', onLabLoad)
+    let pending = null
+    try {
+      pending = sessionStorage.getItem('kev:immersive-lab-load')
+      if (pending) sessionStorage.removeItem('kev:immersive-lab-load')
+    } catch { /* private browsing: no stash, live events still work */ }
+    if (pending) {
+      try { applyLabLoad(JSON.parse(pending)) } catch { /* malformed stash */ }
+    }
+    return () => window.removeEventListener('kev:lab-load', onLabLoad)
+    // Mounts once: applyLabLoad only touches stable setters and refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // External concept/piece catalogs: the loaded atlas (3,432 concepts +
+  // 2,234 parts) is searched in memory for anatomy; the vehicle manifest
+  // (334 pieces) is fetched lazily on first search.
   const runExternalSearch = async () => {
     const manifest = subject.conceptSearch || subject.pieceSearch
     if (!manifest || !search.trim()) return
+    const q = search.toLowerCase().trim()
+    if (subject.conceptSearch && atlas.atlas) {
+      const data = atlas.atlas
+      const conceptHits = (data.concepts || [])
+        .filter((c) => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
+        .slice(0, 8)
+        .map((c) => ({ id: c.id, name: c.name, detail: `${c.elements.length} atlas pieces`, elements: c.elements }))
+      setExternalResults(conceptHits)
+      return
+    }
     setExternalLoading(true)
     try {
       const res = await fetch(manifest.manifestUrl)
       if (!res.ok) throw new Error('catalog unavailable')
       const data = await res.json()
-      const q = search.toLowerCase().trim()
       let hits = []
       if (subject.conceptSearch) {
         hits = (data.concepts || [])
           .filter((c) => c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q))
           .slice(0, 12)
-          .map((c) => ({ id: c.id, name: c.name, detail: `${c.elements.length} atlas pieces` }))
+          .map((c) => ({ id: c.id, name: c.name, detail: `${c.elements.length} atlas pieces`, elements: c.elements }))
       } else {
         hits = (data.objects || [])
           .filter((o) => (o.label || '').toLowerCase().includes(q) || (o.part || '').toLowerCase().includes(q))
           .slice(0, 12)
-          .map((o) => ({ id: o.id, name: o.label, detail: `Part group: ${o.part}` }))
+          .map((o) => ({ id: o.id, name: o.label, detail: `Part group: ${o.part}`, piece: o.id, part: o.part }))
       }
       setExternalResults(hits)
     } catch {
@@ -262,12 +353,34 @@ export default function ImmersiveLab() {
   }
 
   const applyExternalHit = (hit) => {
-    // Jump to the matching in-scene part when one exists.
-    const q = hit.name.toLowerCase()
-    const local = searchLocalParts(subject, hit.name.split(' ')[0]).find((p) => q.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(q.split(' ')[0]))
+    if (hit.elements && hit.elements.length) {
+      // Anatomy concept: select its atlas pieces and frame them.
+      const firstId = hit.elements[0]
+      const p = atlas.atlas && atlas.atlas.parts.find((x) => x.id === firstId)
+      atlas.setState({ selected: hit.elements, isolate: false, rotate: false })
+      if (p) {
+        setActiveSystem(p.system)
+        setSelectedSystemId(p.system)
+        setSelectedPart({ name: hit.name, description: anatomyExplanation(p.name, p.system), systemId: p.system, partId: firstId, source: null, multi: hit.elements.length })
+      } else {
+        setSelectedPart({ name: hit.name, description: `${hit.detail}. Explore the in-scene systems for the closest structures.`, source: null })
+      }
+      return
+    }
+    if (hit.piece) {
+      // Vehicle manifest piece: focus + isolate the individual mesh.
+      const sysId = Object.keys(VEHICLE_SYSTEM_GROUPS).find((k) => VEHICLE_SYSTEM_GROUPS[k].includes(hit.part))
+      setVehiclePiece(hit.piece)
+      if (sysId) setActiveSystem(sysId)
+      setSelectedPart({ name: hit.name, description: `Individual modeled piece (${hit.detail}). Isolate it to study the geometry up close.`, source: null, piece: hit.piece })
+      setIsolated(true)
+      return
+    }
+    // Last resort: jump to the matching in-scene part when one exists.
+    const local = searchLocalParts(subject, hit.name.split(' ')[0]).find((p) => hit.name.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(hit.name.toLowerCase().split(' ')[0]))
     if (local) {
       const full = (subject.parts[local.systemId] || []).find((p) => p[0] === local.name)
-      selectLocalPart(local.systemId, local.name, local.description, full && full[4])
+      selectLocalPart(local.systemId, local.name, local.description, full && full[4], full && full[5])
     } else {
       setSelectedPart({ name: hit.name, description: `${hit.detail}. Explore the in-scene systems above for the closest structure.` })
     }
@@ -278,19 +391,43 @@ export default function ImmersiveLab() {
     setIsolated(false)
     setSelectedPart(null)
     setSelectedSystemId(null)
-    const current = sceneRef.current
-    if (current) {
-      current.camera.position.set(5.4, 2.4, 7.8)
-      current.controls.target.set(0, 1.25, 0)
-      current.controls.update()
+    setVehiclePiece('')
+    setRotateOn(false)
+    if (activeSubjectId === 'anatomy') {
+      setAnatomyVisible(ATLAS_DEFAULT_VISIBLE)
+      setAnatomyView('three-quarter')
+      atlas.setState({ reset: Date.now() })
+      atlas.reset()
+    } else if (vehicleRef.current) {
+      vehicleRef.current.reset()
+    } else if (subjectViewerRef.current) {
+      subjectViewerRef.current.reset()
     }
   }
 
-  const localHits = searchLocalParts(subject, search)
-  const activeCount = (subject.parts[activeSystem] || []).length
+  // Anatomy-aware local search: real atlas part names when loaded.
+  const localHits = useMemo(() => {
+    const q = search.toLowerCase().trim()
+    if (!q) return []
+    if (activeSubjectId === 'anatomy' && atlas.atlas && !atlas.fallback) {
+      return atlas.atlas.parts
+        .filter((p) => p.name.toLowerCase().includes(q))
+        .slice(0, 12)
+        .map((p) => ({ systemId: p.system, name: p.name, description: anatomyExplanation(p.name, p.system), partId: p.id }))
+    }
+    return searchLocalParts(subject, search)
+  }, [search, activeSubjectId, atlas.atlas, atlas.fallback, subject])
+
+  const activeCount = activeSubjectId === 'anatomy' && atlas.atlas
+    ? atlas.atlas.parts.filter((p) => p.system === activeSystem).length
+    : (subject.parts[activeSystem] || []).length
   const enriched = meta[activeSubjectId]
   const tutorLabel = enriched?.tutor?.name || { anatomy: 'Dr. Alistair Vance', plants: 'Dr. Alistair Vance', engineering: 'Dr. Marcus Ward', vehicle: 'Dr. Marcus Ward', earth: 'Prof. Julian Thorne' }[activeSubjectId]
   const trackLabel = enriched?.track?.title || { anatomy: 'Eukaryotic Cell Architecture & DNA Genomics', plants: 'Eukaryotic Cell Architecture & DNA Genomics', engineering: "Wave Optics, Snell's Law & Prismatic Dispersion", vehicle: "Wave Optics, Snell's Law & Prismatic Dispersion", earth: 'Keplerian Gravitation & N-Body Orbital Mechanics' }[activeSubjectId]
+
+  const showLabelsToggle = activeSubjectId !== 'anatomy'
+  const loadingAtlas = activeSubjectId === 'anatomy' && !atlas.fallback && atlas.progress < 100 && !atlas.error
+  const loadingVehicle = activeSubjectId === 'vehicle' && !vehicleReady && !sceneError
 
   return (
     <main className="kev-section" style={{ background: '#07111f', color: '#f8fafc', minHeight: 'calc(100vh - 80px)' }}>
@@ -329,6 +466,43 @@ export default function ImmersiveLab() {
               {isolated ? t('viewer.showAll') : t('viewer.isolate')}
             </button>
             <button className="kev-btn" onClick={reset}>{t('viewer.resetView')}</button>
+            {showLabelsToggle && (
+              <button className="kev-btn" onClick={() => setLabelsOn((v) => !v)} aria-pressed={labelsOn} title="Show numbered labels on the model">
+                Labels
+              </button>
+            )}
+            <button className="kev-btn" onClick={() => setRotateOn((v) => !v)} aria-pressed={rotateOn} title="Auto-rotate the model">
+              {rotateOn ? 'Stop rotation' : 'Rotate'}
+            </button>
+            <button
+              className="kev-btn"
+              onClick={() => setSketchOpen((v) => !v)}
+              title="Sketch-to-Simulation: draw a body outline (torso + head) or a vehicle side profile (body + two wheels) and the bench follows"
+            >
+              {sketchOpen ? 'Close sketch pad' : 'Sketch pad'}
+            </button>
+            {STUDY_KIT_SUBJECTS.includes(activeSubjectId) && (
+              <>
+                <select
+                  value={scienceTier}
+                  onChange={(e) => { setScienceTier(e.target.value); setTierId(e.target.value) }}
+                  title="Teaching tier - the study kit summary, flashcards and quiz adapt to this"
+                  aria-label="Science teaching tier"
+                  style={{ background: '#0d2136', border: '1px solid #23415e', borderRadius: 6, color: '#b9c8d9', padding: '0.45rem 0.6rem', fontSize: '0.82rem' }}
+                >
+                  {SCIENCE_TIERS.map((tier) => (
+                    <option key={tier.id} value={tier.id}>{tier.label}</option>
+                  ))}
+                </select>
+                <button
+                  className="kev-btn"
+                  onClick={() => setStudyKitOpen(true)}
+                  title="One-click study kit: leveled summary, flashcards, printable PDF and quiz CSV"
+                >
+                  Study Kit
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -370,7 +544,21 @@ export default function ImmersiveLab() {
         {(localHits.length > 0 || externalResults) && (
           <div style={{ marginTop: '0.6rem', background: '#0d2136', border: '1px solid #23415e', borderRadius: 8, padding: '0.75rem', display: 'grid', gap: '0.4rem' }} aria-live="polite">
             {localHits.map((hit) => (
-              <button key={`${hit.systemId}:${hit.name}`} className="kev-btn" onClick={() => { const full = (subject.parts[hit.systemId] || []).find((p) => p[0] === hit.name); selectLocalPart(hit.systemId, hit.name, hit.description, full && full[4]) }} style={{ textAlign: 'left' }}>
+              <button
+                key={`${hit.systemId}:${hit.partId || hit.name}`}
+                className="kev-btn"
+                onClick={() => {
+                  if (hit.partId && atlas.atlas) {
+                    setActiveSystem(hit.systemId)
+                    setSelectedSystemId(hit.systemId)
+                    setSelectedPart({ name: hit.name, description: hit.description, systemId: hit.systemId, partId: hit.partId, source: null })
+                  } else {
+                    const full = (subject.parts[hit.systemId] || []).find((p) => p[0] === hit.name)
+                    selectLocalPart(hit.systemId, hit.name, hit.description, full && full[4], full && full[5])
+                  }
+                }}
+                style={{ textAlign: 'left' }}
+              >
                 {hit.name} <span style={{ color: '#8fa3b8' }}>&middot; {hit.systemId}</span>
               </button>
             ))}
@@ -386,28 +574,106 @@ export default function ImmersiveLab() {
         )}
 
         <div className="immersive-lab-grid" style={{ marginTop: '1rem' }}>
-          <div ref={mountRef} role="img" aria-label={`Interactive 3D ${t(`subjects.${activeSubjectId}.label`, subject.label)} model`} style={{ minHeight: 560, border: '1px solid #23415e', borderRadius: 8, overflow: 'hidden', touchAction: 'none' }}>
+          <div
+            ref={mountRef}
+            className="studio-host"
+            role="img"
+            aria-label={`Interactive 3D ${t(`subjects.${activeSubjectId}.label`, subject.label)} model`}
+            style={{ minHeight: 560, border: '1px solid #23415e', borderRadius: 8, overflow: 'hidden', touchAction: 'none', position: 'relative' }}
+          >
             {!webglReady && <p style={{ padding: '2rem', color: '#fbbf24' }}>{t('viewer.webglError')}</p>}
+            {loadingAtlas && (
+              <div className="studio-loading">
+                <span className="spinner" aria-hidden="true" />
+                <div className="bar"><i style={{ width: `${atlas.progress}%` }} /></div>
+                <span>Loading the full human atlas… {atlas.progress}%</span>
+                <span style={{ fontSize: '0.68rem', color: '#8fa3b8' }}>2,234 modeled structures · BodyParts3D 4.0 (CC BY 4.0)</span>
+              </div>
+            )}
+            {loadingVehicle && (
+              <div className="studio-loading">
+                <span className="spinner" aria-hidden="true" />
+                <span>Loading the detailed Model X…</span>
+                <span style={{ fontSize: '0.68rem', color: '#8fa3b8' }}>334 modeled pieces · Royalty Free asset, no downloads</span>
+              </div>
+            )}
+            {sceneError && activeSubjectId !== 'anatomy' && (
+              <div className="studio-error">
+                <strong>The 3D view needs a moment.</strong>
+                <span>{sceneError}</span>
+              </div>
+            )}
+            {activeSubjectId === 'anatomy' && atlas.fallback && atlas.error && (
+              <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 22, background: 'rgba(13,33,54,0.92)', border: '1px solid #23415e', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.72rem', color: '#d8b565' }}>
+                Streaming the full atlas failed ({atlas.error}) - showing the representative teaching model instead. All 15 systems and structures still work.
+              </div>
+            )}
           </div>
           <aside style={{ display: 'grid', alignContent: 'start', gap: '1rem', background: '#0d2136', border: '1px solid #23415e', borderRadius: 8, padding: '1rem' }}>
             <div>
               <p style={{ color: '#f0b35b', fontSize: '0.72rem', letterSpacing: '0.1em', margin: 0 }}>{subject.eyebrow}</p>
               <h2 style={{ fontSize: '1rem', margin: '0.35rem 0 0' }}>{t('viewer.systems')}</h2>
+              {activeSubjectId === 'anatomy' && !atlas.fallback && (
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.6rem', flexWrap: 'wrap' }}>
+                  <button className="kev-btn" onClick={() => setAnatomyVisible(ATLAS_DEFAULT_VISIBLE)} style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem' }}>All systems</button>
+                  {ANATOMY_VIEWS.map((v) => (
+                    <button
+                      key={v.id}
+                      className="kev-btn"
+                      title={v.title}
+                      onClick={() => { setAnatomyView(v.id); }}
+                      style={{ fontSize: '0.72rem', padding: '0.3rem 0.6rem', borderColor: anatomyView === v.id ? '#f0b35b' : undefined, color: anatomyView === v.id ? '#f0b35b' : undefined }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div style={{ display: 'grid', gap: '0.45rem', marginTop: '0.75rem', maxHeight: 300, overflowY: 'auto' }}>
                 {subject.systems.map((system) => (
-                  <button key={system.id} className="kev-btn" onClick={() => { setActiveSystem(system.id); setSelectedPart(null); setSelectedSystemId(null) }} style={{ textAlign: 'left', borderColor: activeSystem === system.id ? system.color : undefined, color: activeSystem === system.id ? system.color : undefined }}>
+                  <button key={system.id} className="kev-btn" onClick={() => clickSystem(system.id)} style={{ textAlign: 'left', borderColor: activeSystem === system.id ? system.color : undefined, color: activeSystem === system.id ? system.color : undefined }}>
                     {t(`systems.${system.id}`, system.label)}
+                    {activeSubjectId === 'anatomy' && atlas.atlas && (
+                      <span style={{ float: 'right', color: '#8fa3b8', fontSize: '0.7rem' }}>
+                        {atlas.atlas.parts.filter((p) => p.system === system.id).length}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
+              {activeSubjectId === 'anatomy' && !atlas.fallback && (
+                <p style={{ color: '#8fa3b8', fontSize: '0.72rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
+                  Tap a system to show it alone; “All systems” restores the full body. Explode fans the systems apart, then packs all {atlas.atlas ? atlas.atlas.parts.length.toLocaleString() : '2,234'} structures into an inventory grid.
+                </p>
+              )}
             </div>
             <label htmlFor="explode-subject" style={{ display: 'grid', gap: '0.55rem' }}>
               <span style={{ fontWeight: 700 }}>{t('viewer.explodeModel')} <strong>{explode}%</strong> <span style={{ color: '#8fa3b8', fontWeight: 400 }}>&middot; {t('viewer.pieces', { count: activeCount })}</span></span>
               <input id="explode-subject" type="range" min="0" max="100" value={explode} onChange={(event) => setExplode(Number(event.target.value))} />
             </label>
+            {activeSubjectId === 'vehicle' && (
+              <div style={{ display: 'grid', gap: '0.35rem' }}>
+                <p style={{ color: '#f0b35b', fontSize: '0.72rem', letterSpacing: '0.1em', margin: 0 }}>STRUCTURES</p>
+                {Object.entries(VEHICLE_SYSTEM_GROUPS).flatMap(([sysId]) =>
+                  (subject.parts[sysId] || []).map((p) => (
+                    <button
+                      key={p[0]}
+                      className="kev-btn"
+                      onClick={() => selectLocalPart(sysId, p[0], p[3], p[4], p[5])}
+                      style={{ textAlign: 'left', fontSize: '0.78rem', borderColor: selectedPart?.name === p[0] ? '#f0b35b' : undefined }}
+                    >
+                      {p[0]}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
             <div aria-live="polite" style={{ borderTop: '1px solid #23415e', paddingTop: '1rem', display: 'grid', gap: '0.5rem' }}>
               <h2 style={{ fontSize: '1rem', margin: 0 }}>{selectedPart?.name || t('viewer.selectStructure')}</h2>
               <p style={{ color: '#b9c8d9', lineHeight: 1.5, fontSize: '0.9rem', margin: 0 }}>{selectedPart?.description || t('viewer.tapHint')}</p>
+              {selectedPart?.multi > 1 && (
+                <p style={{ color: '#8fa3b8', fontSize: '0.78rem', margin: 0 }}>{selectedPart.multi} modeled pieces selected - isolate to study them alone.</p>
+              )}
               {selectedPart?.source && (
                 <a href={selectedPart.source} target="_blank" rel="noopener noreferrer" style={{ color: '#f0b35b', fontSize: '0.85rem' }}>
                   {t('viewer.openReference')}
@@ -415,7 +681,7 @@ export default function ImmersiveLab() {
               )}
               {selectedPart && (
                 <a href="/xr-academy" style={{ color: '#f0b35b', fontSize: '0.85rem' }}>
-                  {t('viewer.practiceInLab', { lab: subject.labId === 'biology' ? 'Biology' : subject.labId === 'astrophysics' ? 'Astrophysics' : subject.labId === 'chemistry' ? 'Chemistry' : 'Optics', floor: subject.floor })}
+                  {t('viewer.practiceInLab', { lab: subject.labId === 'biology' ? 'Biology' : subject.labId === 'astrophysics' ? 'Astrophysics' : subject.labId === 'chemistry' ? 'Chemistry' : subject.labId === 'physics' ? 'Physics Playground' : 'Optics', floor: subject.floor })}
                 </a>
               )}
             </div>
@@ -427,6 +693,7 @@ export default function ImmersiveLab() {
                 partName={selectedPart.name}
                 simulationState={{ system: selectedSystemId, explode, labId: subject.labId, floor: subject.floor }}
                 studentLevel={studyLevel}
+                tier={scienceTier}
               />
             )}
           </aside>
@@ -434,7 +701,32 @@ export default function ImmersiveLab() {
         {subject.attribution && (
           <p style={{ color: '#8fa3b8', fontSize: '0.78rem', marginTop: '1rem' }}>{subject.attribution}</p>
         )}
+        {activeSubjectId === 'vehicle' && (
+          <p style={{ color: '#64748b', fontSize: '0.72rem', marginTop: '0.4rem' }}>
+            Pre-refresh Model X by cgi Moon (BlendKit, Royalty Free). The 334 mesh pieces are modeled geometry, not a
+            complete Tesla parts catalog; battery, drive units and suspension are illustrative teaching geometry.
+            Not affiliated with Tesla. Embedded for study - no downloads offered.
+          </p>
+        )}
       </section>
+      {studyKitOpen && (
+        <StudyKitModal
+          labId={activeSubjectId}
+          tier={scienceTier}
+          onClose={() => setStudyKitOpen(false)}
+        />
+      )}
+
+      {/* Sketch-to-Simulation on the immersive benches: recognised body
+          outlines / vehicle profiles dispatch 'kev:lab-load', which the
+          listener above applies (subject switch + system or explode). No
+          onOpenLab needed here - the event does the routing in-page. */}
+      {sketchOpen && (
+        <SketchBench
+          activeLab={activeSubjectId}
+          onClose={() => setSketchOpen(false)}
+        />
+      )}
     </main>
   )
 }

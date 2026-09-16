@@ -1,28 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LabId, ViewMode, LabSnapshot, StudentStats, Lesson, CampusFacility, AvatarConfig } from './types';
-import { ChemistryLab } from './components/labs/ChemistryLab';
-import { AstrophysicsLab } from './components/labs/AstrophysicsLab';
-import { CellularBiologyLab } from './components/labs/CellularBiologyLab';
-import { OpticsLab } from './components/labs/OpticsLab';
-import { XRClassroom } from './components/classroom/XRClassroom';
-import { CourseViewer } from './components/curriculum/CourseViewer';
-import { StudentDashboard } from './components/dashboard/StudentDashboard';
-import { VirtualCampus } from './components/campus/VirtualCampus';
-import { VirtualCampusMapModal } from './components/campus/VirtualCampusMapModal';
-import { CampusChatSidebar } from './components/chat/CampusChatSidebar';
-import { LabGettingStartedOverlay } from './components/labs/LabGettingStartedOverlay';
-import { BadgeUnlockModal } from './components/badges/BadgeUnlockModal';
-import { GlobalPeerComparisonModal } from './components/dashboard/GlobalPeerComparisonModal';
-import { FocusTimer } from './components/labs/FocusTimer';
-import { TheoryPracticalBridge } from './components/labs/TheoryPracticalBridge';
-import { ARPassThroughModal } from './components/ar/ARPassThroughModal';
-import { XRStereoscopicModal } from './components/ar/XRStereoscopicModal';
-import { AILabTutorModal } from './components/ai/AILabTutorModal';
-import { LabNotebookModal } from './components/notes/LabNotebookModal';
-import { QuizModal } from './components/curriculum/QuizModal';
-import { useToast } from './components/toast/ToastContext';
-import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from './lib/studyLevel';
+import { useNavigate } from 'react-router-dom';
+import {
+  LabId,
+  ViewMode,
+  LabSnapshot,
+  StudentStats,
+  Lesson,
+  CampusFacility,
+  AvatarConfig,
+  LabEquipment,
+  CampusFloorNumber,
+} from './types';
+
 import {
   Sparkles,
   FlaskConical,
@@ -45,7 +35,146 @@ import {
   MessageSquare,
   Building2,
   Calculator,
+  Atom,
+  Dumbbell,
+  Ticket,
+  Target,
+  Globe2,
+  Activity,
+  PenTool,
+  Footprints,
 } from 'lucide-react';
+import { getTierId, setTierId, SCIENCE_TIERS } from './lib/studyTier';
+
+// Eager on purpose: the shell — header, connectivity indicator, announcements
+// ticker, campus chat sidebar and focus timer — is on screen from the first
+// paint, so none of it may wait on a lazily-fetched chunk.
+import { CampusChatSidebar } from './components/chat/CampusChatSidebar';
+import { LabGettingStartedOverlay } from './components/labs/LabGettingStartedOverlay';
+import { ConnectivityIndicator } from './components/header/ConnectivityIndicator';
+import { CampusAnnouncementsTicker } from './components/header/CampusAnnouncementsTicker';
+import { FocusTimer } from './components/labs/FocusTimer';
+import { useToast } from './components/toast/ToastContext';
+import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from './lib/studyLevel';
+// ---------------------------------------------------------------------------
+// Code splitting
+// ---------------------------------------------------------------------------
+// Everything below used to be imported eagerly, so the first paint pulled the
+// whole school at once — every view, all four laboratories and all fourteen
+// modals, ~1.8 MB (510 KB gzipped) — for a student who can only ever be in one
+// place at a time. Each is now its own chunk, fetched when it is opened.
+//
+// The shell stays eager: header, connectivity indicator, announcements ticker,
+// campus chat sidebar and the focus timer, so nothing a student sees on arrival
+// waits on a network round trip.
+//
+// Every XR component is a *named* export and `lazy` wants a default one, hence
+// the `.then` reshaping. Prop types survive by inference.
+
+// --- Laboratories (only the active one is ever mounted) ---
+const ChemistryLab = lazy(() =>
+  import('./components/labs/ChemistryLab').then((m) => ({ default: m.ChemistryLab })));
+const AstrophysicsLab = lazy(() =>
+  import('./components/labs/AstrophysicsLab').then((m) => ({ default: m.AstrophysicsLab })));
+const CellularBiologyLab = lazy(() =>
+  import('./components/labs/CellularBiologyLab').then((m) => ({ default: m.CellularBiologyLab })));
+const OpticsLab = lazy(() =>
+  import('./components/labs/OpticsLab').then((m) => ({ default: m.OpticsLab })));
+
+// --- Science programmes (Twin Challenge, Biome Recon, sketch bench,
+//     adaptive briefs) - each fetched only when its view/panel is opened ---
+const TwinChallengeView = lazy(() => import('./components/programs/TwinChallengeView'));
+const BiomeReconView = lazy(() => import('./components/programs/BiomeReconView'));
+const PulseLabView = lazy(() => import('./components/programs/PulseLabView'));
+const SketchBench = lazy(() => import('./components/programs/SketchBench'));
+const StudyKitModal = lazy(() => import('./components/programs/StudyKitModal'));
+const PaperSummarizer = lazy(() => import('./components/programs/PaperSummarizer'));
+const LabGuideOverlay = lazy(() => import('./components/programs/LabGuideOverlay'));
+
+// --- Views (one at a time) ---
+const VirtualCampus = lazy(() =>
+  import('./components/campus/VirtualCampus').then((m) => ({ default: m.VirtualCampus })));
+const XRClassroom = lazy(() =>
+  import('./components/classroom/XRClassroom').then((m) => ({ default: m.XRClassroom })));
+const CourseViewer = lazy(() =>
+  import('./components/curriculum/CourseViewer').then((m) => ({ default: m.CourseViewer })));
+const StudentDashboard = lazy(() =>
+  import('./components/dashboard/StudentDashboard').then((m) => ({ default: m.StudentDashboard })));
+// Consolidation: `ViewMode` has always declared nine modes, but only five were
+// ever rendered here — the Physics Playground, the VR Sports Arena and the
+// Visitors & Admissions Portal were ported from kev-Demo yet never mounted, so
+// three whole areas of the school were unreachable from the UI.
+const PhysicsPlayground = lazy(() =>
+  import('./components/campus/PhysicsPlayground').then((m) => ({ default: m.PhysicsPlayground })));
+const VRSportsArena = lazy(() =>
+  import('./components/sports/VRSportsArena').then((m) => ({ default: m.VRSportsArena })));
+const VisitorsPortal = lazy(() =>
+  import('./components/visitors/VisitorsPortal').then((m) => ({ default: m.VisitorsPortal })));
+
+// --- Overlays and modals (mounted only once opened) ---
+const VirtualCampusMapModal = lazy(() =>
+  import('./components/campus/VirtualCampusMapModal').then((m) => ({ default: m.VirtualCampusMapModal })));
+const ARPassThroughModal = lazy(() =>
+  import('./components/ar/ARPassThroughModal').then((m) => ({ default: m.ARPassThroughModal })));
+const XRStereoscopicModal = lazy(() =>
+  import('./components/ar/XRStereoscopicModal').then((m) => ({ default: m.XRStereoscopicModal })));
+const AILabTutorModal = lazy(() =>
+  import('./components/ai/AILabTutorModal').then((m) => ({ default: m.AILabTutorModal })));
+const LabNotebookModal = lazy(() =>
+  import('./components/notes/LabNotebookModal').then((m) => ({ default: m.LabNotebookModal })));
+const QuizModal = lazy(() =>
+  import('./components/curriculum/QuizModal').then((m) => ({ default: m.QuizModal })));
+const TheoryPracticalBridge = lazy(() =>
+  import('./components/labs/TheoryPracticalBridge').then((m) => ({ default: m.TheoryPracticalBridge })));
+const GlobalPeerComparisonModal = lazy(() =>
+  import('./components/dashboard/GlobalPeerComparisonModal').then((m) => ({ default: m.GlobalPeerComparisonModal })));
+const BadgeUnlockModal = lazy(() =>
+  import('./components/badges/BadgeUnlockModal').then((m) => ({ default: m.BadgeUnlockModal })));
+// Consolidation: these were ported from kev-Demo but never mounted, so the
+// surfaces they drive were invisible — the dashboard's own Equipment Shop and
+// Peer Mentors buttons render *only* when a handler is supplied, and the
+// notebook had no glossary tab.
+const LabQuickStartModal = lazy(() =>
+  import('./components/labs/LabQuickStartModal').then((m) => ({ default: m.LabQuickStartModal })));
+const StudyGoalsModule = lazy(() =>
+  import('./components/dashboard/StudyGoalsModule').then((m) => ({ default: m.StudyGoalsModule })));
+const EquipmentShopModal = lazy(() =>
+  import('./components/shop/EquipmentShopModal').then((m) => ({ default: m.EquipmentShopModal })));
+const PeerMentorMatchingModal = lazy(() =>
+  import('./components/campus/PeerMentorMatchingModal').then((m) => ({ default: m.PeerMentorMatchingModal })));
+
+/**
+ * Mount a lazily-loaded panel the first time it is opened, then keep it mounted.
+ * The lab notebook holds its hypothesis log and draft notes in component state,
+ * so unmounting on close would silently discard them; mounting on first open is
+ * also what keeps the panel's chunk out of the initial bundle.
+ */
+function useMountOnFirstOpen(isOpen: boolean): boolean {
+  const [mounted, setMounted] = useState<boolean>(isOpen);
+  useEffect(() => {
+    if (isOpen) setMounted(true);
+  }, [isOpen]);
+  return mounted;
+}
+
+/** Spinner shown while a view chunk streams in. */
+const ViewLoader: React.FC<{ label: string }> = ({ label }) => (
+  <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+    <div className="relative w-14 h-14">
+      <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20" />
+      <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-cyan-400 animate-spin" />
+      <div className="absolute inset-3 rounded-full bg-cyan-500/10 animate-pulse" />
+    </div>
+    <p className="text-[10px] font-mono text-cyan-300/70 tracking-[0.2em] uppercase">{label}</p>
+  </div>
+);
+
+/** Full-screen spinner for a modal that is opening. */
+const OverlayLoader: React.FC = () => (
+  <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+    <ViewLoader label="Loading" />
+  </div>
+);
 
 const DEFAULT_AVATAR: AvatarConfig = {
   archetype: 'cyber-scholar',
@@ -79,8 +208,15 @@ function ensureStudentId(stats: StudentStats): StudentStats {
 export default function App() {
   const { t } = useTranslation();
   const { showBadgeToast, showXPToast, showToast } = useToast();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('campus');
   const [activeLab, setActiveLab] = useState<LabId>('chemistry');
+  // Science programmes: adaptive teaching tier, sketch-to-simulation bench,
+  // step-by-step lab guide and the one-click study kit.
+  const [scienceTier, setScienceTier] = useState<string>(() => getTierId());
+  const [isSketchBenchOpen, setIsSketchBenchOpen] = useState(false);
+  const [isStepGuideOpen, setIsStepGuideOpen] = useState(false);
+  const [isStudyKitOpen, setIsStudyKitOpen] = useState(false);
   const [studyLevel, setStudyLevel] = useState<string>(() => getStudyLevelId());
 
   // Load stats with backward-compatibility migration from byt_ to kev_
@@ -131,9 +267,23 @@ export default function App() {
   const [isLabGuideOpen, setIsLabGuideOpen] = useState<boolean>(false);
   const [isGlobalComparisonOpen, setIsGlobalComparisonOpen] = useState<boolean>(false);
   const [teleportTargetFacility, setTeleportTargetFacility] = useState<CampusFacility | null>(null);
-  const [currentFloor, setCurrentFloor] = useState<1 | 2 | 3 | 4>(1);
+  // 0 = Grand Concourse Hallway (the circulation spine), 1-4 legacy XR wings,
+  // 5-10 the subject wings. Spawn in the hallway so the whole school is legible
+  // from the first frame.
+  const [currentFloor, setCurrentFloor] = useState<CampusFloorNumber>(0);
   const [unlockedBadgeAnimation, setUnlockedBadgeAnimation] = useState<{ name: string; description: string } | null>(null);
   const [isTheoryBridgeOpen, setIsTheoryBridgeOpen] = useState<boolean>(false);
+  const [isLabQuickStartOpen, setIsLabQuickStartOpen] = useState<boolean>(false);
+  const [isEquipmentShopOpen, setIsEquipmentShopOpen] = useState<boolean>(false);
+  const [isPeerMentorOpen, setIsPeerMentorOpen] = useState<boolean>(false);
+
+  // These three overlays render unconditionally (they gate on an `isOpen` prop),
+  // which would pull their chunks into the first paint. Latching them means the
+  // chunk is fetched the first time the student opens the panel, and the panel
+  // stays mounted afterwards so its working state survives being closed.
+  const notebookMounted = useMountOnFirstOpen(isNotebookOpen);
+  const quickStartMounted = useMountOnFirstOpen(isLabQuickStartOpen);
+  const aiTutorMounted = useMountOnFirstOpen(isAITutorOpen);
 
   // Auto-launch Getting Started orientation when student enters labs for the first time
   useEffect(() => {
@@ -168,6 +318,17 @@ export default function App() {
     });
   };
 
+  // Twin Challenge XP feeds the same campus economy as lab work: banked XP
+  // lands on studentStats and can trip the usual badge checks.
+  const handleProgramXpGained = (xpGained: number) => {
+    if (xpGained <= 0) return;
+    setStudentStats((prev) => ({ ...prev, xp: prev.xp + xpGained }));
+    checkAndAwardBadge(
+      'Twin Calibrator',
+      'Submitted a calibrated science twin in the XR Twin Challenge daily calibration!'
+    );
+  };
+
   // Handler for saving snapshot from labs
   const handleSaveSnapshot = (snapshot: LabSnapshot) => {
     setSnapshots((prev) => [snapshot, ...prev]);
@@ -192,6 +353,38 @@ export default function App() {
     } else if (snapshot.labId === 'biology') {
       checkAndAwardBadge('Cellular Explorer', 'Investigated eukaryotic organelles and DNA helices!');
     }
+  };
+
+  /**
+   * Adapter between the labs and the notebook.
+   *
+   * Each lab emits a raw capture — `(dataUrl, measurements)` — while the notebook
+   * stores a full `LabSnapshot`. The app previously passed this handler under the
+   * name `onSaveSnapshot`, which no lab declares, so every lab's
+   * `if (!onCaptureSnapshot) return;` guard tripped and capturing a snapshot did
+   * nothing at all (no image, no XP, no badge). Wiring the real prop name
+   * restores the feature.
+   */
+  const handleLabCaptureSnapshot = (
+    dataUrl: string,
+    measurements: Record<string, string | number>
+  ) => {
+    const labNames: Record<LabId, string> = {
+      chemistry: 'Molecular Chemistry',
+      astrophysics: 'Kepler Astrophysics',
+      biology: 'Cellular Biology',
+      optics: 'Wave Optics',
+    };
+    const snapshot: LabSnapshot = {
+      id: `lab-${activeLab}-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString(),
+      labId: activeLab,
+      labName: labNames[activeLab] ?? `${activeLab.toUpperCase()} Lab`,
+      imageDataUrl: dataUrl,
+      note: `Captured from the ${labNames[activeLab] ?? activeLab} 3D simulation`,
+      measurements,
+    };
+    handleSaveSnapshot(snapshot);
   };
 
   const handleSaveARSnapshot = (dataUrl: string, note: string) => {
@@ -241,6 +434,63 @@ export default function App() {
     });
   };
 
+  /**
+   * Award XP from the Physics Playground and the VR Sports Arena.
+   * Both views were unreachable before, so neither had a handler to call.
+   */
+  const handleAwardXP = (xp: number, reason: string) => {
+    setStudentStats((prev) => ({ ...prev, xp: prev.xp + xp }));
+    showXPToast(xp, reason);
+  };
+
+  const handleBackToCampus = () => {
+    setViewMode('campus');
+  };
+
+  /**
+   * Buy a piece of lab equipment. `EquipmentShopModal` has already verified the
+   * student can afford it, so this only records the unlock and charges the XP —
+   * and refuses to charge twice if the tool is somehow already owned.
+   */
+  const handlePurchaseEquipment = (tool: LabEquipment) => {
+    setStudentStats((prev) => {
+      const owned = prev.unlockedEquipmentIds ?? [];
+      if (owned.includes(tool.id)) return prev;
+      return {
+        ...prev,
+        xp: Math.max(0, prev.xp - (tool.costXP || 0)),
+        unlockedEquipmentIds: [...owned, tool.id],
+        // Buying a tool puts it in hand immediately; it can be swapped later.
+        equippedToolId: tool.id,
+      };
+    });
+  };
+
+  const handleEquipTool = (toolId: string) => {
+    setStudentStats((prev) => ({ ...prev, equippedToolId: toolId }));
+  };
+
+  /**
+   * Charge XP for a cosmetic tool skin. The shop resolves an optional `xpPrice`
+   * to a concrete number before calling this, but guard anyway: an undefined or
+   * NaN amount must never poison the student's XP total.
+   */
+  const handleDeductXP = (amount: number) => {
+    const cost = Number.isFinite(amount) ? Math.max(0, amount) : 0;
+    if (!cost) return;
+    setStudentStats((prev) => ({ ...prev, xp: Math.max(0, prev.xp - cost) }));
+  };
+
+  /** Award a badge and play the unlock fanfare, as the quiz flow does. */
+  const handleAwardBadge = (badgeName: string, reason: string) => {
+    setStudentStats((prev) =>
+      prev.badges.includes(badgeName)
+        ? prev
+        : { ...prev, badges: [...prev.badges, badgeName] }
+    );
+    setUnlockedBadgeAnimation({ name: badgeName, description: reason });
+  };
+
   const handleClaimMissionXP = (xp: number) => {
     setStudentStats((prev) => ({
       ...prev,
@@ -276,7 +526,7 @@ export default function App() {
                 <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-cyan-400 transition-colors" />
               </div>
               <p className="text-[11px] text-slate-400 hidden sm:block">
-                4-Floor Virtual Campus, 3D Science Labs & Socratic Tutors
+                11-Floor Virtual Campus, 3D Science Labs & Socratic Tutors
               </p>
             </div>
           </a>
@@ -329,6 +579,42 @@ export default function App() {
             {t('xr.curriculum')}
           </button>
           <button
+            onClick={() => setViewMode('challenge')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'challenge'
+                ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="XR Science Twin Challenge - daily lab calibration for XP"
+          >
+            <Target className="w-3.5 h-3.5 text-cyan-300" />
+            Twin Challenge
+          </button>
+          <button
+            onClick={() => setViewMode('biome')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'biome'
+                ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Earth & Planetary Biome Reconnaissance - planetarium field station"
+          >
+            <Globe2 className="w-3.5 h-3.5 text-emerald-300" />
+            Biome Recon
+          </button>
+          <button
+            onClick={() => setViewMode('pulse')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'pulse'
+                ? 'bg-rose-600 text-white font-semibold shadow-md shadow-rose-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Pulse Lab - PPG waveform simulator: sensor sites, LED wavelengths and the physiology of the pulse"
+          >
+            <Activity className="w-3.5 h-3.5 text-rose-300" />
+            Pulse Lab
+          </button>
+          <button
             onClick={() => setViewMode('dashboard')}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
               viewMode === 'dashboard'
@@ -339,15 +625,56 @@ export default function App() {
             <Trophy className="w-3.5 h-3.5 text-amber-300" />
             {t('xr.dashboard')}
           </button>
+          <button
+            onClick={() => setViewMode('physics')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'physics'
+                ? 'bg-violet-600 text-white font-semibold shadow-md shadow-violet-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Projectile motion, gravity presets and orbital mechanics sandbox"
+          >
+            <Atom className="w-3.5 h-3.5 text-violet-300" />
+            Physics
+          </button>
+          <button
+            onClick={() => setViewMode('sports')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'sports'
+                ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="VR Sports Arena — swimming sprints, basketball shootouts, racquetball"
+          >
+            <Dumbbell className="w-3.5 h-3.5 text-emerald-300" />
+            Sports
+          </button>
+          <button
+            onClick={() => setViewMode('visitors')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'visitors'
+                ? 'bg-rose-600 text-white font-semibold shadow-md shadow-rose-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Visitors & Admissions — digital admission card and campus tour"
+          >
+            <Ticket className="w-3.5 h-3.5 text-rose-300" />
+            Visitors
+          </button>
         </nav>
 
         {/* Right Tools & Student Profile */}
         <div className="flex items-center gap-2">
+          {/* Backend reachability + offline note queue status */}
+          <div className="hidden lg:block">
+            <ConnectivityIndicator />
+          </div>
+
           {/* Virtual Campus 2D Map Button */}
           <button
             onClick={() => setIsCampusMapOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-500/30 text-xs font-medium transition-all shadow-sm cursor-pointer"
-            title="Open 4-Floor School Map & Teleport"
+            title="Open the 11-floor school map & teleport"
           >
             <MapPin className="w-3.5 h-3.5" />
             <span className="hidden xl:inline">{t('xr.campusMap')}</span>
@@ -440,6 +767,20 @@ export default function App() {
         </div>
       </header>
 
+      {/* Campus announcements feed — tournaments, maintenance and events */}
+      <div className="hidden md:block shrink-0 z-20">
+        <CampusAnnouncementsTicker
+          onOpenTournaments={() => {
+            setViewMode('dashboard');
+            showToast({
+              type: 'info',
+              title: 'Global Tournaments',
+              message: 'Live bracket and registration are on your dashboard.',
+            });
+          }}
+        />
+      </div>
+
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex flex-col gap-2 z-40">
@@ -453,7 +794,43 @@ export default function App() {
             }`}
           >
             <Compass className="w-4 h-4 text-cyan-300" />
-            {t('xr.campus')} (4)
+            {t('xr.campus')} (0-10)
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('physics');
+              setMobileMenuOpen(false);
+            }}
+            className={`p-2.5 rounded-lg text-xs font-medium text-left flex items-center gap-2 ${
+              viewMode === 'physics' ? 'bg-violet-600 text-white font-semibold' : 'text-slate-300'
+            }`}
+          >
+            <Atom className="w-4 h-4 text-violet-300" />
+            Physics Playground
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('sports');
+              setMobileMenuOpen(false);
+            }}
+            className={`p-2.5 rounded-lg text-xs font-medium text-left flex items-center gap-2 ${
+              viewMode === 'sports' ? 'bg-emerald-600 text-white font-semibold' : 'text-slate-300'
+            }`}
+          >
+            <Dumbbell className="w-4 h-4 text-emerald-300" />
+            VR Sports Arena
+          </button>
+          <button
+            onClick={() => {
+              setViewMode('visitors');
+              setMobileMenuOpen(false);
+            }}
+            className={`p-2.5 rounded-lg text-xs font-medium text-left flex items-center gap-2 ${
+              viewMode === 'visitors' ? 'bg-rose-600 text-white font-semibold' : 'text-slate-300'
+            }`}
+          >
+            <Ticket className="w-4 h-4 text-rose-300" />
+            Visitors &amp; Admissions
           </button>
           <button
             onClick={() => {
@@ -590,6 +967,16 @@ export default function App() {
               <span>{t('xr.theoryBridge')}</span>
             </button>
 
+            {/* Per-lab quick-start brief: apparatus, method and safety */}
+            <button
+              onClick={() => setIsLabQuickStartOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer shadow-sm transition-all"
+              title="Open this lab's quick-start brief: apparatus, method and safety"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{t('xr.quickStart')}</span>
+            </button>
+
             {/* Lab Getting Started & Spatial Controls Orientation Trigger */}
             <button
               onClick={() => setIsLabGuideOpen(true)}
@@ -597,6 +984,63 @@ export default function App() {
             >
               <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
               <span>{t('xr.controlsGuide')}</span>
+            </button>
+
+            {/* --- Science programmes toolbar -------------------------------
+                Adaptive teaching tier: briefs, study kits, the Twin Challenge
+                register and the AI tutors all follow this setting. */}
+            <select
+              value={scienceTier}
+              onChange={(e) => {
+                setScienceTier(e.target.value);
+                setTierId(e.target.value);
+              }}
+              className="px-2 py-1.5 rounded-lg bg-slate-950/60 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-cyan-500 cursor-pointer"
+              title="Adaptive teaching tier - explanations, math formality and vocabulary follow this"
+              aria-label="Science teaching tier"
+            >
+              {SCIENCE_TIERS.map((tier) => (
+                <option key={tier.id} value={tier.id}>{tier.label}</option>
+              ))}
+            </select>
+
+            {/* One-click study kit for the active lab (leveled summary,
+                flashcards, printable quiz) */}
+            <button
+              onClick={() => setIsStudyKitOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold cursor-pointer shadow-sm transition-all"
+              title="Build this lab's study kit: leveled summary, flashcards, printable quiz"
+            >
+              <Layers className="w-3.5 h-3.5 text-amber-400" />
+              <span>Study Kit</span>
+            </button>
+
+            {/* Step-by-step lab guide: highlights bench controls in sequence */}
+            <button
+              onClick={() => setIsStepGuideOpen((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition-all border ${
+                isStepGuideOpen
+                  ? 'bg-cyan-600 text-white border-cyan-500'
+                  : 'bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border-sky-500/40'
+              }`}
+              title="Step-by-step guide: I highlight each bench control in turn and explain it"
+            >
+              <Footprints className="w-3.5 h-3.5" />
+              <span>Lab Guide</span>
+            </button>
+
+            {/* Sketch-to-simulation doodle pad */}
+            <button
+              onClick={() => setIsSketchBenchOpen((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-sm transition-all border ${
+                isSketchBenchOpen
+                  ? 'bg-violet-600 text-white border-violet-500'
+                  : 'bg-violet-500/20 hover:bg-violet-500/30 text-violet-300 border-violet-500/40'
+              }`}
+              title="Sketch a diagram - molecule, prism ray, orbit or cell - and I load it into the 3D bench"
+            >
+              <PenTool className="w-3.5 h-3.5" />
+              <span>Sketch</span>
             </button>
 
             <button
@@ -616,109 +1060,290 @@ export default function App() {
 
       {/* Main Dynamic Workspace Area */}
       <main className="flex-1 w-full overflow-hidden relative flex">
-        {viewMode === 'campus' && (
-          <div className="w-full h-full relative">
-            <VirtualCampus
-              currentFloor={currentFloor}
-              userAvatar={studentStats.avatar}
-              userName={studentStats.name}
-              onOpenMap={() => setIsCampusMapOpen(true)}
-              onOpenChat={() => setIsCampusChatOpen(true)}
+        {/* One boundary for all views: only the active view's chunk is fetched,
+            so the shell, header and chat sidebar paint without waiting on it. */}
+        <Suspense fallback={<ViewLoader label="Loading view" />}>
+          {viewMode === 'campus' && (
+            <div className="w-full h-full relative">
+              <VirtualCampus
+                currentFloor={currentFloor}
+                activeFloor={currentFloor}
+                onFloorChange={setCurrentFloor}
+                userAvatar={studentStats.avatar}
+                userName={studentStats.name}
+                onOpenMap={() => setIsCampusMapOpen(true)}
+                onOpenChat={() => setIsCampusChatOpen(true)}
+                onOpenVirtualSchool={(facilityId) => {
+                  // The hallway portal and the floor-9 building both route here.
+                  setTeleportTargetFacility(null);
+                  setIsCampusMapOpen(true);
+                  showToast({
+                    type: 'info',
+                    title: 'KEV International Virtual School',
+                    message: facilityId
+                      ? `Opening ${facilityId} — basement to roof, 14 bookable facilities.`
+                      : 'Six levels, fourteen bookable facilities: gymnasium, library, cafeteria, laboratories, studios, auditorium and lecture hall.',
+                  });
+                }}
+                onNavigateToLab={(labId) => {
+                  setActiveLab(labId);
+                  setViewMode('labs');
+                }}
+                onNavigateToClassroom={() => setViewMode('classroom')}
+                onRequestAITutor={handleOpenTutorWithPrompt}
+                teleportTargetFacility={teleportTargetFacility}
+                onClearTeleportTarget={() => setTeleportTargetFacility(null)}
+              />
+            </div>
+          )}
+
+          {viewMode === 'classroom' && (
+            <div className="w-full h-full p-2 sm:p-4">
+              <XRClassroom onRequestAITutor={handleOpenTutorWithPrompt} />
+            </div>
+          )}
+
+          {viewMode === 'labs' && (
+            <div className="w-full h-full p-2 sm:p-4 relative">
+              {/* Focus Timer tracking experiment time and rewarding 'Concentration' badge */}
+              <FocusTimer
+                labName={activeLab}
+                hasConcentrationBadge={studentStats.badges.includes('Concentration')}
+                onAwardConcentrationBadge={() =>
+                  checkAndAwardBadge(
+                    'Concentration',
+                    'Maintained 30 minutes of unbroken scientific focus in a virtual laboratory session!'
+                  )
+                }
+              />
+
+              {activeLab === 'chemistry' && (
+                <ChemistryLab
+                  onCaptureSnapshot={handleLabCaptureSnapshot}
+                  onRequestAITutor={handleOpenTutorWithPrompt}
+                />
+              )}
+              {activeLab === 'astrophysics' && (
+                <AstrophysicsLab
+                  onCaptureSnapshot={handleLabCaptureSnapshot}
+                  onRequestAITutor={handleOpenTutorWithPrompt}
+                />
+              )}
+              {activeLab === 'biology' && (
+                <CellularBiologyLab
+                  onCaptureSnapshot={handleLabCaptureSnapshot}
+                  onRequestAITutor={handleOpenTutorWithPrompt}
+                />
+              )}
+              {activeLab === 'optics' && (
+                <OpticsLab
+                  onCaptureSnapshot={handleLabCaptureSnapshot}
+                  onRequestAITutor={handleOpenTutorWithPrompt}
+                />
+              )}
+
+              {/* Sketch-to-simulation bench: floats over the lab, dispatches
+                  'kev:lab-load' which every lab listens for. */}
+              {isSketchBenchOpen && (
+                <SketchBench
+                  activeLab={activeLab}
+                  onClose={() => setIsSketchBenchOpen(false)}
+                  onOpenLab={(labId, action) => {
+                    if (labId === 'anatomy' || labId === 'vehicle') {
+                      // The immersive benches live on the /anatomy page
+                      // (ImmersiveLab). The 'kev:lab-load' window event fired
+                      // before this navigation, so stash the action: the page
+                      // consumes it on mount and applies subject/system/explode.
+                      try {
+                        sessionStorage.setItem(
+                          'kev:immersive-lab-load',
+                          JSON.stringify(action || { lab: labId }),
+                        );
+                      } catch {
+                        /* private browsing: the bench still opens, just un-set */
+                      }
+                      navigate('/anatomy');
+                      return;
+                    }
+                    const mapped = labId === 'astrophysics' ? 'astrophysics'
+                      : labId === 'biology' ? 'biology'
+                      : labId === 'optics' ? 'optics'
+                      : 'chemistry';
+                    setActiveLab(mapped as LabId);
+                  }}
+                />
+              )}
+
+              {/* Step-by-step lab guide overlay */}
+              {isStepGuideOpen && (
+                <LabGuideOverlay labId={activeLab} onClose={() => setIsStepGuideOpen(false)} />
+              )}
+
+              {/* One-click adaptive study kit */}
+              {isStudyKitOpen && (
+                <StudyKitModal
+                  labId={activeLab}
+                  tier={scienceTier}
+                  onClose={() => setIsStudyKitOpen(false)}
+                />
+              )}
+            </div>
+          )}
+
+          {viewMode === 'curriculum' && (
+            <div className="w-full h-full flex flex-col overflow-hidden">
+              {/* AI Research Paper Summarizer: read the source science before
+                  the lesson/lab it feeds. */}
+              <div className="shrink-0 px-4 pt-3">
+                <PaperSummarizer />
+              </div>
+              <CourseViewer
+                onSelectLab={(labId) => {
+                  setActiveLab(labId);
+                  setViewMode('labs');
+                }}
+                onOpenQuiz={(lesson) => setQuizLesson(lesson)}
+                onRequestAITutor={handleOpenTutorWithPrompt}
+              />
+            </div>
+          )}
+
+          {viewMode === 'challenge' && (
+            <TwinChallengeView
+              studentId={studentStats.id}
+              onOpenLab={(labId) => {
+                // P5 pulse twins open the dedicated Pulse Lab bench.
+                if (labId === 'pulse') {
+                  setViewMode('pulse');
+                  return;
+                }
+                // Pack challenges can target the Physics Playground (vehicle /
+                // math twins) as well as the four science benches.
+                if (labId === 'physics') {
+                  setViewMode('physics');
+                  return;
+                }
+                const mapped = labId === 'astrophysics' ? 'astrophysics'
+                  : labId === 'biology' ? 'biology'
+                  : labId === 'optics' ? 'optics'
+                  : 'chemistry';
+                setActiveLab(mapped as LabId);
+                setViewMode('labs');
+              }}
+              onXpGained={(xpGained) => handleProgramXpGained(xpGained)}
+            />
+          )}
+
+          {viewMode === 'biome' && (
+            <BiomeReconView
+              onOpenLab={() => {
+                setActiveLab('astrophysics');
+                setViewMode('labs');
+              }}
+            />
+          )}
+
+          {viewMode === 'pulse' && (
+            <PulseLabView
+              onOpenProgram={(mode) => {
+                if (mode === 'challenge') setViewMode('challenge');
+              }}
+              onRequestAITutor={handleOpenTutorWithPrompt}
+            />
+          )}
+
+          {viewMode === 'dashboard' && (
+            <StudentDashboard
+              studentStats={studentStats}
               onNavigateToLab={(labId) => {
                 setActiveLab(labId);
                 setViewMode('labs');
               }}
-              onNavigateToClassroom={() => setViewMode('classroom')}
-              onRequestAITutor={handleOpenTutorWithPrompt}
-              teleportTargetFacility={teleportTargetFacility}
-              onClearTeleportTarget={() => setTeleportTargetFacility(null)}
-            />
-          </div>
-        )}
-
-        {viewMode === 'classroom' && (
-          <div className="w-full h-full p-2 sm:p-4">
-            <XRClassroom onRequestAITutor={handleOpenTutorWithPrompt} />
-          </div>
-        )}
-
-        {viewMode === 'labs' && (
-          <div className="w-full h-full p-2 sm:p-4 relative">
-            {/* Focus Timer tracking experiment time and rewarding 'Concentration' badge */}
-            <FocusTimer
-              labName={activeLab}
-              hasConcentrationBadge={studentStats.badges.includes('Concentration')}
-              onAwardConcentrationBadge={() =>
-                checkAndAwardBadge(
-                  'Concentration',
-                  'Maintained 30 minutes of unbroken scientific focus in a virtual laboratory session!'
-                )
+              onNavigateToCurriculum={() => setViewMode('curriculum')}
+              onOpenAITutor={() => {
+                setAiTutorInitialPrompt('Hello Professor KEV, what scientific concepts should I focus on next?');
+                setIsAITutorOpen(true);
+              }}
+              onClaimXP={handleClaimMissionXP}
+              onOpenGlobalComparison={() => setIsGlobalComparisonOpen(true)}
+              onUpdateAvatar={(newAvatar) => {
+                setStudentStats((prev) => ({ ...prev, avatar: newAvatar }));
+              }}
+              // Supplying these two makes the dashboard reveal its own Equipment
+              // Shop and Peer Mentors buttons, which are gated on the handlers.
+              onOpenShop={() => setIsEquipmentShopOpen(true)}
+              onOpenPeerMentors={() => setIsPeerMentorOpen(true)}
+              footerSections={
+                <StudyGoalsModule
+                  currentTotalXP={studentStats.xp}
+                  onAwardXP={(xp) => handleAwardXP(xp, 'Study goal milestone reached')}
+                  onNavigateToLab={(labId) => {
+                    setActiveLab(labId);
+                    setViewMode('labs');
+                  }}
+                  onNavigateToCurriculum={() => setViewMode('curriculum')}
+                />
               }
             />
+          )}
 
-            {activeLab === 'chemistry' && (
-              <ChemistryLab
-                onSaveSnapshot={handleSaveSnapshot}
-                onRequestAITutor={handleOpenTutorWithPrompt}
-              />
-            )}
-            {activeLab === 'astrophysics' && (
-              <AstrophysicsLab
-                onSaveSnapshot={handleSaveSnapshot}
-                onRequestAITutor={handleOpenTutorWithPrompt}
-              />
-            )}
-            {activeLab === 'biology' && (
-              <CellularBiologyLab
-                onSaveSnapshot={handleSaveSnapshot}
-                onRequestAITutor={handleOpenTutorWithPrompt}
-              />
-            )}
-            {activeLab === 'optics' && (
-              <OpticsLab
-                onSaveSnapshot={handleSaveSnapshot}
-                onRequestAITutor={handleOpenTutorWithPrompt}
-              />
-            )}
-          </div>
-        )}
+          {viewMode === 'physics' && (
+            <PhysicsPlayground
+              studentStats={studentStats}
+              onAwardXP={handleAwardXP}
+              onBackToCampus={handleBackToCampus}
+            />
+          )}
 
-        {viewMode === 'curriculum' && (
-          <CourseViewer
-            onSelectLab={(labId) => {
-              setActiveLab(labId);
-              setViewMode('labs');
-            }}
-            onOpenQuiz={(lesson) => setQuizLesson(lesson)}
-            onRequestAITutor={handleOpenTutorWithPrompt}
-          />
-        )}
+          {viewMode === 'sports' && (
+            <VRSportsArena
+              studentStats={studentStats}
+              onAwardXP={handleAwardXP}
+              onBackToCampus={handleBackToCampus}
+            />
+          )}
 
-        {viewMode === 'dashboard' && (
-          <StudentDashboard
-            studentStats={studentStats}
-            onNavigateToLab={(labId) => {
-              setActiveLab(labId);
-              setViewMode('labs');
-            }}
-            onNavigateToCurriculum={() => setViewMode('curriculum')}
-            onOpenAITutor={() => {
-              setAiTutorInitialPrompt('Hello Professor KEV, what scientific concepts should I focus on next?');
-              setIsAITutorOpen(true);
-            }}
-            onClaimXP={handleClaimMissionXP}
-            onOpenGlobalComparison={() => setIsGlobalComparisonOpen(true)}
-            onUpdateAvatar={(newAvatar) => {
-              setStudentStats((prev) => ({ ...prev, avatar: newAvatar }));
-            }}
-          />
-        )}
+          {viewMode === 'visitors' && (
+            <div className="w-full h-full overflow-y-auto">
+              <VisitorsPortal
+                currentStudentName={studentStats.name}
+                onAdmissionSuccess={(admission) => {
+                  setStudentStats((prev) => ({
+                    ...prev,
+                    name: admission.student.preferredName || admission.student.fullName,
+                    xp: prev.xp + (admission.initialXPAwarded || 100),
+                    badges: prev.badges.includes('Official Scholar Admitted')
+                      ? prev.badges
+                      : [...prev.badges, 'Official Scholar Admitted'],
+                  }));
+                }}
+                onNavigateToFloor={(floor) => {
+                  setCurrentFloor(floor as CampusFloorNumber);
+                  setViewMode('campus');
+                }}
+                onNavigateToLab={(labId) => {
+                  setActiveLab(labId);
+                  setViewMode('labs');
+                }}
+                onNavigateToCampus={() => setViewMode('campus')}
+              />
+            </div>
+          )}
+
+        </Suspense>
 
         {/* Real-time Campus Study Chat Sidebar */}
         <CampusChatSidebar
           isOpen={isCampusChatOpen}
           onClose={() => setIsCampusChatOpen(false)}
-          currentUser={studentStats}
+          currentUser={{
+            // The sidebar keys message ownership off `id` and always renders an
+            // avatar chip, so both are required there; StudentStats marks them
+            // optional. Fall back rather than passing undefined through.
+            id: studentStats.id ?? studentStats.name ?? 'student-local',
+            name: studentStats.name,
+            avatar: studentStats.avatar ?? DEFAULT_AVATAR,
+          }}
           currentRoomId={
             viewMode === 'campus'
               ? `floor-${currentFloor}`
@@ -728,7 +1353,9 @@ export default function App() {
           }
           currentRoomName={
             viewMode === 'campus'
-              ? `Floor ${currentFloor} Commons`
+              ? currentFloor === 0
+                ? 'Grand Concourse Hallway'
+                : `Floor ${currentFloor} Commons`
               : viewMode === 'labs'
               ? `${activeLab.toUpperCase()} Lab`
               : 'XR Auditorium'
@@ -736,144 +1363,195 @@ export default function App() {
         />
       </main>
 
-      {/* Virtual Campus 2D Map Modal & Teleportation */}
-      {isCampusMapOpen && (
-        <VirtualCampusMapModal
-          isOpen={isCampusMapOpen}
-          onClose={() => setIsCampusMapOpen(false)}
-          initialFloor={currentFloor}
-          currentFloor={currentFloor}
-          onSelectFloor={(floor) => setCurrentFloor(floor)}
-          onTeleportToRoom={(facility, floorNum) => {
-            setCurrentFloor(floorNum);
-            if (facility.associatedLabId) {
-              setActiveLab(facility.associatedLabId);
+      {/* Every overlay is lazy, so one boundary serves them all. Nothing here
+          is mounted until opened, so the fallback only shows while a modal is
+          actually arriving — never on a plain page load. */}
+      <Suspense fallback={<OverlayLoader />}>
+        {/* Virtual Campus 2D Map Modal & Teleportation */}
+        {isCampusMapOpen && (
+          <VirtualCampusMapModal
+            isOpen={isCampusMapOpen}
+            onClose={() => setIsCampusMapOpen(false)}
+            initialFloor={currentFloor}
+            currentFloor={currentFloor}
+            onSelectFloor={(floor) => setCurrentFloor(floor)}
+            onTeleportToRoom={(facility, floorNum) => {
+              setCurrentFloor(floorNum);
+              if (facility.associatedLabId) {
+                setActiveLab(facility.associatedLabId);
+                setViewMode('labs');
+              } else {
+                setViewMode('campus');
+                setTeleportTargetFacility(facility);
+              }
+              setIsCampusMapOpen(false);
+              showToast({
+                type: 'info',
+                title: `Teleported to ${facility.name}`,
+                message: `Arrived at Floor ${floorNum} (${facility.roomNumber}).`,
+              });
+            }}
+            onTeleportToFacility={(facility, floorNum) => {
+              setCurrentFloor(floorNum);
+              if (facility.associatedLabId) {
+                setActiveLab(facility.associatedLabId);
+                setViewMode('labs');
+              } else {
+                setViewMode('campus');
+                setTeleportTargetFacility(facility);
+              }
+              setIsCampusMapOpen(false);
+              showToast({
+                type: 'info',
+                title: `Teleported to ${facility.name}`,
+                message: `Arrived at Floor ${floorNum} (${facility.roomNumber}).`,
+              });
+            }}
+          />
+        )}
+
+        {/* Lab Getting Started Interactive Overlay */}
+        {isLabGuideOpen && (
+          <LabGettingStartedOverlay
+            labName={`${activeLab.charAt(0).toUpperCase() + activeLab.slice(1)} Lab`}
+            onClose={() => setIsLabGuideOpen(false)}
+            onLaunchAR={() => setIsARModalOpen(true)}
+            onLaunchVR={() => setIsStereoscopicOpen(true)}
+          />
+        )}
+
+        {/* Per-lab Quick Start brief (apparatus, method, safety, first result) */}
+        {quickStartMounted && (
+          <LabQuickStartModal
+            isOpen={isLabQuickStartOpen}
+            labId={activeLab}
+            onClose={() => setIsLabQuickStartOpen(false)}
+          />
+        )}
+
+        {/* Virtual Equipment Shop — spends XP earned across the labs */}
+        {isEquipmentShopOpen && (
+          <EquipmentShopModal
+            currentXP={studentStats.xp}
+            unlockedEquipmentIds={studentStats.unlockedEquipmentIds ?? []}
+            equippedToolId={studentStats.equippedToolId}
+            onPurchaseEquipment={handlePurchaseEquipment}
+            onEquipTool={handleEquipTool}
+            onDeductXP={handleDeductXP}
+            onClose={() => setIsEquipmentShopOpen(false)}
+          />
+        )}
+
+        {/* Campus Peer Mentor matching — tutors and study requests */}
+        {isPeerMentorOpen && (
+          <PeerMentorMatchingModal
+            studentStats={studentStats}
+            currentFloor={currentFloor}
+            onNavigateToLab={(labId) => {
+              setActiveLab(labId);
               setViewMode('labs');
-            } else {
-              setViewMode('campus');
-              setTeleportTargetFacility(facility);
-            }
-            setIsCampusMapOpen(false);
-            showToast({
-              type: 'info',
-              title: `Teleported to ${facility.name}`,
-              message: `Arrived at Floor ${floorNum} (${facility.roomNumber}).`,
-            });
-          }}
-          onTeleportToFacility={(facility, floorNum) => {
-            setCurrentFloor(floorNum);
-            if (facility.associatedLabId) {
-              setActiveLab(facility.associatedLabId);
-              setViewMode('labs');
-            } else {
-              setViewMode('campus');
-              setTeleportTargetFacility(facility);
-            }
-            setIsCampusMapOpen(false);
-            showToast({
-              type: 'info',
-              title: `Teleported to ${facility.name}`,
-              message: `Arrived at Floor ${floorNum} (${facility.roomNumber}).`,
-            });
-          }}
-        />
-      )}
+              setIsPeerMentorOpen(false);
+            }}
+            onOpenCampusChat={() => {
+              setIsCampusChatOpen(true);
+              setIsPeerMentorOpen(false);
+            }}
+            onAwardBadge={handleAwardBadge}
+            onClose={() => setIsPeerMentorOpen(false)}
+          />
+        )}
 
-      {/* Lab Getting Started Interactive Overlay */}
-      {isLabGuideOpen && (
-        <LabGettingStartedOverlay
-          labName={`${activeLab.charAt(0).toUpperCase() + activeLab.slice(1)} Lab`}
-          onClose={() => setIsLabGuideOpen(false)}
-          onLaunchAR={() => setIsARModalOpen(true)}
-          onLaunchVR={() => setIsStereoscopicOpen(true)}
-        />
-      )}
+        {/* Global Peer Comparison Modal */}
+        {isGlobalComparisonOpen && (
+          <GlobalPeerComparisonModal
+            isOpen={isGlobalComparisonOpen}
+            studentStats={studentStats}
+            onClose={() => setIsGlobalComparisonOpen(false)}
+          />
+        )}
 
-      {/* Global Peer Comparison Modal */}
-      {isGlobalComparisonOpen && (
-        <GlobalPeerComparisonModal
-          currentUserStats={studentStats}
-          onClose={() => setIsGlobalComparisonOpen(false)}
-        />
-      )}
+        {/* CSS-based Badge Entrance Fanfare Animation */}
+        {unlockedBadgeAnimation && (
+          <BadgeUnlockModal
+            badgeName={unlockedBadgeAnimation.name}
+            description={unlockedBadgeAnimation.description}
+            onClose={() => setUnlockedBadgeAnimation(null)}
+          />
+        )}
 
-      {/* CSS-based Badge Entrance Fanfare Animation */}
-      {unlockedBadgeAnimation && (
-        <BadgeUnlockModal
-          badgeName={unlockedBadgeAnimation.name}
-          description={unlockedBadgeAnimation.description}
-          onClose={() => setUnlockedBadgeAnimation(null)}
-        />
-      )}
+        {/* AR Pass-Through Modal */}
+        {isARModalOpen && (
+          <ARPassThroughModal
+            activeLab={activeLab}
+            onClose={() => setIsARModalOpen(false)}
+            onSaveSnapshot={handleSaveARSnapshot}
+          />
+        )}
 
-      {/* AR Pass-Through Modal */}
-      {isARModalOpen && (
-        <ARPassThroughModal
-          activeLab={activeLab}
-          onClose={() => setIsARModalOpen(false)}
-          onSaveSnapshot={handleSaveARSnapshot}
-        />
-      )}
+        {/* Stereoscopic VR Dual Eye Modal */}
+        {isStereoscopicOpen && (
+          <XRStereoscopicModal
+            activeLab={activeLab}
+            onClose={() => setIsStereoscopicOpen(false)}
+          />
+        )}
 
-      {/* Stereoscopic VR Dual Eye Modal */}
-      {isStereoscopicOpen && (
-        <XRStereoscopicModal
-          activeLab={activeLab}
-          onClose={() => setIsStereoscopicOpen(false)}
-        />
-      )}
+        {/* AI Socratic Tutor Modal */}
+        {aiTutorMounted && (
+          <AILabTutorModal
+            isOpen={isAITutorOpen}
+            onClose={() => setIsAITutorOpen(false)}
+            activeLab={activeLab}
+            initialQuestion={aiTutorInitialPrompt}
+          />
+        )}
 
-      {/* AI Socratic Tutor Modal */}
-      <AILabTutorModal
-        isOpen={isAITutorOpen}
-        onClose={() => setIsAITutorOpen(false)}
-        activeLab={activeLab}
-        initialQuestion={aiTutorInitialPrompt}
-      />
+        {/* Student Lab Notebook Modal */}
+        {notebookMounted && (
+          <LabNotebookModal
+            isOpen={isNotebookOpen}
+            onClose={() => setIsNotebookOpen(false)}
+            snapshots={snapshots}
+            studentStats={studentStats}
+            onDeleteSnapshot={handleDeleteSnapshot}
+            onAddObservation={handleAddObservation}
+          />
+        )}
 
-      {/* Student Lab Notebook Modal */}
-      <LabNotebookModal
-        isOpen={isNotebookOpen}
-        onClose={() => setIsNotebookOpen(false)}
-        snapshots={snapshots}
-        studentStats={studentStats}
-        onDeleteSnapshot={handleDeleteSnapshot}
-        onAddObservation={handleAddObservation}
-      />
+        {/* Assessment Quiz Modal */}
+        {quizLesson && (
+          <QuizModal
+            isOpen={!!quizLesson}
+            onClose={() => setQuizLesson(null)}
+            lessonTitle={quizLesson.title}
+            questions={quizLesson.quizQuestions}
+            onPassQuiz={handlePassQuiz}
+          />
+        )}
 
-      {/* Assessment Quiz Modal */}
-      {quizLesson && (
-        <QuizModal
-          isOpen={!!quizLesson}
-          onClose={() => setQuizLesson(null)}
-          lessonTitle={quizLesson.title}
-          questions={quizLesson.quizQuestions}
-          onPassQuiz={handlePassQuiz}
-        />
-      )}
-
-      {/* Theory & Practical Bridge Modal */}
-      {isTheoryBridgeOpen && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
-          <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
-            <button
-              onClick={() => setIsTheoryBridgeOpen(false)}
-              className="absolute top-4 right-4 z-30 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer transition-colors shadow-lg"
-              title="Close Theory Bridge"
-            >
-              <X className="w-4 h-4" />
-            </button>
-            <TheoryPracticalBridge
-              activeLab={activeLab}
-              onLaunchPractical={(lab) => {
-                setActiveLab(lab);
-                setIsTheoryBridgeOpen(false);
-              }}
-              onRequestAITutor={handleOpenTutorWithPrompt}
-            />
+        {/* Theory & Practical Bridge Modal */}
+        {isTheoryBridgeOpen && (
+          <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
+            <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
+              <button
+                onClick={() => setIsTheoryBridgeOpen(false)}
+                className="absolute top-4 right-4 z-30 p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white cursor-pointer transition-colors shadow-lg"
+                title="Close Theory Bridge"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <TheoryPracticalBridge
+                activeLab={activeLab}
+                onLaunchPractical={(lab) => {
+                  setActiveLab(lab);
+                  setIsTheoryBridgeOpen(false);
+                }}
+                onRequestAITutor={handleOpenTutorWithPrompt}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Suspense>
     </div>
   );
 }

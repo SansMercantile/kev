@@ -20,14 +20,20 @@ import {
   Radio,
   BookOpen
 } from 'lucide-react';
-import { PeerMentor, PeerStudyRequest, StudentStats, LabId } from '../../types';
+import { PeerMentor, PeerStudyRequest, StudentStats, LabId, CampusFloorNumber } from '../../types';
 import { INITIAL_PEER_MENTORS } from '../../data/peerMentors';
+import { floorByNumber } from '../../data/schoolCampus';
 import { useToast } from '../toast/ToastContext';
 import { soundManager } from '../../utils/soundEffects';
 
 interface Props {
   studentStats: StudentStats;
-  currentFloor: 1 | 2 | 3 | 4;
+  /**
+   * Where the student is standing, used to tell mentors where to meet. The
+   * campus now runs floors 0-10 (concourse, four legacy XR wings, six subject
+   * wings), so this accepts the full range rather than the original four labs.
+   */
+  currentFloor: CampusFloorNumber;
   onNavigateToLab: (labId: LabId) => void;
   onOpenCampusChat: () => void;
   onAwardBadge?: (badgeName: string, reason: string) => void;
@@ -555,7 +561,7 @@ export const PeerMentorMatchingModal: React.FC<Props> = ({
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 font-mono">
-                  Current Campus Location: <strong>Floor {currentFloor} Facilities</strong>. (Students will meet you at this floor).
+                  Current Campus Location: <strong>{floorByNumber(currentFloor)?.name ?? `Floor ${currentFloor}`}</strong>. (Students will meet you at this floor).
                 </div>
               </div>
             </div>

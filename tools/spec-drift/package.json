@@ -1,0 +1,9 @@
+{
+  "name": "spec-drift",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CI gate: fail when the live KEV backend's OpenAPI routes drift from the committed snapshot (docs/KEV_TOOLS_ROADMAP.md T1)",
+  "scripts": {
+    "check": "node check.cjs"
+  }
+}

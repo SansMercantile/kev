@@ -21,14 +21,18 @@ export const GlobalTournamentDashboard: React.FC<Props> = ({ studentStats, onNav
     setTournaments((prev) =>
       prev.map((t) => {
         if (t.id === tournamentId) {
+          // `registeredCount` and `leaderboard` are optional on the event type
+          // (the live feed may omit either), so resolve them before arithmetic:
+          // `undefined + 1` is NaN and spreading undefined is not iterable.
+          const existingLeaderboard = t.leaderboard ?? [];
           return {
             ...t,
             isRegistered: true,
-            registeredCount: t.registeredCount + 1,
+            registeredCount: (t.registeredCount ?? 0) + 1,
             leaderboard: [
-              ...t.leaderboard,
+              ...existingLeaderboard,
               {
-                rank: t.leaderboard.length + 1,
+                rank: existingLeaderboard.length + 1,
                 studentName: `${studentStats.name} (KEV XR)`,
                 score: 8900 + Math.floor(studentStats.xp * 0.5),
                 campus: 'KEV Main Campus',
@@ -48,13 +52,30 @@ export const GlobalTournamentDashboard: React.FC<Props> = ({ studentStats, onNav
     });
   };
 
-  const handleEnterTournamentArena = (subject: LabId) => {
+  /**
+   * Enter the arena for a tournament.
+   *
+   * `GlobalTournamentEvent.subject` is `LabId | 'physics' | 'all'`, so a
+   * cross-discipline tournament has no single lab to open. Those resolve to a
+   * representative lab instead of navigating to one that does not exist.
+   */
+  const handleEnterTournamentArena = (subject: GlobalTournamentEvent['subject']) => {
+    const labId: LabId =
+      subject === 'chemistry' || subject === 'astrophysics' ||
+      subject === 'biology' || subject === 'optics'
+        ? subject
+        : subject === 'physics'
+          ? 'astrophysics'
+          : 'chemistry';
+
     showToast({
       type: 'info',
       title: 'Connecting to Tournament Server',
-      message: `Synchronizing competitive telemetry with global contestants...`,
+      message: subject === labId
+        ? 'Synchronizing competitive telemetry with global contestants...'
+        : `Cross-discipline event (${subject}) — opening the ${labId} arena.`,
     });
-    onNavigateToLab(subject);
+    onNavigateToLab(labId);
   };
 
   return (
@@ -209,7 +230,7 @@ export const GlobalTournamentDashboard: React.FC<Props> = ({ studentStats, onNav
               </div>
 
               <div className="space-y-2">
-                {selectedTournament.leaderboard.map((entry) => (
+                {(selectedTournament.leaderboard ?? []).map((entry) => (
                   <div
                     key={entry.rank}
                     className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono transition-all ${

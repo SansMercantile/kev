@@ -129,11 +129,14 @@ export async function billingCancel() {
   })
 }
 
-export async function joinVrCampus(username, platform = 'web_vr') {
+// `extra` carries the session-asserted role and age band ({role, cohort,
+// level}); the backend re-derives a student's cohort from their level, so
+// this only labels the session - it cannot widen it.
+export async function joinVrCampus(username, platform = 'web_vr', extra = {}) {
   return fetchJson(buildUrl('/vr/join'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, platform }),
+    body: JSON.stringify({ username, platform, ...extra }),
   })
 }
 
@@ -159,8 +162,11 @@ export async function interactVrObject(userId, objectId, interactionType, data =
   })
 }
 
-export async function getVrScene() {
-  return fetchJson(buildUrl('/vr/scene'))
+// `viewer` scopes returned presence to the caller's age cohort - students must
+// not be able to observe other cohorts walking the building (see the
+// /vr/scene handler in backend/main.py).
+export async function getVrScene(viewer) {
+  return fetchJson(buildUrl(`/vr/scene${viewer ? `?viewer=${encodeURIComponent(viewer)}` : ''}`))
 }
 
 export async function submitOnboardingApplication(data) {

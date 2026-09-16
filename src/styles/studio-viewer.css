@@ -1,0 +1,199 @@
+/**
+ * Studio viewer chrome (immersive-learning quality pass): projected DOM
+ * labels, piece markers, hover tooltip and loading/error overlays shared by
+ * the Human Atlas, Electric Vehicle and procedural subject viewers.
+ * Styling follows the KEV navy/gold house look; patterns mirror the
+ * model-x-studio and human-atlas tools (docs/ATTRIBUTION-*.md).
+ */
+
+.studio-host {
+  position: relative;
+}
+
+.studio-host canvas {
+  display: block;
+  cursor: grab;
+}
+
+.studio-host canvas:active {
+  cursor: grabbing;
+}
+
+/* Numbered component/part labels projected from 3D anchors. */
+.scene-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 5px;
+  background: rgba(9, 20, 36, 0.86);
+  border: 1px solid rgba(120, 150, 185, 0.35);
+  border-radius: 999px;
+  color: #cfe0f2;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+  backdrop-filter: blur(6px);
+  z-index: 12;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.scene-label span {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: rgba(240, 179, 91, 0.16);
+  color: #f0b35b;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-label strong {
+  font-weight: 600;
+}
+
+.scene-label:hover {
+  border-color: rgba(240, 179, 91, 0.7);
+  color: #fff;
+}
+
+.scene-label.chosen {
+  border-color: #f0b35b;
+  color: #ffd9a0;
+  background: rgba(38, 27, 12, 0.9);
+}
+
+.scene-label.chosen span {
+  background: #f0b35b;
+  color: #231603;
+}
+
+/* Individual mesh-piece markers (vehicle exploded inventory). */
+.mesh-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(246, 188, 153, 0.14);
+  border: 1px solid rgba(246, 188, 153, 0.55);
+  color: #f6bc99;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  pointer-events: auto;
+  will-change: transform;
+  z-index: 11;
+}
+
+.mesh-marker:hover,
+.mesh-marker.chosen {
+  background: #f6bc99;
+  color: #2a1508;
+}
+
+/* Anatomy hover tooltip (adapted from human-atlas, MIT). */
+.atlas-hover {
+  position: absolute;
+  pointer-events: none;
+  z-index: 45;
+  max-width: 250px;
+  background: rgba(32, 46, 59, 0.96);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgba(24, 37, 54, 0.35);
+  font-size: 12px;
+  line-height: 1.45;
+  text-transform: capitalize;
+}
+
+.atlas-hover[hidden] {
+  display: none;
+}
+
+/* Loading + error overlays. */
+.studio-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(7, 17, 31, 0.72);
+  color: #b9c8d9;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  z-index: 20;
+  backdrop-filter: blur(2px);
+}
+
+.studio-loading .spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid rgba(240, 179, 91, 0.25);
+  border-top-color: #f0b35b;
+  animation: studio-spin 0.9s linear infinite;
+}
+
+.studio-loading .bar {
+  width: min(240px, 60%);
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(120, 150, 185, 0.25);
+  overflow: hidden;
+}
+
+.studio-loading .bar > i {
+  display: block;
+  height: 100%;
+  background: #f0b35b;
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+
+@keyframes studio-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.studio-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(7, 17, 31, 0.82);
+  color: #fbbf24;
+  font-size: 13px;
+  z-index: 21;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-loading .spinner {
+    animation-duration: 2.4s;
+  }
+  .scene-label,
+  .mesh-marker {
+    transition: none;
+  }
+}

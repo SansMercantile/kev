@@ -18,10 +18,35 @@ const XRAcademy = lazy(() => import('./pages/XRAcademy'))
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
 import { setAuthToken, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
+import { DEV_BYPASS_AUTH, DevAuthBypassBanner } from './lib/devAuthBypass'
+import RoleLogin from './components/RoleLogin'
+import { getRole, ROLES, signOutOfRole } from './lib/roleSession'
+
+const TeacherStudio = lazy(() => import('./pages/TeacherStudio'))
+
+/**
+ * Landing-page role gate. KEV is one building with two schools in it: until a
+ * visitor chooses a door they get the login choice, and afterwards each role
+ * only ever sees its own surfaces (the route table below and the backend both
+ * enforce this again - the gate is convenience, not the boundary).
+ */
+function RoleGate({ roles, children }) {
+  const [, setTick] = useState(0)
+  const role = getRole()
+  if (!role || (roles && !roles.includes(role))) {
+    return <RoleLogin onSignedIn={() => setTick((n) => n + 1)} />
+  }
+  return children
+}
 
 function RequireAuth({ children }) {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
+
+  // Dev-only shortcut, after the hooks so their order is unconditional. Gated on
+  // two compile-time constants and stripped from production builds — see
+  // lib/devAuthBypass.jsx.
+  if (DEV_BYPASS_AUTH) return children
 
   if (isLoading) return null
 
@@ -45,6 +70,8 @@ const AppPlatform = () => {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [liveCounts, setLiveCounts] = useState(null)
+  // Bumped when the role session changes so nav and gates re-read it.
+  const [, setRoleTick] = useState(0)
   const { isAuthenticated, getAccessTokenSilently } = useAuth0()
 
   useEffect(() => {
@@ -73,12 +100,21 @@ const AppPlatform = () => {
       return
     }
     let cancelled = false
+    // SWAP-POINT (kev/docs/AUTH0_ROLES_AND_COHORTS.md): once the tenant emits
+    // role / study_level claims, decode them from this token (or read
+    // useAuth0().user) and seed the role session from the verified claims
+    // instead of the landing-page choice; roleHeaders() then stops asserting
+    // what the token already proves.
     getAccessTokenSilently()
       .then((token) => { if (!cancelled) setAuthToken(token) })
       .catch(() => { if (!cancelled) setAuthToken(null) })
     return () => { cancelled = true }
   }, [isAuthenticated, getAccessTokenSilently])
 
+  // Role-shaped navigation: a teacher's bar carries the teaching studio and
+  // drops the student portal; a student's bar never shows the studio. The
+  // routes are guarded independently - this only keeps each role's view clean.
+  const sessionRole = getRole()
   const navLinks = [
     { label: t('nav.dashboard'), to: '/' },
     { label: t('nav.curriculum'), to: '/curriculum' },
@@ -87,7 +123,9 @@ const AppPlatform = () => {
     { label: t('nav.immersiveLab'), to: '/anatomy' },
     { label: t('nav.xrAcademy'), to: '/xr-academy' },
     { label: t('nav.agents'), to: '/agents' },
-    { label: t('nav.portal'), to: '/portal' },
+    ...(sessionRole === ROLES.TEACHER
+      ? [{ label: 'Teaching studio', to: '/teacher' }]
+      : [{ label: t('nav.portal'), to: '/portal' }]),
     { label: t('nav.pricing'), to: '/pricing' },
     { label: t('nav.billing'), to: '/billing' },
   ]
@@ -98,6 +136,7 @@ const AppPlatform = () => {
     <Router>
       <div className="kev-app">
         <a className="skip-link" href="#main">{t('nav.skipToContent')}</a>
+        <DevAuthBypassBanner />
         <header className={`kev-nav${scrolled ? ' kev-nav-scrolled' : ''}`} role="banner" aria-label="Platform header">
           <div className="kev-nav-inner">
             <Link to="/" className="kev-brand">KEV Platform</Link>
@@ -109,22 +148,33 @@ const AppPlatform = () => {
                 </Link>
               ))}
 
-              <a
-                className="kev-btn kev-btn-secondary"
-                href={SITE_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {t('nav.website')}
-              </a>
-              <a
-                className="kev-btn kev-btn-primary"
-                href="#main"
-              >
-                {t('nav.goLive')}
-                <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
-              </a>
-              <LanguageSwitcher compact />
+              <div className="kev-nav-actions">
+                {sessionRole && (
+                  <button
+                    type="button"
+                    className="kev-btn kev-btn-secondary"
+                    onClick={() => { signOutOfRole(); setRoleTick((n) => n + 1) }}
+                  >
+                    Switch role
+                  </button>
+                )}
+                <a
+                  className="kev-btn kev-btn-secondary"
+                  href={SITE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('nav.website')}
+                </a>
+                <a
+                  className="kev-btn kev-btn-primary"
+                  href="#main"
+                >
+                  {t('nav.goLive')}
+                  <ChevronRightIcon style={{ marginLeft: '0.5rem' }} width={18} height={18} aria-hidden="true" />
+                </a>
+                <LanguageSwitcher compact />
+              </div>
             </nav>
 
             <button className="kev-menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-controls="kev-nav-links" aria-expanded={menuOpen} aria-label={menuOpen ? t('nav.closeMenu') : t('nav.openMenu')}>
@@ -137,8 +187,18 @@ const AppPlatform = () => {
 
         <main id="main" role="main">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/" element={<RoleGate><Dashboard /></RoleGate>} />
+            <Route path="/dashboard" element={<RoleGate><Dashboard /></RoleGate>} />
+            <Route
+              path="/teacher"
+              element={(
+                <RoleGate roles={[ROLES.TEACHER]}>
+                  <Suspense fallback={<section className="kev-section">Loading teaching studio...</section>}>
+                    <TeacherStudio />
+                  </Suspense>
+                </RoleGate>
+              )}
+            />
             <Route path="/curriculum" element={<Curriculum />} />
             <Route path="/virtual-school" element={<VirtualSchoolMap />} />
             <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />

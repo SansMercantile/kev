@@ -33,10 +33,14 @@ export const VirtualLibraryShelf: React.FC<Props> = ({ onNavigateToLab }) => {
       return;
     }
     let cancelled = false;
+    // Narrowed once here so the async closure below can index the pack map:
+    // TS does not carry the `=== 'all'` early return into the nested function.
+    const subject: LabId = activeSubject;
+    const packSubject = PACK_SUBJECT[subject];
     async function loadPack() {
       try {
         const data = await cachedFetch<{ pack?: { subjects?: { topics?: { id: string; title: string; summary: string; keyTerms: string[] }[] }[] } }>(
-          `${libApi('/library/pack')}?subject=${PACK_SUBJECT[activeSubject]}`,
+          `${libApi('/library/pack')}?subject=${packSubject}`,
           { ttlMs: 7 * 24 * 3600 * 1000, headers: { ...xrAuthHeaders() } }
         );
         if (!cancelled) {

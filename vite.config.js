@@ -73,11 +73,52 @@ export default defineConfig({
   server: {
     port: 3004,
     host: '0.0.0.0',
+    // Vite rejects requests whose Host header is not localhost or an allowed
+    // host, answering 403 "Blocked request. This host is not allowed." The
+    // sandboxed preview proxies this dev server under
+    // https://{port}-{sandboxId}.e2b.app, so that domain has to be permitted or
+    // the preview shows a 403 instead of the app. A leading dot matches
+    // subdomains, which covers the per-session sandbox id without opening the
+    // server to arbitrary hosts.
+    allowedHosts: ['.e2b.app'],
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
+        // Strip the `/api` prefix. The backend mounts its routes at `/xr/...`,
+        // `/library/...` etc. with no `/api` prefix — that prefix only exists as
+        // the browser-facing same-origin base. `vercel.json` does the same with
+        // `source: "/api/:path*" -> destination: ".../:path*"`; without this the
+        // proxy forwards `/api/xr/campus/floors` verbatim and FastAPI 404s.
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        // Upgrade WebSockets too. `xrWsUrl()` resolves a relative API base
+        // against the page origin, so in dev the campus chat socket connects to
+        // ws://{vite-host}/api/xr/ws/campus-chat and relies on this proxy to
+        // forward the upgrade. Without `ws: true` the handshake never reaches
+        // FastAPI and CampusChatSidebar sits on "Connecting to campus mesh…",
+        // silently falling back to its polling path.
+        ws: true,
+      },
+    },
+  },
+  preview: {
+    host: '0.0.0.0',
+    // Same reasoning as server.allowedHosts: `npm run preview` is served under
+    // the sandbox preview host too, and reads its own allowlist.
+    allowedHosts: ['.e2b.app'],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+        // Strip the `/api` prefix. The backend mounts its routes at `/xr/...`,
+        // `/library/...` etc. with no `/api` prefix — that prefix only exists as
+        // the browser-facing same-origin base. `vercel.json` does the same with
+        // `source: "/api/:path*" -> destination: ".../:path*"`; without this the
+        // proxy forwards `/api/xr/campus/floors` verbatim and FastAPI 404s.
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        ws: true,
       },
     },
   },

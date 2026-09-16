@@ -1,38 +1,48 @@
-# KEV API client generation
+# KEV API client generation (v2 - pure Node)
 
-Typed TypeScript client for the KEV FastAPI backend, following the pattern of
-`tools/fastapi-typescript` (fetch OpenAPI spec -> generate `typescript-fetch`
-client -> import typed calls instead of hard-coding paths).
+Typed TypeScript client for the KEV FastAPI backend: fetch the OpenAPI spec,
+generate types + a fetch client, import typed calls instead of hard-coding
+paths. v2 dropped the Java `openapi-generator-cli` dependency (T1 of
+`docs/KEV_TOOLS_ROADMAP.md`) for a deterministic in-repo generator, and added
+the `tools/spec-drift` CI gate.
 
 ## How to
 
-1. Run the backend locally, e.g. `http://localhost:8000/docs` is live:
+1. Run the backend locally so `http://localhost:8000/openapi.json` is live:
    ```sh
-   cd backend
-   pip install -r requirements.txt
-   python main.py
+   KEV_DEV_AUTH_BYPASS=true ../.venv/bin/python -m uvicorn kev.backend.main:app --port 8000
    ```
-2. Fetch the spec (from `tools/kev-api-client`):
-   ```sh
-   KEV_API_URL=http://localhost:8000 node fetch-openapi.cjs
-   ```
-   This writes `src/generated/api/openapi.json` in the KEV frontend root.
-3. Generate the client (needs Java for `openapi-generator-cli`):
+2. From the KEV root, fetch + generate in one step:
    ```sh
    npm run api:client
+   # = node tools/kev-api-client/fetch-openapi.cjs   -> src/generated/api/openapi.json
+   # + node tools/kev-api-client/generate.cjs        -> src/generated/api/{types.ts,client.ts}
    ```
-   Output lands in `src/generated/api` (`CoreApi.ts`, `models/*`, `runtime.ts`).
-4. Use it like the sample in `tools/fastapi-typescript/sample.ts`:
+3. Use it:
    ```ts
-   import { xrClient } from '@/lib/xrClient' // hand-maintained today
-   // after generation:
-   // import { coreApi } from '@/requests'
-   // await coreApi.xrSubjects()
+   import { createKevXrClient } from '@/generated/api/client';
+   import { xrApi, xrAuthHeaders } from '@/xr/lib/xrApi';
+
+   const api = createKevXrClient({ basePath: '/api/xr-prefix...', headers: xrAuthHeaders });
+   await api.challengesDaily();
    ```
+
+## Scope & guarantees
+
+- Generation is scoped to `/xr/*` (`generate.cjs --scope`); that is the
+  surface `src/lib/xrClient.ts` hand-maintains today.
+- Request bodies and query/path params are fully typed from the Pydantic
+  schemas; responses are `unknown` unless a route declares a response schema -
+  the generator never invents types the backend did not promise.
+- Output must type-check under the strict `kev/tsconfig.json`; `npm run
+  typecheck` covers `src/generated/`.
+- `npm run api:drift` (tools/spec-drift) fails CI when live routes and the
+  committed snapshot disagree; regenerate and commit snapshot + client
+  together.
 
 ## Current state
 
-`src/lib/xrClient.ts` is the hand-maintained typed client for the `/xr/*`
-surface (kept in sync with `backend/xr_academy.py` by hand until generation
-runs in CI). New frontend code should call `xrClient` (or the generated
-`CoreApi` once available) instead of hard-coding `/xr/...` paths.
+`src/lib/xrClient.ts` remains the hand-maintained client used by existing
+call sites; new code should prefer the generated `createKevXrClient`. The
+generated snapshot (`openapi.json`, `types.ts`, `client.ts`) is committed so
+drift is reviewable in git.

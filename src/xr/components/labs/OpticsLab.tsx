@@ -30,6 +30,22 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
   const [environmentIndex] = useState<number>(1.0); // Air
   const [prismType, setPrismType] = useState<'triangular' | 'slab'>('triangular');
 
+  // Smart Lab Sketch-to-Simulation: a sketched prism-and-ray dispatches
+  // 'kev:lab-load'; configure the bench to reproduce that diagram exactly.
+  useEffect(() => {
+    const onLabLoad = (event: Event) => {
+      const detail = ((event as CustomEvent).detail || {}) as {
+        lab?: string; action?: string; prism?: 'triangular' | 'slab'; incidence?: number; index?: number;
+      };
+      if (detail.lab !== 'optics' || detail.action !== 'prism') return;
+      if (detail.prism) setPrismType(detail.prism);
+      if (typeof detail.incidence === 'number') setIncidentAngleDeg(detail.incidence);
+      if (typeof detail.index === 'number') setMediumRefractiveIndex(detail.index);
+    };
+    window.addEventListener('kev:lab-load', onLabLoad);
+    return () => window.removeEventListener('kev:lab-load', onLabLoad);
+  }, []);
+
   // Snell's Law calculated values
   const theta1Rad = (incidentAngleDeg * Math.PI) / 180;
   const sinTheta2 = (environmentIndex * Math.sin(theta1Rad)) / mediumRefractiveIndex;
@@ -381,7 +397,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
         </div>
 
         {/* Laser Wavelength Selector */}
-        <div className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
+        <div data-guide="optics-wavelength" className="flex items-center gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
           {WAVELENGTHS.map((w) => (
             <button
               key={w.name}
@@ -401,6 +417,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
         {/* Action Controls */}
         <div className="flex items-center gap-2">
           <button
+            data-guide="optics-capture"
             onClick={handleSnapshot}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-colors cursor-pointer"
           >
@@ -467,7 +484,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
         {/* Bottom Optical Bench Controls */}
         <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 pointer-events-auto">
           {/* Angle of incidence slider */}
-          <div className="flex items-center gap-3 min-w-[240px]">
+          <div data-guide="optics-angle" className="flex items-center gap-3 min-w-[240px]">
             <Compass className="w-4 h-4 text-amber-400 shrink-0" />
             <div className="flex-1">
               <div className="flex justify-between text-[11px] text-slate-300 mb-1">
@@ -487,7 +504,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
           </div>
 
           {/* Refractive Index slider & Presets */}
-          <div className="flex items-center gap-3 min-w-[240px]">
+          <div data-guide="optics-index" className="flex items-center gap-3 min-w-[240px]">
             <Sliders className="w-4 h-4 text-cyan-400 shrink-0" />
             <div className="flex-1">
               <div className="flex justify-between text-[11px] text-slate-300 mb-1">

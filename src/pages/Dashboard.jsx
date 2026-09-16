@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import { getHealth, getSystemStatus, getCurriculumSubjects, getAgentsAvailable } from '../lib/api'
 import { xrClient } from '../lib/xrClient'
+import { xrApi } from '../xr/lib/xrApi'
+import { getRole, getProfile, roleHeaders, ROLES, COHORT_LABELS } from '../lib/roleSession'
+import LiveLessonsStrip from '../components/LiveLessonsStrip'
+import LiveLessonModal from '../components/LiveLessonModal'
 
 // Platform home: live operations view over the real backend (all calls go
 // through lib/api.js -> same-origin /api in prod, VITE_API_BASE_URL locally).
@@ -70,10 +75,82 @@ export default function Dashboard() {
   const system = systemStatus?.system || {}
   const virtualSchool = systemStatus?.virtual_school || {}
 
+  // Role-shaped home: a student sees only their own record and their cohort's
+  // live lessons; a teacher sees the door to the teaching studio. Neither can
+  // reach the other's surface from here (or from the backend).
+  const role = getRole()
+  const profile = getProfile()
+  const [marks, setMarks] = useState([])
+  const [joinLesson, setJoinLesson] = useState(null)
+
+  useEffect(() => {
+    if (role !== ROLES.STUDENT || !profile) return undefined
+    let cancelled = false
+    fetch(`${xrApi('/marks/mine')}?student=${encodeURIComponent(profile.name)}`, {
+      headers: roleHeaders(),
+    })
+      .then((res) => (res.ok ? res.json() : { marks: [] }))
+      .then((body) => { if (!cancelled) setMarks(body.marks || []) })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [role, profile])
+
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <h1 className="text-4xl font-bold mb-2">KEV Learning Dashboard</h1>
       <p className="text-gray-600 mb-8">Live operations view — every number below comes from the backend.</p>
+
+      {role === ROLES.TEACHER && profile && (
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2">Teaching studio</h2>
+            <p className="text-gray-600 mb-4">
+              Live lessons, blackboard, marking and materials for{' '}
+              {COHORT_LABELS[profile.cohort] || profile.cohort}. Students of other
+              cohorts stay invisible to you outside lesson time.
+            </p>
+            <Link to="/teacher" className="inline-block px-4 py-2 bg-amber-500 text-slate-900 font-semibold rounded">
+              Open teaching studio
+            </Link>
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2">School in session</h2>
+            <LiveLessonsStrip />
+          </div>
+        </div>
+      )}
+
+      {role === ROLES.STUDENT && profile && (
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2">My marks — {profile.name}</h2>
+            {marks.length === 0 ? (
+              <p className="text-gray-600">Nothing marked yet. Attend a live lesson and your teacher&apos;s feedback lands here, private to you.</p>
+            ) : (
+              <ul className="grid gap-2">
+                {marks.map((m) => (
+                  <li key={`${m.lessonId}-${m.at}`} className="text-gray-700">
+                    <strong>{m.title}</strong>: {m.score}/100
+                    {m.note ? ` — ${m.note}` : ''} <span className="text-gray-400">({m.teacherName})</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-2">Live lessons for {COHORT_LABELS[profile.cohort] || profile.cohort}</h2>
+            <LiveLessonsStrip onJoinLesson={setJoinLesson} />
+            <p className="text-gray-500 text-sm mt-3">
+              Attending opens the teacher&apos;s blackboard and your classroom chat,
+              inside the campus or right here.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {joinLesson && (
+        <LiveLessonModal lesson={joinLesson} onClose={() => setJoinLesson(null)} />
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded">

@@ -18,6 +18,13 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { AvatarConfig, ChatMessage, ChatPeer } from '../../types';
+import {
+  COHORT_LABELS,
+  getProfile,
+  getRole,
+  mySocialRoom,
+  roleHeaders,
+} from '../../../lib/roleSession';
 
 interface Props {
   currentRoomId: string;
@@ -32,16 +39,24 @@ interface Props {
   onNavigateToRoom?: (roomId: string) => void;
 }
 
-const ROOM_OPTIONS = [
-  { id: 'floor-1', label: 'Floor 1: Grand Atrium & Commons', icon: Users },
-  { id: 'floor-2', label: 'Floor 2: Cellular Bio & Optics', icon: Dna },
-  { id: 'floor-3', label: 'Floor 3: Kepler Observatory', icon: Orbit },
-  { id: 'floor-4', label: 'Floor 4: Advanced XR Labs', icon: Sparkles },
-  { id: 'chemistry', label: 'Lab: Molecular Chemistry Bench', icon: FlaskConical },
-  { id: 'astrophysics', label: 'Lab: Kepler Astrophysics', icon: Orbit },
-  { id: 'biology', label: 'Lab: Cellular Biology', icon: Dna },
-  { id: 'optics', label: 'Lab: Wave Optics', icon: Sparkles },
-];
+/**
+ * Chat rooms are cohort-scoped server-side (backend/core/teaching_roles.py):
+ * `hub-<cohort>` social spaces and `class-<id>` lesson rooms, nothing else.
+ * The old free-form floor/lab rooms were replaced because a client could
+ * invent a cross-age-band space simply by naming it - exactly what the
+ * safeguarding rules exist to prevent. A student therefore sees one lounge:
+ * their own age band's.
+ */
+function roomOptionsFor(profile: { name: string; cohort: string } | null) {
+  const cohort = profile ? profile.cohort : 'senior';
+  return [
+    {
+      id: `hub-${cohort}`,
+      label: `${COHORT_LABELS[cohort] || cohort} lounge`,
+      icon: Users,
+    },
+  ];
+}
 
 const QUICK_STAMPS = ['🔬', '⚛️', '🔭', '🧪', '💡', '🚀', '✨'];
 
@@ -53,7 +68,10 @@ export const CampusChatSidebar: React.FC<Props> = ({
   onClose,
   onNavigateToRoom,
 }) => {
-  const [activeRoomId, setActiveRoomId] = useState<string>(propRoomId || 'floor-1');
+  const profile = getProfile();
+  const sessionRole = getRole();
+  const roomOptions = roomOptionsFor(profile);
+  const [activeRoomId, setActiveRoomId] = useState<string>(propRoomId || mySocialRoom());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [peers, setPeers] = useState<ChatPeer[]>([]);
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -97,6 +115,10 @@ export const CampusChatSidebar: React.FC<Props> = ({
                 name: currentUser.name,
                 avatar: currentUser.avatar,
                 status: 'active',
+                // The server refuses joins into rooms this cohort may not be
+                // in; sending the assertion lets it check instead of guess.
+                role: sessionRole || 'student',
+                cohort: profile ? profile.cohort : '',
               },
             })
           );
@@ -159,7 +181,11 @@ export const CampusChatSidebar: React.FC<Props> = ({
   useEffect(() => {
     async function loadFallbackMessages() {
       try {
-        const res = await fetch(`${xrApi('/campus/chat/messages')}?roomId=${activeRoomId}`);
+        const viewer = encodeURIComponent(profile ? profile.name : currentUser.name);
+        const res = await fetch(
+          `${xrApi('/campus/chat/messages')}?roomId=${activeRoomId}&viewer=${viewer}`,
+          { headers: roleHeaders() }
+        );
         const data = await res.json();
         if (data.messages && data.messages.length > 0) {
           setMessages((prev) => (prev.length === 0 ? data.messages : prev));
@@ -200,6 +226,8 @@ export const CampusChatSidebar: React.FC<Props> = ({
         id: senderId,
         name: currentUser.name,
         avatar: currentUser.avatar,
+        role: sessionRole || 'student',
+        cohort: profile ? profile.cohort : '',
       },
       text,
     };
@@ -211,7 +239,7 @@ export const CampusChatSidebar: React.FC<Props> = ({
       // (the service worker also replays via background sync).
       fetch(xrApi('/campus/chat/send'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...roleHeaders() },
         body: JSON.stringify(payload),
       })
         .then((res) => res.json())
@@ -250,7 +278,7 @@ export const CampusChatSidebar: React.FC<Props> = ({
     }
   };
 
-  const currentRoomLabel = ROOM_OPTIONS.find((r) => r.id === activeRoomId)?.label || propRoomName || activeRoomId;
+  const currentRoomLabel = roomOptions.find((r) => r.id === activeRoomId)?.label || propRoomName || activeRoomId;
 
   if (!isOpen) return null;
 
@@ -319,7 +347,7 @@ export const CampusChatSidebar: React.FC<Props> = ({
         {isRoomDropdownOpen && (
           <div className="absolute top-12 left-3.5 right-3.5 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-1.5 z-50 max-h-64 overflow-y-auto">
             <span className="text-[10px] font-mono uppercase text-slate-500 px-2 py-1 block">Switch Campus Channel</span>
-            {ROOM_OPTIONS.map((opt) => {
+            {roomOptions.map((opt) => {
               const Icon = opt.icon;
               return (
                 <button

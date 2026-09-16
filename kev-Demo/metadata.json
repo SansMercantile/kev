@@ -1,0 +1,11 @@
+{
+  "name": "KEV - XR Online School & Virtual Labs",
+  "description": "Next-generation XR science academy and virtual 3D laboratories powered by KEV (https://kev.sansmercantile.com/).",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

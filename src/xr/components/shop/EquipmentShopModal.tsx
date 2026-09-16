@@ -79,14 +79,39 @@ export const EquipmentShopModal: React.FC<Props> = ({
     return tool.category === selectedCategory;
   });
 
+/**
+ * Resolve a skin's XP price.
+ *
+ * `ToolSkinCustomization.xpPrice` is optional on the shared type (the catalog
+ * always sets it, but the type is also used for server-provided skins that may
+ * not). Reading it directly made the affordability test
+ * `currentXP < undefined` evaluate to false, so a skin with no price could be
+ * "purchased" for free and `onDeductXP(undefined)` was called. Every price
+ * comparison in this modal now goes through this helper.
+ */
+function skinPrice(skin: ToolSkinCustomization): number {
+  return skin.xpPrice ?? skin.costXP ?? 0;
+}
+
+/**
+ * Resolve the tool a skin belongs to.
+ *
+ * `toolType` is optional on the type but is used as an object key for the
+ * equipped-skin map; an undefined key would silently collide across tools.
+ */
+function skinToolType(skin: ToolSkinCustomization): string {
+  return skin.toolType ?? skin.toolId ?? 'unknown_tool';
+}
+
   const filteredSkins = TOOL_SKINS_CATALOG.filter((skin) => skin.toolType === selectedSkinTool);
 
   const handleBuySkin = (skin: ToolSkinCustomization) => {
-    if (currentXP < skin.xpPrice) {
+    const price = skinPrice(skin);
+    if (currentXP < price) {
       showToast({
         type: 'error',
         title: 'Insufficient Academic XP',
-        message: `You need ${skin.xpPrice - currentXP} more XP to calibrate the ${skin.skinName} shader.`,
+        message: `You need ${price - currentXP} more XP to calibrate the ${skin.skinName} shader.`,
       });
       return;
     }
@@ -97,7 +122,7 @@ export const EquipmentShopModal: React.FC<Props> = ({
     localStorage.setItem('kev_unlocked_skins', JSON.stringify(updated));
 
     if (onDeductXP) {
-      onDeductXP(skin.xpPrice);
+      onDeductXP(price);
     }
 
     showToast({
@@ -109,7 +134,7 @@ export const EquipmentShopModal: React.FC<Props> = ({
 
   const handleEquipSkin = (skin: ToolSkinCustomization) => {
     soundManager.playClick();
-    const updated = { ...equippedSkins, [skin.toolType]: skin.id };
+    const updated = { ...equippedSkins, [skinToolType(skin)]: skin.id };
     setEquippedSkins(updated);
     localStorage.setItem('kev_equipped_skins', JSON.stringify(updated));
     showToast({
@@ -297,9 +322,9 @@ export const EquipmentShopModal: React.FC<Props> = ({
 
                 {filteredSkins.map((skin) => {
                   const isUnlocked = unlockedSkinIds.includes(skin.id);
-                  const isEquipped = equippedSkins[skin.toolType] === skin.id;
+                  const isEquipped = equippedSkins[skinToolType(skin)] === skin.id;
                   const isInspecting = selectedSkin.id === skin.id;
-                  const canAfford = currentXP >= skin.xpPrice;
+                  const canAfford = currentXP >= skinPrice(skin);
 
                   return (
                     <div
@@ -430,7 +455,7 @@ export const EquipmentShopModal: React.FC<Props> = ({
 
                   {/* Actions */}
                   <div>
-                    {equippedSkins[selectedSkin.toolType] === selectedSkin.id ? (
+                    {equippedSkins[skinToolType(selectedSkin)] === selectedSkin.id ? (
                       <div className="w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold text-xs border border-emerald-500/40 text-center flex items-center justify-center gap-2">
                         <Check className="w-4 h-4" />
                         <span>Equipped on {selectedSkin.toolName} in 3D Labs</span>

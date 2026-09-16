@@ -1,0 +1,49 @@
+{
+  // KEV frontend type checking.
+  //
+  // This file did not exist before the XR campus consolidation: `src/xr` is a
+  // TypeScript tree (~80 files, a 642-line type module, a generated 206 KB data
+  // mirror and a Three.js render engine) that Vite only ever transpiled, never
+  // checked. esbuild strips types without validating them, which is how props
+  // could be passed to components that never declared them and how a bad asset
+  // key could survive to runtime. `npm run typecheck` now catches that class of
+  // bug.
+  //
+  // Scoped to .ts/.tsx: the 27 legacy .jsx and 7 .js files under src/ are
+  // untyped by design and are left to the bundler (allowJs: false), so adopting
+  // a type checker does not force a rewrite of working JavaScript.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "jsx": "react-jsx",
+    "useDefineForClassFields": true,
+
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // Strictness: on for the code that is already typed. `strictNullChecks` is
+    // the one that matters most here — Three.js scene graphs are full of
+    // possibly-undefined lookups.
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "kev-Demo"]
+}

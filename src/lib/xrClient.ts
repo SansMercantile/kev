@@ -115,7 +115,7 @@ export interface WorldCatalog {
   success: boolean
 }
 
-async function xrFetch(path, options = {}) {
+async function xrFetch(path: string, options: RequestInit = {}) {
   const headers = { ...(options.headers || {}), ...getAuthHeaders() }
   const response = await fetch(buildUrl(`/xr${path}`), { ...options, headers })
   if (!response.ok) {
@@ -155,15 +155,15 @@ export const xrClient = {
     xrFetch(`/study-path?completed=${encodeURIComponent(completed.join(','))}${level ? `&level=${encodeURIComponent(level)}` : ''}`),
   benchmarks: () => xrFetch('/analytics/global-benchmarks'),
   liveFacilities: () => xrFetch('/campus/live-facilities'),
-  chatMessages: (roomId): Promise<{ roomId: string; messages: XrChatMessage[] }> =>
+  chatMessages: (roomId: string): Promise<{ roomId: string; messages: XrChatMessage[] }> =>
     xrFetch(`/campus/chat/messages?roomId=${encodeURIComponent(roomId)}`),
-  askTutor: (body: { tutorId: string; question: string; currentFloor?: number; facilityContext?: string; studentLevel?: string; language?: string }) =>
+  askTutor: (body: { tutorId: string; question: string; currentFloor?: number; facilityContext?: string; studentLevel?: string; tier?: string; language?: string }) =>
     xrFetch('/tutors/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }),
-  askLabTutor: (body: { question: string; currentLab?: string; context?: string; simulationState?: unknown; studentLevel?: string; language?: string }) =>
+  askLabTutor: (body: { question: string; currentLab?: string; context?: string; simulationState?: unknown; studentLevel?: string; tier?: string; language?: string }) =>
     xrFetch('/tutor', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -171,10 +171,10 @@ export const CourseViewer: React.FC<Props> = ({ onSelectLab, onOpenQuiz, onReque
                   <span className="text-xs font-mono uppercase tracking-wider text-cyan-400">
                     Module Objectives
                   </span>
-                  <span className="text-xs text-slate-400">Time: {selectedLesson.durationMinutes} min</span>
+                  <span className="text-xs text-slate-400">Time: {selectedLesson.estimatedMinutes} min</span>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">{selectedLesson.title}</h3>
-                <p className="text-xs text-slate-300 leading-relaxed">{selectedLesson.description}</p>
+                <p className="text-xs text-slate-300 leading-relaxed">{selectedLesson.overview}</p>
               </div>
 
               {/* Theory Topics & Takeaways */}

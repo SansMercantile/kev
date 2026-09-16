@@ -4,6 +4,7 @@ import { xrClient } from '../lib/xrClient'
 import { setAuthToken } from '../lib/api'
 import { useOptionalAuth } from '../lib/useOptionalAuth'
 import { getStudyLevelId, studyLevelLabel } from '../xr/lib/studyLevel'
+import { getTierId } from '../xr/lib/studyTier'
 import { getAnswerLanguage } from '../i18n/index.js'
 
 // Shared "ask a faculty tutor about what you're inspecting" panel for every
@@ -12,8 +13,11 @@ import { getAnswerLanguage } from '../i18n/index.js'
 // prompt (the endpoints require auth because every call spends Bedrock money).
 //
 // Props: tutorId (faculty endpoint) or omit for the generic lab tutor;
-// studentLevel defaults to the shared study-level selector.
-export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partName, simulationState, studentLevel }) {
+// studentLevel defaults to the shared study-level selector; tier defaults to
+// the shared science-tier selector (adaptive register/math formality - M5 of
+// docs/KEV_TOOLS_ROADMAP.md, so dr-vance and dr-ward answer at the tier the
+// student picked).
+export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partName, simulationState, studentLevel, tier }) {
   const { t, i18n } = useTranslation()
   const { isAuthenticated, loginWithRedirect, getAccessTokenSilently } = useOptionalAuth()
   const [question, setQuestion] = useState('')
@@ -23,6 +27,7 @@ export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partNa
   const [error, setError] = useState(null)
   const [paywalled, setPaywalled] = useState(null)
   const level = studentLevel || getStudyLevelId()
+  const tierId = tier || getTierId()
 
   if (!isAuthenticated) {
     return (
@@ -58,6 +63,7 @@ export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partNa
             question: q,
             facilityContext: `Curriculum study: ${subjectLabel || 'general'}${partName ? ` — inspecting "${partName}"` : ''}`,
             studentLevel: level,
+            tier: tierId,
             language: getAnswerLanguage(),
           })
         : await xrClient.askLabTutor({
@@ -66,6 +72,7 @@ export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partNa
             context: `Immersive 3D viewer (${subjectLabel}) — inspecting "${partName || 'the model'}".`,
             simulationState: simulationState || {},
             studentLevel: level,
+            tier: tierId,
             language: getAnswerLanguage(),
           })
       setAnswer(data.answer)

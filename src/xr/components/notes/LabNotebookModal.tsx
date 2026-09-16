@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { LabSnapshot, StudentStats, LabId } from '../../types';
 import { BookOpen, X, Download, Trash2, Award, CheckCircle, FileText, Share2, Sparkles, Loader2, Printer, ExternalLink, Filter, Search, FlaskConical, Orbit, Dna, Wifi, WifiOff, RefreshCw, Save, Plus } from 'lucide-react';
 import { exportLabNotebookPDF } from './exportPDF';
+import { ExpandableGlossary, GLOSSARY_TERMS } from './ExpandableGlossary';
 import { useToast } from '../toast/ToastContext';
 import {
   saveDraftNote,
@@ -31,7 +32,7 @@ export const LabNotebookModal: React.FC<Props> = ({
   onAddObservation,
 }) => {
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'snapshots' | 'observations' | 'offline_drafts' | 'certificate'>('snapshots');
+  const [activeTab, setActiveTab] = useState<'snapshots' | 'observations' | 'glossary' | 'offline_drafts' | 'certificate'>('snapshots');
   const [newObservation, setNewObservation] = useState<string>('');
   const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
   const [selectedLabFilter, setSelectedLabFilter] = useState<'all' | LabId | 'ar'>('all');
@@ -131,6 +132,37 @@ export const LabNotebookModal: React.FC<Props> = ({
   }, [snapshots]);
 
   if (!isOpen) return null;
+
+  /**
+   * Default the glossary filter to what the student is actually working on: the
+   * snapshot filter if one is set, otherwise the lab of the most recent capture.
+   * The glossary has its own filter control, so this is only the starting point.
+   */
+  const glossaryLab: LabId =
+    selectedLabFilter !== 'all' && selectedLabFilter !== 'ar'
+      ? selectedLabFilter
+      : snapshots[0]?.labId ?? 'chemistry';
+
+  /**
+   * Drop a glossary definition into the Hypothesis Log. Keeps the wording of a
+   * note identical to the textbook definition, which is the point of inserting
+   * rather than retyping — and it earns the same XP as a hand-written entry.
+   */
+  const handleInsertGlossaryTerm = (textToInsert: string) => {
+    const text = textToInsert.trim();
+    if (!text) return;
+    setObservations((prev) => [
+      { id: `obs-glossary-${Date.now()}`, date: new Date().toLocaleDateString(), text },
+      ...prev,
+    ]);
+    onAddObservation(text);
+    setActiveTab('observations');
+    showToast({
+      type: 'success',
+      title: 'Definition added to Hypothesis Log',
+      message: 'Jumped to your notes — edit the entry to add your own observation.',
+    });
+  };
 
   const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,6 +365,17 @@ export const LabNotebookModal: React.FC<Props> = ({
             >
               <Save className="w-3 h-3 text-amber-400" />
               <span>IndexedDB Drafts ({draftNotes.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('glossary')}
+              className={`px-3.5 py-1.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'glossary'
+                  ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40 font-semibold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3 h-3 text-violet-400" />
+              <span>Glossary ({GLOSSARY_TERMS.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('certificate')}
@@ -692,6 +735,22 @@ export const LabNotebookModal: React.FC<Props> = ({
                   ))
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'glossary' && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3">
+                <BookOpen className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-400 leading-relaxed">
+                  <strong className="text-slate-200">{GLOSSARY_TERMS.length} illustrated definitions</strong>{' '}
+                  across every lab discipline. Filter by subject, expand a term for the full
+                  explanation, then use <span className="text-violet-300 font-medium">Insert to notes</span> to
+                  copy the definition into your Hypothesis Log with identical wording.
+                </div>
+              </div>
+
+              <ExpandableGlossary activeLab={glossaryLab} onInsertTermToNotes={handleInsertGlossaryTerm} />
             </div>
           )}
 

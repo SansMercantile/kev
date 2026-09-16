@@ -1,0 +1,4608 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "KEV API",
+    "description": "Educational system with Central Library and Curriculum Framework for 185+ subjects",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/xr/health": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Health",
+        "operationId": "xr_health_xr_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/levels": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Levels",
+        "description": "Study levels: the same subjects adapt to every grade via these contracts.",
+        "operationId": "xr_levels_xr_levels_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/world/languages": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr World Languages",
+        "description": "World language catalog: 198 countries with official + major local\nlanguages, the full language registry, and the UI-bundle subset.\n\ncountry: ISO-3166 code (e.g. ZA) -> that country + its languages.\nq: search across country names and language names/native names.",
+        "operationId": "xr_world_languages_xr_world_languages_get",
+        "parameters": [
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Country"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/floors": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus Floors",
+        "description": "Every floor of the school.\n\n``scope=all`` (default) returns the full consolidated campus: floor 0 the\nGrand Concourse Hallway, the four original XR wings (floors 1-4, with class\nannexes appended where a subject wing lives there), and the six new subject\nfloors 5-10 that house all 176 classes.\n\n``scope=legacy`` returns only floors 1-4 exactly as they were before\nconsolidation, for any client still assuming a four-floor tower.\n\n``FLOORS`` (the module-level name) still refers to the original four-floor\npayload and is untouched.",
+        "operationId": "xr_campus_floors_xr_campus_floors_get",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "all",
+              "title": "Scope"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/school": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus School",
+        "description": "The whole school in one payload: hallway, all floors, all 14 subject wings\nwith their 176 classes and 872 tutor agents, the virtual-school building\n(6 levels / 14 bookable facilities), and corridor geometry the 3D renderer\nneeds to lay rooms out along the hallway spine.",
+        "operationId": "xr_campus_school_xr_campus_school_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/hallway": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus Hallway",
+        "description": "Floor 0 — the Grand Concourse Hallway that every other floor hangs off.",
+        "operationId": "xr_campus_hallway_xr_campus_hallway_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/subject-wings": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus Subject Wings",
+        "description": "All 14 subject wings — every specialization, education level and the real\n``tutor_id``s of the five role-agents behind each class. Filter with\n``?subject=Mathematics`` (registry name or slug).",
+        "operationId": "xr_campus_subject_wings_xr_campus_subject_wings_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/classes/{class_id}": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus Classroom",
+        "description": "One class: its subject, level, floor, room and the tutors assigned to it.",
+        "operationId": "xr_campus_classroom_xr_campus_classes__class_id__get",
+        "parameters": [
+          {
+            "name": "class_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Class Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/virtual-school": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Campus Virtual School",
+        "description": "The KEV International Virtual School as campus data — six building levels\n(basement to roof) and its fourteen facilities, read from the same live\n``VirtualSchoolBuilding`` the booking API uses, so capacities, equipment and\nvirtual tools shown in XR are the real ones.",
+        "operationId": "xr_campus_virtual_school_xr_campus_virtual_school_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/tutors": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Tutors",
+        "operationId": "xr_tutors_xr_tutors_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/tutors/ask": {
+      "post": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Tutors Ask",
+        "description": "On-demand consultation with any faculty tutor (stateless).",
+        "operationId": "xr_tutors_ask_xr_tutors_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorAskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/curriculum/shared": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Curriculum Shared",
+        "operationId": "xr_curriculum_shared_xr_curriculum_shared_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/analytics/global-benchmarks": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Global Benchmarks",
+        "operationId": "xr_global_benchmarks_xr_analytics_global_benchmarks_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/tutor": {
+      "post": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Lab Tutor",
+        "description": "Professor KEV Socratic tutor for the active 3D lab simulation.",
+        "operationId": "xr_lab_tutor_xr_tutor_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabTutorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/chat/messages": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Chat Messages",
+        "operationId": "xr_chat_messages_xr_campus_chat_messages_get",
+        "parameters": [
+          {
+            "name": "roomId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "floor-1",
+              "title": "Roomid"
+            }
+          },
+          {
+            "name": "viewer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/chat/send": {
+      "post": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Chat Send",
+        "operationId": "xr_chat_send_xr_campus_chat_send_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatSendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/subjects": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Subjects",
+        "description": "Unified learning-surface index: every immersive subject with its tutor,\nXR lab, floor, curriculum track, and frontend routes â€” plus EVERY live\ncurriculum-engine subject (dynamic: anything added via\nPOST /curriculum/subjects appears here automatically), each mapped to the\nclosest faculty tutor so all subjects get equal Q&A quality.\n\nlevel: elementary | middle | high | university | professional (or free\ntext like 'Grade 4'). Defaults to high.",
+        "operationId": "xr_subjects_xr_subjects_get",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/study-path": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Study Path",
+        "description": "Per-student next steps: unlocked curriculum subjects (dependency-aware)\nenriched with tutor + immersive links, at the student's level.\n\ncompleted: comma-separated subject ids, e.g. 'science_101,xr_chem'.",
+        "operationId": "xr_study_path_xr_study_path_get",
+        "parameters": [
+          {
+            "name": "completed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Completed"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/campus/live-facilities": {
+      "get": {
+        "tags": [
+          "xr-academy"
+        ],
+        "summary": "Xr Live Facilities",
+        "description": "Live bookable campus facilities with suggested XR Academy counterparts,\nso the two campus realities cross-link instead of competing.",
+        "operationId": "xr_live_facilities_xr_campus_live_facilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/cohorts": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Cohorts",
+        "description": "Age bands, their study levels and the protections each one carries.",
+        "operationId": "xr_cohorts_xr_cohorts_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/live": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lessons Live",
+        "description": "Lessons open right now. Carries no roster identities - see the store.",
+        "operationId": "xr_lessons_live_xr_lessons_live_get",
+        "parameters": [
+          {
+            "name": "cohort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohort"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/start": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lessons Start",
+        "operationId": "xr_lessons_start_xr_lessons_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/join": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lessons Join",
+        "operationId": "xr_lessons_join_xr_lessons__lesson_id__join_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonJoinRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/leave": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lessons Leave",
+        "operationId": "xr_lessons_leave_xr_lessons__lesson_id__leave_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonLeaveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/end": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lessons End",
+        "operationId": "xr_lessons_end_xr_lessons__lesson_id__end_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonEndRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Lesson Get",
+        "operationId": "xr_lesson_get_xr_lessons__lesson_id__get",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          },
+          {
+            "name": "viewer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/board": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Board Get",
+        "description": "Students and observers read the board; only the owner writes it.",
+        "operationId": "xr_board_get_xr_lessons__lesson_id__board_get",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Board Set",
+        "operationId": "xr_board_set_xr_lessons__lesson_id__board_put",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardSetRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/board/append": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Board Append",
+        "operationId": "xr_board_append_xr_lessons__lesson_id__board_append_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardAppendRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/board/clear": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Board Clear",
+        "operationId": "xr_board_clear_xr_lessons__lesson_id__board_clear_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BoardClearRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/lessons/{lesson_id}/marks": {
+      "post": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Mark Set",
+        "operationId": "xr_mark_set_xr_lessons__lesson_id__marks_post",
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/marks/mine": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Marks Mine",
+        "description": "A student's own mark record. There is deliberately no route that\nreturns someone else's.",
+        "operationId": "xr_marks_mine_xr_marks_mine_get",
+        "parameters": [
+          {
+            "name": "student",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Student"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/teacher/materials": {
+      "get": {
+        "tags": [
+          "xr-teaching"
+        ],
+        "summary": "Xr Teacher Materials",
+        "description": "Study-pack topics and curriculum subjects a teacher can pin to a board.\n\nRead-only over existing content (backend/library_content.py and the\ncurriculum engine) - teachers assemble, they do not upload, so there is no\nunmoderated material path into a classroom.",
+        "operationId": "xr_teacher_materials_xr_teacher_materials_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "cohort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cohort"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/challenges/daily": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Challenge Daily",
+        "operationId": "challenge_daily_xr_challenges_daily_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/challenges/score": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Challenge Score",
+        "operationId": "challenge_score_xr_challenges_score_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/challenges/submit": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Challenge Submit",
+        "operationId": "challenge_submit_xr_challenges_submit_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChallengeSubmitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/challenges/xp": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Challenge Xp",
+        "operationId": "challenge_xp_xr_challenges_xp_get",
+        "parameters": [
+          {
+            "name": "student",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Student"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/biome/specimens": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Biome Specimens",
+        "operationId": "biome_specimens_xr_biome_specimens_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/biome/analyze": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Biome Analyze",
+        "operationId": "biome_analyze_xr_biome_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BiomeAnalyzeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/biome/missions": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Biome Missions",
+        "operationId": "biome_missions_xr_biome_missions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/biome/missions/check": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Biome Mission Check",
+        "operationId": "biome_mission_check_xr_biome_missions_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MissionCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/tiers": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Tiers",
+        "operationId": "tiers_xr_tiers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/briefs": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Briefs",
+        "operationId": "briefs_xr_briefs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BriefRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/curriculum/summarize": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Summarize",
+        "operationId": "summarize_xr_curriculum_summarize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SummarizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/pleth/sites": {
+      "get": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Pleth Sites",
+        "description": "The seven wearable sites and three LED wavelengths with their teaching\ncopy, atlas anchors (BodyParts3D part ids) and slider limits, so the UI\nnever hard-codes the model's envelope.",
+        "operationId": "pleth_sites_xr_pleth_sites_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/xr/pleth/simulate": {
+      "post": {
+        "tags": [
+          "xr-programs"
+        ],
+        "summary": "Pleth Simulate",
+        "description": "Deterministic 8-second PPG trace + derived metrics. The server is the\nauthority: Twin Challenge pulse twins re-simulate from the same model when\nthey re-score, exactly like every other KEV simulation.",
+        "operationId": "pleth_simulate_xr_pleth_simulate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlethSimulateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/plans": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Plans",
+        "description": "Public plan catalog with live provider availability.",
+        "operationId": "billing_plans_billing_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/subscription": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Subscription",
+        "operationId": "billing_subscription_billing_subscription_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/usage": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Usage",
+        "operationId": "billing_usage_billing_usage_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/checkout": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Checkout",
+        "operationId": "billing_checkout_billing_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/change-plan": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Change Plan",
+        "operationId": "billing_change_plan_billing_change_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/cancel": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Cancel",
+        "description": "Cancel at period end (industry standard): access continues until then.",
+        "operationId": "billing_cancel_billing_cancel_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Billing Invoices",
+        "operationId": "billing_invoices_billing_invoices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/webhooks/stripe": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Stripe Webhook",
+        "operationId": "stripe_webhook_billing_webhooks_stripe_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/webhooks/payfast": {
+      "post": {
+        "tags": [
+          "billing"
+        ],
+        "summary": "Payfast Webhook",
+        "operationId": "payfast_webhook_billing_webhooks_payfast_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Health check endpoint",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Root endpoint",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/curriculum/subjects": {
+      "get": {
+        "summary": "List Curriculum Subjects",
+        "description": "Return the current curriculum subject catalog.",
+        "operationId": "list_curriculum_subjects_curriculum_subjects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add Subject",
+        "description": "Adds a new subject to the scientific framework.",
+        "operationId": "add_subject_curriculum_subjects_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/curriculum/optimize-path": {
+      "post": {
+        "summary": "Optimize Path",
+        "description": "Computes an unlock-ordered learning path over the real curriculum DAG\n(steps, alternatives, effort estimate) — no quantum hardware required.",
+        "operationId": "optimize_path_curriculum_optimize_path_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearningPathRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/curriculum/cognitive-load": {
+      "post": {
+        "summary": "Cognitive Load",
+        "description": "Transparent score-heuristic load index (0-100) with pacing advice.",
+        "operationId": "cognitive_load_curriculum_cognitive_load_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CognitiveLoadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/curriculum/recommendations/{student_completed}": {
+      "get": {
+        "summary": "Get Recommendations",
+        "description": "Returns unlocked subjects based on a comma-separated list of completed IDs.",
+        "operationId": "get_recommendations_curriculum_recommendations__student_completed__get",
+        "parameters": [
+          {
+            "name": "student_completed",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Student Completed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system/status": {
+      "get": {
+        "summary": "System Status",
+        "description": "System-wide status for KEV learning, agents, shared resources, and virtual school.",
+        "operationId": "system_status_system_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/available": {
+      "get": {
+        "summary": "Available Agents",
+        "description": "Return agents available for a subject and education level.",
+        "operationId": "available_agents_agents_available_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "education_level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Education Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/agents/{agent_id}/ask": {
+      "post": {
+        "summary": "Ask Agent",
+        "description": "Stateless per-request call to a KEV agent via Bedrock.\n\nThe caller (frontend) owns conversation history and passes it in each\ntime via `history` - nothing is stored server-side, so this works the\nsame on any Fargate task behind the load balancer.",
+        "operationId": "ask_agent_agents__agent_id__ask_post",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentAskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/register": {
+      "post": {
+        "summary": "Register Student",
+        "description": "Register or update a student profile.",
+        "operationId": "register_student_students_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentRegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learning/session/start": {
+      "post": {
+        "summary": "Start Learning Session",
+        "description": "Start a new learning session for a student.",
+        "operationId": "start_learning_session_learning_session_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearningSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/learning/session/complete": {
+      "post": {
+        "summary": "Complete Learning Session",
+        "description": "Complete an active learning session and store the result.",
+        "operationId": "complete_learning_session_learning_session_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearningSessionCompleteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/students/{student_id}/progress": {
+      "get": {
+        "summary": "Student Progress",
+        "description": "Get progress and recommendations for a student.",
+        "operationId": "student_progress_students__student_id__progress_get",
+        "parameters": [
+          {
+            "name": "student_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Student Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtual-school/initialize": {
+      "post": {
+        "summary": "Initialize Virtual School",
+        "description": "Initialize the advanced virtual school environment.",
+        "operationId": "initialize_virtual_school_virtual_school_initialize_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtual-school/overview": {
+      "get": {
+        "summary": "Virtual School Overview",
+        "description": "Returns virtual school building overview and statistics.",
+        "operationId": "virtual_school_overview_virtual_school_overview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtual-school/facilities": {
+      "get": {
+        "summary": "Virtual School Facilities",
+        "description": "Returns virtual school facility inventory.",
+        "operationId": "virtual_school_facilities_virtual_school_facilities_get",
+        "parameters": [
+          {
+            "name": "available",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": false,
+              "title": "Available"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtual-school/book/{facility_id}": {
+      "post": {
+        "summary": "Virtual School Book",
+        "description": "Book a virtual school facility for a learning session.",
+        "operationId": "virtual_school_book_virtual_school_book__facility_id__post",
+        "parameters": [
+          {
+            "name": "facility_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Facility Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtual-school/release/{facility_id}": {
+      "post": {
+        "summary": "Virtual School Release",
+        "description": "Release a previously booked virtual school facility.",
+        "operationId": "virtual_school_release_virtual_school_release__facility_id__post",
+        "parameters": [
+          {
+            "name": "facility_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Facility Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/join": {
+      "post": {
+        "summary": "Vr Join",
+        "description": "Join the VR/AR school environment. Returns the new user + the scene as\nthis cohort sees it (never the whole building's presence).",
+        "operationId": "vr_join_vr_join_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VRJoinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/users/{user_id}/leave": {
+      "post": {
+        "summary": "Vr Leave",
+        "description": "Leave the VR/AR environment.",
+        "operationId": "vr_leave_vr_users__user_id__leave_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/users/{user_id}/move": {
+      "post": {
+        "summary": "Vr Move",
+        "description": "Move a user within the VR/AR environment (triggers proximity interactions).",
+        "operationId": "vr_move_vr_users__user_id__move_post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VRMoveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/users/{user_id}/objects/{object_id}/{interaction_type}": {
+      "post": {
+        "summary": "Vr Interact",
+        "description": "Run one of the environment's validated object interaction handlers.",
+        "operationId": "vr_interact_vr_users__user_id__objects__object_id___interaction_type__post",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "User Id"
+            }
+          },
+          {
+            "name": "object_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Object Id"
+            }
+          },
+          {
+            "name": "interaction_type",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interaction Type"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VRInteractionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/sessions": {
+      "post": {
+        "summary": "Vr Start Session",
+        "description": "Start a VR class/meeting session.",
+        "operationId": "vr_start_session_vr_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VRSessionStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/sessions/{session_id}/end": {
+      "post": {
+        "summary": "Vr End Session",
+        "description": "End a VR class/meeting session.",
+        "operationId": "vr_end_session_vr_sessions__session_id__end_post",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/state": {
+      "get": {
+        "summary": "Vr State",
+        "description": "Current state of the VR/AR environment, scoped to the viewer's cohort.\n\n`viewer` is the caller's own username; presence of other age bands is\nwithheld entirely, which is the point - students must not be able to\nobserve who else is in the building outside their cohort.",
+        "operationId": "vr_state_vr_state_get",
+        "parameters": [
+          {
+            "name": "viewer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vr/scene": {
+      "get": {
+        "summary": "Vr Scene",
+        "description": "Exported VR scene for rendering (objects + this cohort's positions).",
+        "operationId": "vr_scene_vr_scene_get",
+        "parameters": [
+          {
+            "name": "viewer",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Viewer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/multi-agents/catalog": {
+      "get": {
+        "summary": "Multi Agents Catalog",
+        "description": "Metadata-only listing of the real multi_agents/ tutor roster - no imports happen here.",
+        "operationId": "multi_agents_catalog_multi_agents_catalog_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "education_level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Education Level"
+            }
+          },
+          {
+            "name": "tutor_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tutor Type"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/multi-agents/{tutor_id}/ask": {
+      "post": {
+        "summary": "Multi Agents Ask",
+        "description": "Stateless per-request call to a REAL multi_agents/ tutor file. Lazily\nimports + instantiates only this one agent (agent_catalog.py), then\nroutes the actual reply through Bedrock using the agent's real\nsubject/specialization metadata - safe to run on any Fargate task.",
+        "operationId": "multi_agents_ask_multi_agents__tutor_id__ask_post",
+        "parameters": [
+          {
+            "name": "tutor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Tutor Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentAskRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/library/search": {
+      "get": {
+        "summary": "Library Search",
+        "description": "Search the Constellation's shared educational content library + KEV topic overlay.",
+        "operationId": "library_search_library_search_get",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Query"
+            }
+          },
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/library/resources": {
+      "get": {
+        "summary": "Library Resources",
+        "description": "Get tutoring resources (teaching strategies, assessment methods) for a subject/topic.",
+        "operationId": "library_resources_library_resources_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "topic",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Topic"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "intermediate",
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/library/pack": {
+      "get": {
+        "summary": "Library Pack",
+        "description": "Versioned offline study pack (whole tree or one subject, optional level filter).\n\nThe frontend caches packs in IndexedDB for no-internet study.",
+        "operationId": "library_pack_library_pack_get",
+        "parameters": [
+          {
+            "name": "subject",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subject"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/library/subjects": {
+      "get": {
+        "summary": "Library Pack Subjects",
+        "description": "Subjects available as offline packs.",
+        "operationId": "library_pack_subjects_library_subjects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onboarding/apply": {
+      "post": {
+        "summary": "Onboarding Apply",
+        "description": "Submit a student admission application. Age is validated against\ncountry-specific minimums server-side (see StudentIdentitySystem).",
+        "operationId": "onboarding_apply_onboarding_apply_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onboarding/status/{application_id}": {
+      "get": {
+        "summary": "Onboarding Status",
+        "description": "Check an application's verification status by its internal id.",
+        "operationId": "onboarding_status_onboarding_status__application_id__get",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentAskRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            },
+            "type": "array",
+            "title": "History",
+            "default": []
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Education Level"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Student Name"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "default": "en"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "AgentAskRequest"
+      },
+      "BiomeAnalyzeRequest": {
+        "properties": {
+          "specimenId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Specimenid"
+          },
+          "evidence": {
+            "type": "object",
+            "title": "Evidence",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "BiomeAnalyzeRequest"
+      },
+      "BoardAppendRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "payload": {
+            "type": "object",
+            "title": "Payload",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName",
+          "kind"
+        ],
+        "title": "BoardAppendRequest"
+      },
+      "BoardClearRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName"
+        ],
+        "title": "BoardClearRequest"
+      },
+      "BoardSetRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          },
+          "items": {
+            "items": {
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName"
+        ],
+        "title": "BoardSetRequest"
+      },
+      "BookingRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "title": "BookingRequest"
+      },
+      "BriefRequest": {
+        "properties": {
+          "labId": {
+            "type": "string",
+            "title": "Labid"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "default": "standard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "labId"
+        ],
+        "title": "BriefRequest"
+      },
+      "ChallengeScoreRequest": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "title": "Challengeid"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Params",
+            "default": {}
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId"
+        ],
+        "title": "ChallengeScoreRequest"
+      },
+      "ChallengeSubmitRequest": {
+        "properties": {
+          "challengeId": {
+            "type": "string",
+            "title": "Challengeid"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Params",
+            "default": {}
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "default": ""
+          },
+          "student": {
+            "type": "string",
+            "title": "Student"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challengeId",
+          "student"
+        ],
+        "title": "ChallengeSubmitRequest"
+      },
+      "ChangePlanRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "ChangePlanRequest"
+      },
+      "ChatMessage": {
+        "properties": {
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatMessage"
+      },
+      "ChatSendRequest": {
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "title": "Roomid"
+          },
+          "sender": {
+            "$ref": "#/components/schemas/ChatSender"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "reaction": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reaction"
+          }
+        },
+        "type": "object",
+        "required": [
+          "roomId",
+          "sender",
+          "text"
+        ],
+        "title": "ChatSendRequest"
+      },
+      "ChatSender": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "default": "anonymous-student"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": "Student"
+          },
+          "avatar": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar"
+          },
+          "isFaculty": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Isfaculty",
+            "default": false
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          }
+        },
+        "type": "object",
+        "title": "ChatSender"
+      },
+      "CheckoutRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "interval": {
+            "type": "string",
+            "title": "Interval",
+            "default": "monthly"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency",
+            "default": "USD"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider",
+            "default": "auto"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "default": ""
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "default": ""
+          },
+          "coupon": {
+            "type": "string",
+            "title": "Coupon",
+            "default": ""
+          },
+          "success_url": {
+            "type": "string",
+            "title": "Success Url",
+            "default": ""
+          },
+          "cancel_url": {
+            "type": "string",
+            "title": "Cancel Url",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "CheckoutRequest"
+      },
+      "CognitiveLoadRequest": {
+        "properties": {
+          "scores": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Scores"
+          }
+        },
+        "type": "object",
+        "title": "CognitiveLoadRequest"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LabTutorRequest": {
+        "properties": {
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "currentLab": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentlab"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "simulationState": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulationstate"
+          },
+          "studentLevel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Studentlevel",
+            "default": "Grade 9 Advanced STEM"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "default": "en"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          }
+        },
+        "type": "object",
+        "title": "LabTutorRequest"
+      },
+      "LearningPathRequest": {
+        "properties": {
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "subject_id": {
+            "type": "string",
+            "title": "Subject Id"
+          },
+          "current_knowledge": {
+            "type": "object",
+            "title": "Current Knowledge"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "subject_id",
+          "current_knowledge"
+        ],
+        "title": "LearningPathRequest"
+      },
+      "LearningSessionCompleteRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "feedback": {
+            "type": "string",
+            "title": "Feedback",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "score"
+        ],
+        "title": "LearningSessionCompleteRequest"
+      },
+      "LearningSessionRequest": {
+        "properties": {
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic"
+          },
+          "difficulty": {
+            "type": "string",
+            "title": "Difficulty",
+            "default": "intermediate"
+          },
+          "education_level": {
+            "type": "string",
+            "title": "Education Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "subject",
+          "topic",
+          "education_level"
+        ],
+        "title": "LearningSessionRequest"
+      },
+      "LessonEndRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName"
+        ],
+        "title": "LessonEndRequest"
+      },
+      "LessonJoinRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "LessonJoinRequest"
+      },
+      "LessonLeaveRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "LessonLeaveRequest"
+      },
+      "LessonStartRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "default": "Live lesson"
+          },
+          "cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          },
+          "classId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classid"
+          },
+          "subjectId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subjectid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName"
+        ],
+        "title": "LessonStartRequest"
+      },
+      "MarkRequest": {
+        "properties": {
+          "teacherName": {
+            "type": "string",
+            "title": "Teachername"
+          },
+          "studentName": {
+            "type": "string",
+            "title": "Studentname"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "teacherName",
+          "studentName",
+          "score"
+        ],
+        "title": "MarkRequest"
+      },
+      "MissionCheckRequest": {
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "title": "Latitude"
+          },
+          "dayOfYear": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dayofyear"
+          },
+          "noonZenithDeg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Noonzenithdeg"
+          }
+        },
+        "type": "object",
+        "required": [
+          "latitude"
+        ],
+        "title": "MissionCheckRequest"
+      },
+      "OnboardingRequest": {
+        "properties": {
+          "first_name": {
+            "type": "string",
+            "title": "First Name"
+          },
+          "last_name": {
+            "type": "string",
+            "title": "Last Name"
+          },
+          "middle_name": {
+            "type": "string",
+            "title": "Middle Name",
+            "default": ""
+          },
+          "date_of_birth": {
+            "type": "string",
+            "title": "Date Of Birth"
+          },
+          "gender": {
+            "type": "string",
+            "title": "Gender",
+            "default": ""
+          },
+          "nationality": {
+            "type": "string",
+            "title": "Nationality"
+          },
+          "country_of_residence": {
+            "type": "string",
+            "title": "Country Of Residence",
+            "default": ""
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "phone": {
+            "type": "string",
+            "title": "Phone",
+            "default": ""
+          },
+          "current_grade": {
+            "type": "string",
+            "title": "Current Grade",
+            "default": ""
+          },
+          "previous_school": {
+            "type": "string",
+            "title": "Previous School",
+            "default": ""
+          },
+          "special_needs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Special Needs",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "first_name",
+          "last_name",
+          "date_of_birth",
+          "nationality",
+          "email"
+        ],
+        "title": "OnboardingRequest"
+      },
+      "PlethSimulateRequest": {
+        "properties": {
+          "site": {
+            "type": "string",
+            "title": "Site",
+            "default": "finger"
+          },
+          "wavelength": {
+            "type": "string",
+            "title": "Wavelength",
+            "default": "red"
+          },
+          "heartRate": {
+            "type": "number",
+            "title": "Heartrate",
+            "default": 72
+          },
+          "perfusion": {
+            "type": "number",
+            "title": "Perfusion",
+            "default": 100
+          },
+          "compliance": {
+            "type": "number",
+            "title": "Compliance",
+            "default": 70
+          },
+          "respirationRate": {
+            "type": "number",
+            "title": "Respirationrate",
+            "default": 15
+          },
+          "motion": {
+            "type": "number",
+            "title": "Motion",
+            "default": 0
+          },
+          "skinTone": {
+            "type": "integer",
+            "title": "Skintone",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "PlethSimulateRequest"
+      },
+      "StudentRegistrationRequest": {
+        "properties": {
+          "student_id": {
+            "type": "string",
+            "title": "Student Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "age": {
+            "type": "integer",
+            "title": "Age"
+          },
+          "education_level": {
+            "type": "string",
+            "title": "Education Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "student_id",
+          "name",
+          "age",
+          "education_level"
+        ],
+        "title": "StudentRegistrationRequest"
+      },
+      "SubjectRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "dependencies": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dependencies",
+            "default": []
+          },
+          "complexity": {
+            "type": "number",
+            "title": "Complexity",
+            "default": 1
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "SubjectRequest"
+      },
+      "SummarizeRequest": {
+        "properties": {
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          },
+          "tier": {
+            "type": "string",
+            "title": "Tier",
+            "default": "standard"
+          }
+        },
+        "type": "object",
+        "title": "SummarizeRequest"
+      },
+      "TutorAskRequest": {
+        "properties": {
+          "tutorId": {
+            "type": "string",
+            "title": "Tutorid",
+            "default": "prof-kev"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "currentFloor": {
+            "type": "integer",
+            "title": "Currentfloor",
+            "default": 1
+          },
+          "facilityContext": {
+            "type": "string",
+            "title": "Facilitycontext",
+            "default": "Virtual Campus Corridor"
+          },
+          "studentLevel": {
+            "type": "string",
+            "title": "Studentlevel",
+            "default": "Grade 9 Advanced STEM"
+          },
+          "simulationState": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Simulationstate"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language",
+            "default": "en"
+          },
+          "tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tier"
+          }
+        },
+        "type": "object",
+        "title": "TutorAskRequest"
+      },
+      "VRInteractionRequest": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "title": "Data",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "title": "VRInteractionRequest"
+      },
+      "VRJoinRequest": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "platform": {
+            "type": "string",
+            "title": "Platform",
+            "default": "web_vr"
+          },
+          "avatar_id": {
+            "type": "string",
+            "title": "Avatar Id",
+            "default": ""
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "default": "student"
+          },
+          "cohort": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cohort"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username"
+        ],
+        "title": "VRJoinRequest"
+      },
+      "VRMoveRequest": {
+        "properties": {
+          "position": {
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array",
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Position"
+          },
+          "rotation": {
+            "anyOf": [
+              {
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array",
+                "maxItems": 3,
+                "minItems": 3
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rotation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "position"
+        ],
+        "title": "VRMoveRequest"
+      },
+      "VRSessionStartRequest": {
+        "properties": {
+          "session_type": {
+            "type": "string",
+            "title": "Session Type"
+          },
+          "participants": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Participants"
+          },
+          "location": {
+            "type": "string",
+            "title": "Location"
+          },
+          "metadata": {
+            "type": "object",
+            "title": "Metadata",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_type",
+          "participants",
+          "location"
+        ],
+        "title": "VRSessionStartRequest"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

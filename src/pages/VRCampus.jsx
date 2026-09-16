@@ -2,6 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { joinVrCampus, moveVrUser, leaveVrCampus, getVrScene, interactVrObject } from '../lib/api'
 import SurfaceLinks from '../components/SurfaceLinks'
+import { loadAFrame, isAFrameReady } from '../utils/loadAFrame'
+import LiveLessonsStrip from '../components/LiveLessonsStrip'
+import LiveLessonModal from '../components/LiveLessonModal'
+import { getProfile, getRole } from '../lib/roleSession'
 
 const OBJECT_SHAPE = {
   display_device: 'a-box',
@@ -34,10 +38,14 @@ export default function VRCampus() {
   const { t } = useTranslation()
   const [username, setUsername] = useState('')
   const [session, setSession] = useState(null) // { user, scene }
+  const [joinLesson, setJoinLesson] = useState(null)
   const [error, setError] = useState(null)
   const [joining, setJoining] = useState(false)
   const [floor, setFloor] = useState('ground')
-  const [xrAvailable, setXrAvailable] = useState(true)
+  // Starts from what is actually present rather than assuming the runtime is
+  // there: A-Frame is now fetched on demand, so on first mount it usually is not.
+  const [xrAvailable, setXrAvailable] = useState(isAFrameReady)
+  const [xrLoading, setXrLoading] = useState(() => !isAFrameReady())
   const sceneRef = useRef(null)
 
   useEffect(() => {
@@ -52,17 +60,37 @@ export default function VRCampus() {
 
   useEffect(() => {
     if (!session?.user?.id) return undefined
-    setXrAvailable(Boolean(window.AFRAME))
+    let cancelled = false
+
+    // Pull the A-Frame runtime in now that this page is actually on screen.
+    // `loadAFrame` is idempotent, so revisits and StrictMode's double effect are
+    // both no-ops, and a failed fetch resolves false rather than hanging.
+    if (isAFrameReady()) {
+      setXrAvailable(true)
+      setXrLoading(false)
+    } else {
+      setXrLoading(true)
+      loadAFrame().then((ready) => {
+        if (cancelled) return
+        setXrAvailable(ready)
+        setXrLoading(false)
+      })
+    }
+
     const refreshScene = async () => {
       try {
-        const result = await getVrScene()
+        // Scoped to our cohort: the building shows us only our own age band.
+        const result = await getVrScene(session?.user?.username)
         setSession((prev) => prev ? { ...prev, scene: result.scene } : prev)
       } catch (err) {
         setError(err.message)
       }
     }
     const interval = window.setInterval(refreshScene, 2000)
-    return () => window.clearInterval(interval)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
   }, [session?.user?.id])
 
   const handleJoin = async (event) => {
@@ -71,7 +99,12 @@ export default function VRCampus() {
     setJoining(true)
     setError(null)
     try {
-      const result = await joinVrCampus(username.trim(), 'web_vr')
+      const profile = getProfile()
+      const result = await joinVrCampus(username.trim(), 'web_vr', {
+        role: getRole() || 'student',
+        cohort: profile ? profile.cohort : undefined,
+        level: profile ? profile.level : undefined,
+      })
       setSession(result)
     } catch (err) {
       setError(err.message)
@@ -126,10 +159,15 @@ export default function VRCampus() {
         <section className="kev-section" aria-label="VR Campus">
           <h2 className="kev-section-title">VR Campus</h2>
           <p className="kev-section-copy">
-            Step into the KEV virtual school building - 14 real rooms across 5 floors,
-            from the basement gymnasium to the third-floor auditorium. Join to load it and
-            walk around by clicking a room floor.
+            Step into the multiplayer KEV school building - 14 real rooms across 5
+            floors, from the basement gymnasium to the third-floor auditorium,
+            shared with anyone else who is in. Join to load it and walk around by
+            clicking a room floor. The full 11-floor campus - every subject wing,
+            class and facility - is in the XR Academy.
           </p>
+          <div style={{ maxWidth: 640, marginBottom: '1rem' }}>
+            <LiveLessonsStrip onJoinLesson={setJoinLesson} />
+          </div>
           <form onSubmit={handleJoin} className="kev-card" style={{ maxWidth: 420, display: 'grid', gap: '0.75rem' }}>
             <label htmlFor="vr-username">Your name</label>
             <input
@@ -145,6 +183,9 @@ export default function VRCampus() {
             {error && <p style={{ color: '#dc2626' }}>{error}</p>}
           </form>
         </section>
+        {joinLesson && (
+          <LiveLessonModal lesson={joinLesson} onClose={() => setJoinLesson(null)} />
+        )}
       </main>
     )
   }
@@ -184,9 +225,14 @@ export default function VRCampus() {
           {rooms.length} rooms on this floor, {allRooms.length} total across the building -
           all real KEV building data, not placeholder shapes.
         </p>
-        {!xrAvailable && (
+        {xrLoading && !xrAvailable && (
+          <p style={{ color: '#0e7490' }} aria-busy="true">
+            Loading the immersive renderer&hellip;
+          </p>
+        )}
+        {!xrLoading && !xrAvailable && (
           <p role="alert" style={{ color: '#b45309' }}>
-            The immersive renderer is unavailable. Check the A-Frame runtime and reload this page.
+            The immersive renderer is unavailable. Check your connection and reload this page.
           </p>
         )}
 
@@ -203,83 +249,88 @@ export default function VRCampus() {
           ))}
         </div>
 
-        <a-scene ref={sceneRef} embedded style={{ width: '100%', height: '560px', borderRadius: '0.75rem', overflow: 'hidden' }}>
-          <a-assets></a-assets>
+        {/* Only mount the scene once A-Frame has registered its custom
+            elements; creating <a-scene> earlier relies on upgrade semantics
+            that are not worth betting a whole page on. */}
+        {xrAvailable && (
+          <a-scene ref={sceneRef} embedded style={{ width: '100%', height: '560px', borderRadius: '0.75rem', overflow: 'hidden' }}>
+            <a-assets></a-assets>
 
-          <a-sky color={scene.environment.skybox.weather === 'clear' ? '#87CEEB' : '#94a3b8'}></a-sky>
+            <a-sky color={scene.environment.skybox.weather === 'clear' ? '#87CEEB' : '#94a3b8'}></a-sky>
 
-          <a-entity light={`type: ambient; intensity: ${scene.environment.lighting.ambient_intensity}`}></a-entity>
-          <a-entity
-            light={`type: directional; intensity: ${scene.environment.lighting.directional_light.intensity}`}
-            position="0 10 5"
-          ></a-entity>
+            <a-entity light={`type: ambient; intensity: ${scene.environment.lighting.ambient_intensity}`}></a-entity>
+            <a-entity
+              light={`type: directional; intensity: ${scene.environment.lighting.directional_light.intensity}`}
+              position="0 10 5"
+            ></a-entity>
 
-          {rooms.map((room) => {
-            const [rx, ry, rz] = room.coordinates
-            const [w, h, d] = room.dimensions
-            const color = ROOM_COLOR_BY_TYPE[room.facility_type] || '#cccccc'
-            const wallColor = '#ede4cf'
-            const wt = 0.2 // wall thickness
-            return (
-              <a-entity key={room.name}>
-                <a-box position={`${rx} ${ry} ${rz}`} width={w} height={0.1} depth={d} color={color}
-                  onClick={handleRoomClick(room)}></a-box>
-                {/* Ceiling - closes the room off from the sky so it reads as
-                    an actual enclosed room, not an open-air platform. */}
-                <a-box position={`${rx} ${ry + h} ${rz}`} width={w} height={0.1} depth={d} color="#f7f2e7"></a-box>
-                {/* 4 real, solid perimeter walls */}
-                <a-box position={`${rx} ${ry + h / 2} ${rz - d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
-                <a-box position={`${rx} ${ry + h / 2} ${rz + d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
-                <a-box position={`${rx - w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
-                <a-box position={`${rx + w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
-                <a-text
-                  value={room.name}
-                  align="center"
-                  position={`${rx} ${ry + h - 0.3} ${rz - d / 2 + 0.3}`}
-                  rotation="0 0 0"
-                  scale="1.4 1.4 1.4"
-                  color="#0b1830"
-                ></a-text>
+            {rooms.map((room) => {
+              const [rx, ry, rz] = room.coordinates
+              const [w, h, d] = room.dimensions
+              const color = ROOM_COLOR_BY_TYPE[room.facility_type] || '#cccccc'
+              const wallColor = '#ede4cf'
+              const wt = 0.2 // wall thickness
+              return (
+                <a-entity key={room.name}>
+                  <a-box position={`${rx} ${ry} ${rz}`} width={w} height={0.1} depth={d} color={color}
+                    onClick={handleRoomClick(room)}></a-box>
+                  {/* Ceiling - closes the room off from the sky so it reads as
+                      an actual enclosed room, not an open-air platform. */}
+                  <a-box position={`${rx} ${ry + h} ${rz}`} width={w} height={0.1} depth={d} color="#f7f2e7"></a-box>
+                  {/* 4 real, solid perimeter walls */}
+                  <a-box position={`${rx} ${ry + h / 2} ${rz - d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
+                  <a-box position={`${rx} ${ry + h / 2} ${rz + d / 2}`} width={w} height={h} depth={wt} color={wallColor}></a-box>
+                  <a-box position={`${rx - w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
+                  <a-box position={`${rx + w / 2} ${ry + h / 2} ${rz}`} width={wt} height={h} depth={d} color={wallColor}></a-box>
+                  <a-text
+                    value={room.name}
+                    align="center"
+                    position={`${rx} ${ry + h - 0.3} ${rz - d / 2 + 0.3}`}
+                    rotation="0 0 0"
+                    scale="1.4 1.4 1.4"
+                    color="#0b1830"
+                  ></a-text>
+                </a-entity>
+              )
+            })}
+
+            {objects.map((obj) => {
+              const Tag = OBJECT_SHAPE[obj.object_type] || 'a-box'
+              const size = obj.visual_properties?.size || [0.6, 0.6, 0.6]
+              const shapeProps = Tag === 'a-sphere'
+                ? { radius: Math.max(...size) / 2 }
+                : { width: size[0], height: size[1], depth: size[2] }
+              return (
+                <Tag
+                  key={obj.id}
+                  position={obj.position.join(' ')}
+                  scale={obj.scale?.join(' ') || '1 1 1'}
+                  onClick={() => handleObjectClick(obj)}
+                  {...shapeProps}
+                  color={
+                    obj.visual_properties?.color
+                      ? `rgb(${obj.visual_properties.color.map((c) => Math.round(c * 255)).join(',')})`
+                      : '#4f83cc'
+                  }
+                >
+                  <a-text value={obj.name} align="center" position="0 0.7 0" scale="0.6 0.6 0.6"></a-text>
+                </Tag>
+              )
+            })}
+
+            {otherUsers.map(([id, position]) => (
+              <a-entity key={id} position={position.join(' ')}>
+                <a-sphere radius="0.25" color="#f59e0b"></a-sphere>
+                <a-text value="Learner" align="center" position="0 0.45 0" scale="0.5 0.5 0.5" color="#0b1830"></a-text>
               </a-entity>
-            )
-          })}
+            ))}
 
-          {objects.map((obj) => {
-            const Tag = OBJECT_SHAPE[obj.object_type] || 'a-box'
-            const size = obj.visual_properties?.size || [0.6, 0.6, 0.6]
-            const shapeProps = Tag === 'a-sphere'
-              ? { radius: Math.max(...size) / 2 }
-              : { width: size[0], height: size[1], depth: size[2] }
-            return (
-              <Tag
-                key={obj.id}
-                position={obj.position.join(' ')}
-                scale={obj.scale?.join(' ') || '1 1 1'}
-                onClick={() => handleObjectClick(obj)}
-                {...shapeProps}
-                color={
-                  obj.visual_properties?.color
-                    ? `rgb(${obj.visual_properties.color.map((c) => Math.round(c * 255)).join(',')})`
-                    : '#4f83cc'
-                }
-              >
-                <a-text value={obj.name} align="center" position="0 0.7 0" scale="0.6 0.6 0.6"></a-text>
-              </Tag>
-            )
-          })}
-
-          {otherUsers.map(([id, position]) => (
-            <a-entity key={id} position={position.join(' ')}>
-              <a-sphere radius="0.25" color="#f59e0b"></a-sphere>
-              <a-text value="Learner" align="center" position="0 0.45 0" scale="0.5 0.5 0.5" color="#0b1830"></a-text>
+            <a-entity id="player" position={user.position.join(' ')}>
+              <a-sphere radius="0.3" color="#e63946"></a-sphere>
+              <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
             </a-entity>
-          ))}
-
-          <a-entity id="player" position={user.position.join(' ')}>
-            <a-sphere radius="0.3" color="#e63946"></a-sphere>
-            <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
-          </a-entity>
-        </a-scene>
+          </a-scene>
+        )}
 
         <SurfaceLinks
           title="Keep exploring"
