@@ -22,6 +22,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Build output (Vercel rebuilds; never commit)
+dist/
+
 # Editor directories and files
 .vscode/
 .idea/

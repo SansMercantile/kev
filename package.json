@@ -14,15 +14,10 @@
     "preview:app": "vite preview --port 3004",
     "api:client": "node tools/kev-api-client/fetch-openapi.cjs && node tools/kev-api-client/generate.cjs",
     "api:drift": "node tools/spec-drift/check.cjs",
-    "packs:compile": "node tools/challenge-packs/compile.cjs",
-    "packs:check": "node tools/challenge-packs/compile.cjs --check",
     "attribution:check": "node tools/attribution-check/check.cjs",
     "i18n:check": "node scripts/i18n-check.cjs",
-    "curriculum:validate": "../.venv-kev/bin/python tools/curriculum-validator/validate.py",
-    "agents:report": "../.venv-kev/bin/python tools/agent-catalog-sync/report.py",
     "i18n:glossary": "node tools/i18n-glossary/check.cjs",
-    "claims:mock": "../.venv-kev/bin/python tools/claims-mock/generate.py",
-    "gates": "npm run typecheck && npm run i18n:check && npm run i18n:glossary && npm run packs:check && npm run atlas:check && npm run attribution:check && npm run api:drift && npm run curriculum:validate && npm run agents:report && npm run claims:mock && ../.venv-kev/bin/python -m pytest tests/ -q && npm run verify:campus",
+    "gates": "npm run typecheck && npm run i18n:check && npm run i18n:glossary && npm run atlas:check && npm run attribution:check && npm run api:drift && npm run verify:campus",
     "atlas:check": "node scripts/check-atlas.cjs"
   },
   "dependencies": {

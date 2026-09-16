@@ -1,47 +1,34 @@
-# KEV
+# KEV — XR Online School & Virtual Labs (frontend)
 
-Educational system with Central Library and Curriculum Framework for 185+ subjects
+Public frontend for KEV: immersive 3D science labs, XR campus, curriculum,
+tutors UI, billing portal, and account surfaces. Built with React 18, Vite 5,
+Tailwind, Three.js, and react-i18next (6 UI languages + 90+ home languages
+for tutor answers).
 
-## Features
+Live: https://kev.sansmercantile.com (auto-deploys from `main` via Vercel).
 
-- FastAPI backend
-- React frontend
-- Comprehensive tests
-- Modern architecture
+## Develop
 
-## Installation
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
-
-### Frontend
 ```bash
 npm install
-npm run dev
+npm run dev        # platform mode (:3002)
+npm run dev:site   # site mode (:3003)
+npm run build      # site production build (what Vercel runs)
+npm run build:app  # platform production build
 ```
 
-## Testing
+Quality gates: `npm run gates` (typecheck, i18n parity + glossary, atlas
+integrity, attribution, API drift, campus-scene verification).
 
-```bash
-cd tests
-pytest
-```
+## Backend
 
-## API Documentation
-
-Once running, visit: http://localhost:8000/docs
-
-## Architecture
-
-- **Backend:** FastAPI (Python)
-- **Frontend:** React + Vite
-- **Database:** SQLAlchemy
-- **Testing:** Pytest
+The API (FastAPI on AWS ECS/Fargate + Bedrock tutors) lives in the private
+constellation monorepo and is **not** part of this public repo. Locally the
+dev server proxies `/api` to `http://localhost:8000`
+(`VITE_API_BASE_URL` override supported). No backend secrets belong here —
+never commit `.env` files or keys.
 
 ## License
 
-MIT License
+MIT License — except third-party model data under `public/models`
+(see `docs/ATTRIBUTION-human-atlas.md`, `docs/ATTRIBUTION-model-x.md`).
