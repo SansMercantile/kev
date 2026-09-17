@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Scoped XR Academy styles (ported from the demo). Selectors are scoped under
+   .kev-xr-embed so they never leak into the main KEV site theme. */
+
+.kev-xr-embed {
+  background-color: #020617;
+  min-height: 80vh;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  color: #0f172a;
+  overflow-x: hidden;
+}
+
+.kev-xr-embed h1,
+.kev-xr-embed h2,
+.kev-xr-embed h3,
+.kev-xr-embed h4,
+.kev-xr-embed h5,
+.kev-xr-embed h6 {
+  font-family: 'Outfit', sans-serif;
+}
+
+.kev-xr-embed code,
+.kev-xr-embed pre,
+.kev-xr-embed .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Custom scrollbar (scoped) */
+.kev-xr-embed ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.kev-xr-embed ::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+.kev-xr-embed ::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 9999px;
+}
+.kev-xr-embed ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* XR Scanlines & holographic grid effects */
+.kev-xr-embed .holo-grid {
+  background-size: 30px 30px;
+  background-image:
+    linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+}
+
+.kev-xr-embed .glow-blue {
+  box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+}
+
+.kev-xr-embed .glow-emerald {
+  box-shadow: 0 0 25px rgba(52, 211, 153, 0.25);
+}
+
+.kev-xr-embed .glow-purple {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.25);
+}
+
+/* The demo uses `animate-fade-in` but never defined it - define it here. */
+.kev-xr-embed .animate-fade-in {
+  animation: kev-xr-fade-in 0.25s ease-out;
+}
+
+@keyframes kev-xr-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

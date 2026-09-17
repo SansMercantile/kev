@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Midnight Blue Gradient for Book Pages/Cover -->
+    <linearGradient id="midnightBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A2B4C" />
+      <stop offset="50%" stop-color="#0F1C3F" />
+      <stop offset="100%" stop-color="#0A122A" />
+    </linearGradient>
+
+    <!-- Deep Accent Spine Shadow -->
+    <linearGradient id="spineShadow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#050A17" />
+      <stop offset="100%" stop-color="#0F1C3F" />
+    </linearGradient>
+
+    <!-- Subtle Page Edge Gold Accent -->
+    <linearGradient id="goldRibbon" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D4AF37" />
+      <stop offset="100%" stop-color="#AA820A" />
+    </linearGradient>
+  </defs>
+
+  <!-- Clean White Rounded Canvas Background -->
+  <rect width="512" height="512" rx="96" fill="#FFFFFF" />
+
+  <!-- Outer Canvas Border / Subtle Drop Shadow Ring -->
+  <rect x="8" y="8" width="496" height="496" rx="88" fill="none" stroke="#E2E8F0" stroke-width="8" />
+
+  <!-- ENCYCLOPEDIA / BOOK ICON -->
+  <g transform="translate(0, 10)">
+    <!-- Book Back Cover / Shadow Depth -->
+    <path d="M 120 100 
+             L 370 100 
+             C 390 100, 400 115, 400 135 
+             L 400 390 
+             C 400 405, 385 415, 370 415 
+             L 120 415 
+             Z" 
+          fill="#050A17" opacity="0.15" />
+
+    <!-- Open/Thick Encyclopedia Pages Body -->
+    <path d="M 140 110 
+             L 360 110 
+             C 375 110, 385 120, 385 135 
+             L 385 375 
+             C 385 390, 375 400, 360 400 
+             L 140 400 
+             C 125 400, 115 390, 115 375 
+             L 115 135 
+             C 115 120, 125 110, 140 110 Z" 
+          fill="url(#midnightBlue)" />
+
+    <!-- Book Spine (Left Fold) -->
+    <path d="M 115 135 
+             C 115 120, 125 110, 140 110 
+             L 175 110 
+             L 175 400 
+             L 140 400 
+             C 125 400, 115 390, 115 375 Z" 
+          fill="url(#spineShadow)" />
+
+    <!-- Inner Page Engravings / Open Book Silhouette Cutout -->
+    <!-- Left Page Notch -->
+    <path d="M 250 150 L 190 170 L 190 350 L 250 330 Z" fill="#FFFFFF" opacity="0.95" />
+    
+    <!-- Right Page Notch -->
+    <path d="M 262 150 L 322 170 L 322 350 L 262 330 Z" fill="#FFFFFF" opacity="0.95" />
+
+    <!-- Book Marker Ribbon (Gold Accent) -->
+    <path d="M 250 110 L 262 110 L 262 270 L 256 260 L 250 270 Z" fill="url(#goldRibbon)" />
+  </g>
+</svg>
