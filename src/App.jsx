@@ -20,16 +20,38 @@ import Portal from './pages/Portal'
 import Onboarding from './pages/Onboarding'
 import Pricing from './pages/Pricing'
 import Billing from './pages/Billing'
+import Signup from './pages/Signup'
+import Login from './pages/Login'
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
-import { setAuthToken, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
+import { setAuthToken, setUnauthorizedHandler, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
 import { DEV_BYPASS_AUTH, DevAuthBypassBanner } from './lib/devAuthBypass'
+import {
+  getNativeSession,
+  clearNativeSession,
+  restoreNativeSession,
+  refreshOnUnauthorized,
+  useNativeUser,
+} from './lib/nativeAuth'
 
 function AuthButton() {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading, user, loginWithRedirect, logout } = useAuth0()
+  const nativeUser = useNativeUser()
 
   if (isLoading) return null
+
+  if (nativeUser) {
+    return (
+      <button
+        className="kev-btn kev-btn-secondary"
+        onClick={() => clearNativeSession()}
+        title={nativeUser.email || ''}
+      >
+        {nativeUser.name || nativeUser.email || t('nav.account')} · {t('nav.signOut')}
+      </button>
+    )
+  }
 
   if (isAuthenticated) {
     return (
@@ -43,9 +65,14 @@ function AuthButton() {
   }
 
   return (
-    <button className="kev-btn kev-btn-secondary" onClick={() => loginWithRedirect()}>
-      {t('nav.signIn')}
-    </button>
+    <>
+      <Link className="kev-btn kev-btn-secondary" to="/login">
+        {t('nav.signIn')}
+      </Link>
+      <Link className="kev-btn kev-btn-primary" to="/signup">
+        Create account
+      </Link>
+    </>
   )
 }
 
@@ -55,6 +82,7 @@ function AuthButton() {
 function RequireAuth({ children }) {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
+  const nativeUser = useNativeUser()
 
   // Dev-only shortcut, after the hooks so their order is unconditional. Gated on
   // two compile-time constants and stripped from production builds — see
@@ -63,16 +91,24 @@ function RequireAuth({ children }) {
 
   if (isLoading) return null
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !nativeUser) {
     return (
       <section className="kev-section" aria-label={t('nav.signInRequired')}>
         <h2 className="kev-section-title">{t('nav.signInRequired')}</h2>
         <p className="kev-section-copy">
           {t('nav.signInRequiredBody')}
         </p>
-        <button className="kev-btn kev-btn-primary" onClick={() => loginWithRedirect()}>
-          {t('nav.signIn')}
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link className="kev-btn kev-btn-primary" to="/login">
+            {t('nav.signIn')}
+          </Link>
+          <Link className="kev-btn kev-btn-secondary" to="/signup">
+            Create account
+          </Link>
+          <button className="kev-btn kev-btn-secondary" onClick={() => loginWithRedirect()}>
+            Continue with Auth0
+          </button>
+        </div>
       </section>
     )
   }
@@ -109,23 +145,32 @@ const App = () => {
   }, [])
 
   // Keeps api.js's outgoing Authorization header in sync with the current
-  // Auth0 session, so protected endpoints (onboarding, agents, vr,
+  // session. Native (Cognito) sessions win when present; otherwise the Auth0
+  // session applies, so protected endpoints (onboarding, agents, vr,
   // library) get a real, verifiable JWT rather than being called anonymously.
   useEffect(() => {
-    if (!isAuthenticated) {
-      setAuthToken(null)
-      return
-    }
+    setUnauthorizedHandler(() => refreshOnUnauthorized())
     let cancelled = false
+    restoreNativeSession()
+      .then((nativeSession) => {
+        if (cancelled || nativeSession) return
+        if (!isAuthenticated) {
+          setAuthToken(null)
+          return
+        }
+        return getAccessTokenSilently()
+          .then((token) => { if (!cancelled) setAuthToken(token) })
+          .catch(() => { if (!cancelled) setAuthToken(null) })
+      })
+      .catch(() => {
+        if (!cancelled && !isAuthenticated) setAuthToken(null)
+      })
+    return () => { cancelled = true }
     // SWAP-POINT (kev/docs/AUTH0_ROLES_AND_COHORTS.md): once the tenant emits
     // role / study_level claims, decode them from this token (or read
     // useAuth0().user) and seed the role session from the verified claims
     // instead of the landing-page choice; roleHeaders() then stops asserting
     // what the token already proves.
-    getAccessTokenSilently()
-      .then((token) => { if (!cancelled) setAuthToken(token) })
-      .catch(() => { if (!cancelled) setAuthToken(null) })
-    return () => { cancelled = true }
   }, [isAuthenticated, getAccessTokenSilently])
 
   const navLinks = [
@@ -205,6 +250,8 @@ const App = () => {
             <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
             <Route path="/teacher" element={<Suspense fallback={<section className="kev-section">Loading teaching studio...</section>}><TeacherStudio /></Suspense>} />
           </Routes>

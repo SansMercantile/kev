@@ -11,14 +11,17 @@ import Curriculum from './pages/Curriculum'
 import Portal from './pages/Portal'
 import Pricing from './pages/Pricing'
 import Billing from './pages/Billing'
+import Signup from './pages/Signup'
+import Login from './pages/Login'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
 const ImmersiveLab = lazy(() => import('./pages/ImmersiveLab'))
 const XRAcademy = lazy(() => import('./pages/XRAcademy'))
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
-import { setAuthToken, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
+import { setAuthToken, setUnauthorizedHandler, getCurriculumSubjects, getAgentsAvailable } from './lib/api'
 import { DEV_BYPASS_AUTH, DevAuthBypassBanner } from './lib/devAuthBypass'
+import { restoreNativeSession, refreshOnUnauthorized, useNativeUser } from './lib/nativeAuth'
 import RoleLogin from './components/RoleLogin'
 import { getRole, ROLES, signOutOfRole } from './lib/roleSession'
 
@@ -42,6 +45,7 @@ function RoleGate({ roles, children }) {
 function RequireAuth({ children }) {
   const { t } = useTranslation()
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0()
+  const nativeUser = useNativeUser()
 
   // Dev-only shortcut, after the hooks so their order is unconditional. Gated on
   // two compile-time constants and stripped from production builds — see
@@ -50,14 +54,22 @@ function RequireAuth({ children }) {
 
   if (isLoading) return null
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !nativeUser) {
     return (
       <section className="kev-section" aria-label={t('nav.signInRequired')}>
         <h2 className="kev-section-title">{t('nav.signInRequired')}</h2>
         <p className="kev-section-copy">{t('nav.classroomRequiredBody')}</p>
-        <button className="kev-btn kev-btn-primary" onClick={() => loginWithRedirect()}>
-          {t('nav.signIn')}
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link className="kev-btn kev-btn-primary" to="/login">
+            {t('nav.signIn')}
+          </Link>
+          <Link className="kev-btn kev-btn-secondary" to="/signup">
+            Create account
+          </Link>
+          <button className="kev-btn kev-btn-secondary" onClick={() => loginWithRedirect()}>
+            Continue with Auth0
+          </button>
+        </div>
       </section>
     )
   }
@@ -95,20 +107,28 @@ const AppPlatform = () => {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setAuthToken(null)
-      return
-    }
+    setUnauthorizedHandler(() => refreshOnUnauthorized())
     let cancelled = false
+    restoreNativeSession()
+      .then((nativeSession) => {
+        if (cancelled || nativeSession) return
+        if (!isAuthenticated) {
+          setAuthToken(null)
+          return
+        }
+        return getAccessTokenSilently()
+          .then((token) => { if (!cancelled) setAuthToken(token) })
+          .catch(() => { if (!cancelled) setAuthToken(null) })
+      })
+      .catch(() => {
+        if (!cancelled && !isAuthenticated) setAuthToken(null)
+      })
+    return () => { cancelled = true }
     // SWAP-POINT (kev/docs/AUTH0_ROLES_AND_COHORTS.md): once the tenant emits
     // role / study_level claims, decode them from this token (or read
     // useAuth0().user) and seed the role session from the verified claims
     // instead of the landing-page choice; roleHeaders() then stops asserting
     // what the token already proves.
-    getAccessTokenSilently()
-      .then((token) => { if (!cancelled) setAuthToken(token) })
-      .catch(() => { if (!cancelled) setAuthToken(null) })
-    return () => { cancelled = true }
   }, [isAuthenticated, getAccessTokenSilently])
 
   // Role-shaped navigation: a teacher's bar carries the teaching studio and
@@ -208,6 +228,8 @@ const AppPlatform = () => {
             <Route path="/portal" element={<Portal />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </main>
 

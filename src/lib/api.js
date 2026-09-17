@@ -19,16 +19,34 @@ export function setAuthToken(token) {
   authToken = token
 }
 
+// Set once by nativeAuth: on a 401 with a stored native refresh token,
+// refresh and retry the request a single time before surfacing the error.
+let onUnauthorized = null
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn
+}
+
 export function getAuthHeaders() {
   return authToken ? { Authorization: `Bearer ${authToken}` } : {}
 }
 
 async function fetchJson(url, options = {}) {
-  const headers = { ...(options.headers || {}) }
+  const { _retried, ...fetchOptions } = options
+  const headers = { ...(fetchOptions.headers || {}) }
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`
   }
-  const response = await fetch(url, { ...options, headers })
+  let response = await fetch(url, { ...fetchOptions, headers })
+  if (response.status === 401 && onUnauthorized && !_retried) {
+    const refreshed = await onUnauthorized().catch(() => false)
+    if (refreshed) {
+      const retryHeaders = { ...(fetchOptions.headers || {}) }
+      if (authToken) {
+        retryHeaders['Authorization'] = `Bearer ${authToken}`
+      }
+      response = await fetch(url, { ...fetchOptions, headers: retryHeaders })
+    }
+  }
   if (!response.ok) {
     const message = await response.text()
     throw new Error(`API request failed: ${response.status} ${response.statusText} - ${message}`)
@@ -174,5 +192,50 @@ export async function submitOnboardingApplication(data) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
+  })
+}
+
+// Native KEV accounts (AWS Cognito). Public calls - no token attached yet.
+function publicPost(path, body) {
+  return fetchJson(buildUrl(path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function authSignup(email, password, name) {
+  return publicPost('/auth/signup', { email, password, name })
+}
+
+export async function authConfirm(email, code) {
+  return publicPost('/auth/confirm', { email, code })
+}
+
+export async function authResendCode(email) {
+  return publicPost('/auth/resend-code', { email })
+}
+
+export async function authLogin(email, password) {
+  return publicPost('/auth/login', { email, password })
+}
+
+export async function authForgotPassword(email) {
+  return publicPost('/auth/forgot-password', { email })
+}
+
+export async function authResetPassword(email, code, newPassword) {
+  return publicPost('/auth/reset-password', { email, code, newPassword })
+}
+
+export async function authMe() {
+  return fetchJson(buildUrl('/auth/me'))
+}
+
+export async function authUpdateMe(profile) {
+  return fetchJson(buildUrl('/auth/me'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
   })
 }
