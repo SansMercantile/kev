@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import HeroIllustration from '../components/HeroIllustration'
 import { getCurriculumSubjects, getMultiAgentsCatalog } from '../lib/api'
 import { xrClient } from '../lib/xrClient'
+import RoleLogin from '../components/RoleLogin'
+import { getRole, ROLES } from '../lib/roleSession'
 
 export default function Landing() {
+  const navigate = useNavigate()
+  const role = getRole()
   const [stats, setStats] = useState(null)
 
   useEffect(() => {
@@ -149,6 +153,26 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {role ? (
+        <section className="kev-section" aria-label="Continue to your school">
+          <h2 className="kev-section-title">Continue as {role}</h2>
+          <p className="kev-section-copy">
+            {role === ROLES.TEACHER
+              ? 'Open the teaching studio for live lessons, the blackboard and your markbook.'
+              : 'Head into the campus to attend live lessons with your cohort.'}
+          </p>
+          <div className="kev-hero-actions">
+            <Link to={role === ROLES.TEACHER ? '/teacher' : '/xr-academy'} className="kev-btn kev-btn-primary">
+              {role === ROLES.TEACHER ? 'Open teaching studio' : 'Enter the campus'}
+            </Link>
+          </div>
+        </section>
+      ) : (
+        <RoleLogin
+          onSignedIn={() => navigate(getRole() === ROLES.TEACHER ? '/teacher' : '/xr-academy')}
+        />
+      )}
 
       <section className="kev-section" aria-label="Get started">
         <h2 className="kev-section-title">Start free, upgrade when ready</h2>
