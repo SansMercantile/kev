@@ -234,6 +234,8 @@ export function createStudio(host, opts = {}) {
   let raf = 0
   let last = performance.now()
   let frameCb = null
+  let postRenderCb = null
+  let resizeCb = null
   const invalidate = () => { dirty = true }
   controls.addEventListener('change', invalidate)
 
@@ -251,6 +253,10 @@ export function createStudio(host, opts = {}) {
         renderer.shadowMap.needsUpdate = true
       }
       renderer.render(scene, camera)
+      // After-render hook: projection targets must read the camera matrices
+      // refreshed by this render (the tools rebuild screen-space hit regions
+      // inside their `if (dirty) render` block for the same reason).
+      if (postRenderCb) postRenderCb()
     }
   }
 
@@ -261,6 +267,7 @@ export function createStudio(host, opts = {}) {
     renderer.setSize(w, h, false)
     camera.aspect = w / h
     camera.updateProjectionMatrix()
+    if (resizeCb) resizeCb(camera.aspect)
     invalidate()
   }
   const observer = new ResizeObserver(resize)
@@ -290,6 +297,10 @@ export function createStudio(host, opts = {}) {
     invalidate,
     /** Register the per-frame callback; return true while animating. */
     onFrame(cb) { frameCb = cb; invalidate() },
+    /** Register a callback fired right after every rendered frame. */
+    onPostRender(cb) { postRenderCb = cb },
+    /** Register a callback fired after the canvas is resized. */
+    onResize(cb) { resizeCb = cb },
     refreshShadows() { if (renderer.shadowMap.enabled) renderer.shadowMap.needsUpdate = true },
     dispose() {
       cancelAnimationFrame(raf)

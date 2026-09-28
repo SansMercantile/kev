@@ -122,6 +122,7 @@ export default function ImmersiveLab() {
       isolate: isolated && Boolean(selectedPart),
       view: anatomyView,
       rotate: rotateOn,
+      inspectorOpen: Boolean(selectedPart),
     })
   }, [activeSubjectId, explode, anatomyVisible, activeSystem, selectedPart, isolated, anatomyView, rotateOn, atlas.fallback]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -213,6 +214,7 @@ export default function ImmersiveLab() {
       selectedName: selectedPart?.name ?? null,
       labels: labelsOn,
       autoRotate: rotateOn,
+      inspectorOpen: Boolean(selectedPart),
     })
   }, [activeSubjectId, activeSystem, explode, isolated, selectedPart, labelsOn, rotateOn])
 
@@ -462,7 +464,7 @@ export default function ImmersiveLab() {
                 <option key={l.id} value={l.id}>{l.label}</option>
               ))}
             </select>
-            <button className="kev-btn" onClick={() => setIsolated((v) => { if (!selectedPart && !v) return v; return !v })} disabled={!selectedPart} title={selectedPart ? t('viewer.isolateHint') : t('viewer.isolateNeedsSelection')}>
+            <button className="kev-btn" onClick={() => { if (!selectedPart) return; setIsolated((v) => !v); setExplode(0) }} disabled={!selectedPart} title={selectedPart ? t('viewer.isolateHint') : t('viewer.isolateNeedsSelection')}>
               {isolated ? t('viewer.showAll') : t('viewer.isolate')}
             </button>
             <button className="kev-btn" onClick={reset}>{t('viewer.resetView')}</button>

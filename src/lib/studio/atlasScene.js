@@ -84,6 +84,10 @@ export class AtlasViewer {
       view: 'three-quarter',
       rotate: false,
       reset: 0,
+      // The tool's SceneState carries the detail-sheet visibility so isolate
+      // framing can reserve the inspector region; KEV's inspector lives in a
+      // sibling column, but the state contract stays identical to the tool.
+      inspectorOpen: false,
     }
     this.atlas = null
     this.disposed = false
@@ -162,6 +166,15 @@ export class AtlasViewer {
     controls.addEventListener('change', () => this.studio.invalidate())
 
     this.studio.onFrame((dt) => this._frame(dt))
+    // The tool rebuilds its screen-space hit regions inside `if (dirty)` right
+    // after rendering; the studio's post-render hook is the same ordering.
+    this.studio.onPostRender(() => this._rebuildTargets())
+    // The tool's resize handler drops the packing layout and re-fits.
+    this.studio.onResize(() => {
+      this.layoutKey = ''
+      this.lastState = null
+      this._fit(this.state.view, this.amount)
+    })
     this.load()
   }
 
@@ -404,27 +417,48 @@ export class AtlasViewer {
     }
   }
 
+  /**
+   * Camera fit - code-for-code port of the tool's `fit()`
+   * (tools/human-atlas/app/scene.tsx, MIT). The tool reserves the regions its
+   * own chrome overlays on the canvas (layers panel 340px / detail sheet,
+   * header + dock 270-350px); KEV renders that chrome in sibling grid columns
+   * so nothing overlays the host, and the reservations measure to zero here.
+   * The formula structure is otherwise identical to the tool.
+   */
   _fit(view, extent = 0) {
     const { camera, controls, host } = this.studio
-    const aspect = camera.aspect
-    const fovFactor = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
     const mobile = host.clientWidth < 768
-    const normalDistance = mobile ? Math.max(4.5, 1.9 / fovFactor) : Math.max(3.6, 1.9 / fovFactor / Math.min(1, aspect * 0.9))
+    const fovFactor = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    const reservedHeight = 0 // tool: 350 mobile / 270 desktop
+    const reservedWidth = 0 // tool: 40 mobile margins / 340 desktop panel
+    const height = Math.max(160, host.clientHeight - reservedHeight)
+    const normalDistance = mobile ? Math.max(4.5, (1.8 * host.clientHeight) / height / fovFactor) : 4
+    const availableAspect = Math.max(0.35, (host.clientWidth - reservedWidth) / height)
     const atlasDistance =
-      (Math.max(this.packingHeight, this.packingWidth / Math.max(0.35, aspect)) / fovFactor) * 1.35
+      ((Math.max(this.packingHeight, this.packingWidth / availableAspect) / fovFactor) * host.clientHeight) / height * 1.08
     const distance = THREE.MathUtils.lerp(normalDistance, Math.max(0.2, atlasDistance), extent)
+    if (extent > 0.8) view = 'front'
     const direction = (VIEWS[view] || VIEWS['three-quarter']).clone()
-    if (extent > 0.8) direction.set(0, 0.02, 1)
-    controls.target.set(extent > 0.1 && !mobile ? -this.packingWidth * 0.12 : 0, extent > 0.1 || mobile ? 0.85 : 0.68, 0)
+    controls.target.set(extent > 0.1 && reservedWidth > 0 ? -this.packingWidth * 0.12 : 0, extent > 0.1 || mobile ? 0.85 : 0.68, 0)
     camera.position.copy(controls.target).addScaledVector(direction, distance)
     controls.update()
     this.studio.invalidate()
   }
 
+  /** Isolate framing regions - port of the tool's region block. The tool
+   * reserves its overlayed header/dock (110/170, 175 mobile) and, with the
+   * detail sheet open, the sheet (370) + layers panel (285); KEV's equivalent
+   * chrome sits in sibling columns, so the free region is the whole host. */
+  _isolateRegions() {
+    const w = this.studio.host.clientWidth
+    const h = this.studio.host.clientHeight
+    return { left: 20, right: w - 20, top: 20, bottom: h - 20, w, h }
+  }
+
   _frame(dt) {
     if (!this.atlas || this.disposed) return false
     const s = this.state
-    const { camera, controls, host, renderer, reducedMotion } = this.studio
+    const { camera, controls, reducedMotion } = this.studio
     const changed = !this.lastState || this.lastState.visible !== s.visible || this.lastState.selected !== s.selected || this.lastState.isolate !== s.isolate
     const moving = Math.abs(this.amount - s.explode / 100) > 0.0001
     let animating = false
@@ -534,8 +568,10 @@ export class AtlasViewer {
     }
     if (moving && !s.isolate) this._fit(this.amount > 0.5 ? 'front' : s.view, Math.max(0, (this.amount - 0.3) / 0.7))
 
-    const isolateKey = s.isolate ? s.selected.join(',') + ':' + s.reset + ':' + camera.aspect.toFixed(3) : ''
-    if (isolateKey !== this.lastIsolate) {
+    const isolateKey = s.isolate
+      ? s.selected.join(',') + ':' + s.reset + ':' + (s.inspectorOpen ? 1 : 0) + ':' + camera.aspect.toFixed(3)
+      : ''
+    if (isolateKey !== this.lastIsolate || (s.isolate && moving)) {
       if (s.isolate) {
         const box = new THREE.Box3()
         this.atlas.parts.forEach((p, i) => {
@@ -544,8 +580,15 @@ export class AtlasViewer {
         if (!box.isEmpty()) {
           const center = box.getCenter(new THREE.Vector3())
           const size = box.getSize(new THREE.Vector3())
+          const { left, right, top, bottom, w, h } = this._isolateRegions()
+          const availableWidth = Math.max(150, right - left)
+          const availableHeight = Math.max(40, bottom - top)
+          camera.setViewOffset(w, h, w / 2 - (left + right) / 2, h / 2 - (top + bottom) / 2, w, h)
           const fovFactor = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
-          const distance = Math.max(0.07, (Math.max(size.y, size.x / Math.max(0.2, camera.aspect), size.z) / fovFactor) * 1.6)
+          const distance = Math.max(
+            0.07,
+            (Math.max((size.y * h) / availableHeight, (size.x * w) / availableWidth / camera.aspect, size.z) / fovFactor) * 1.35
+          )
           controls.maxDistance = Math.max(40, distance * 2)
           controls.target.copy(center)
           camera.position.copy(center).add(new THREE.Vector3(0.2, 0.1, 1).normalize().multiplyScalar(distance))
@@ -563,45 +606,52 @@ export class AtlasViewer {
     controls.mouseButtons.LEFT = this.amount < 0.8 ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN
     controls.touches.ONE = this.amount < 0.8 ? THREE.TOUCH.ROTATE : THREE.TOUCH.PAN
     this.studio.stageGroup.visible = this.amount < 0.5 && !s.isolate
-    this.markers.visible = this.amount > 0.75 && !s.isolate
+    this.markers.visible = this.amount > 0.75
     controls.autoRotate = s.rotate && !s.isolate && this.amount < 0.4 && !this.studio.reducedMotion
     if (controls.autoRotate) animating = true
 
-    // Screen-space hover/marker targets refresh on rendered frames.
-    if (this.ready && this.amount > 0.45) {
-      this.targets = []
-      const projected = new THREE.Vector3()
-      const w = host.clientWidth
-      const h = host.clientHeight
-      const hasSolid = this.atlas.parts.some((p, i) => p.system !== 'integumentary' && this.data[i * 4 + 3] > 0.5)
-      this.atlas.parts.forEach((p, i) => {
-        if (this.data[i * 4 + 3] < 0.5) return
-        if (hasSolid && p.system === 'integumentary') return
-        let left = Infinity
-        let right = -Infinity
-        let top = Infinity
-        let bottom = -Infinity
-        for (let corner = 0; corner < 8; corner++) {
-          projected.set(
-            p.bounds[corner & 1 ? 1 : 0][0] + this.data[i * 4],
-            p.bounds[corner & 2 ? 1 : 0][1] + this.data[i * 4 + 1],
-            p.bounds[corner & 4 ? 1 : 0][2] + this.data[i * 4 + 2]
-          ).project(camera)
-          const x = ((projected.x + 1) * w) / 2
-          const y = ((1 - projected.y) * h) / 2
-          left = Math.min(left, x)
-          right = Math.max(right, x)
-          top = Math.min(top, y)
-          bottom = Math.max(bottom, y)
-        }
-        projected.copy(this.centers[i]).add(new THREE.Vector3(this.data[i * 4], this.data[i * 4 + 1], this.data[i * 4 + 2])).project(camera)
-        if (projected.z < -1 || projected.z > 1) return
-        this.targets.push({ index: i, x: ((projected.x + 1) * w) / 2, y: ((1 - projected.y) * h) / 2, left, right, top, bottom })
-      })
-    } else {
-      this.targets = []
-    }
     return animating
+  }
+
+  /** Screen-space hover/marker targets - port of the tool's post-render
+   * block: rebuilt after each rendered frame so the projections read the
+   * camera matrices that render just produced. */
+  _rebuildTargets() {
+    if (!this.ready || !this.atlas || this.amount <= 0.45) {
+      this.targets = []
+      return
+    }
+    const { camera, host } = this.studio
+    const projected = new THREE.Vector3()
+    const w = host.clientWidth
+    const h = host.clientHeight
+    const targets = []
+    const hasSolid = this.atlas.parts.some((p, i) => p.system !== 'integumentary' && this.data[i * 4 + 3] > 0.5)
+    this.atlas.parts.forEach((p, i) => {
+      if (this.data[i * 4 + 3] < 0.5) return
+      if (hasSolid && p.system === 'integumentary') return
+      let left = Infinity
+      let right = -Infinity
+      let top = Infinity
+      let bottom = -Infinity
+      for (let corner = 0; corner < 8; corner++) {
+        projected.set(
+          p.bounds[corner & 1 ? 1 : 0][0] + this.data[i * 4],
+          p.bounds[corner & 2 ? 1 : 0][1] + this.data[i * 4 + 1],
+          p.bounds[corner & 4 ? 1 : 0][2] + this.data[i * 4 + 2]
+        ).project(camera)
+        const x = ((projected.x + 1) * w) / 2
+        const y = ((1 - projected.y) * h) / 2
+        left = Math.min(left, x)
+        right = Math.max(right, x)
+        top = Math.min(top, y)
+        bottom = Math.max(bottom, y)
+      }
+      projected.copy(this.centers[i]).add(new THREE.Vector3(this.data[i * 4], this.data[i * 4 + 1], this.data[i * 4 + 2])).project(camera)
+      if (projected.z < -1 || projected.z > 1) return
+      targets.push({ index: i, x: ((projected.x + 1) * w) / 2, y: ((1 - projected.y) * h) / 2, left, right, top, bottom })
+    })
+    this.targets = targets
   }
 
   dispose() {
