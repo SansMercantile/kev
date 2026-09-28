@@ -60,6 +60,22 @@ function roomOptionsFor(profile: { name: string; cohort: string } | null) {
 
 const QUICK_STAMPS = ['🔬', '⚛️', '🔭', '🧪', '💡', '🚀', '✨'];
 
+const safePhotoUrl = (url?: string): string | null => {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url, window.location.origin);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:' || parsed.protocol === 'blob:') {
+      return parsed.href;
+    }
+    if (parsed.protocol === 'data:' && parsed.pathname.startsWith('image/')) {
+      return parsed.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
 export const CampusChatSidebar: React.FC<Props> = ({
   currentRoomId: propRoomId,
   currentRoomName: propRoomName,
@@ -445,6 +461,7 @@ export const CampusChatSidebar: React.FC<Props> = ({
         {messages.map((msg) => {
           const isMe = msg.sender?.id === currentUser.id;
           const isFaculty = msg.sender?.isFaculty;
+          const photoUrl = safePhotoUrl(msg.sender?.avatar?.photoUrl);
 
           return (
             <div
@@ -453,9 +470,9 @@ export const CampusChatSidebar: React.FC<Props> = ({
             >
               <div className="flex items-center gap-1.5 mb-1 px-1">
                 {!isMe && (
-                  msg.sender?.avatar?.photoUrl ? (
+                  photoUrl ? (
                     <img
-                      src={msg.sender.avatar.photoUrl}
+                      src={photoUrl}
                       alt={msg.sender?.name}
                       referrerPolicy="no-referrer"
                       className="w-4 h-4 rounded-full object-cover border border-white/30"

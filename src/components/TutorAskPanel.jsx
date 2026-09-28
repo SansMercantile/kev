@@ -7,6 +7,19 @@ import { getStudyLevelId, studyLevelLabel } from '../xr/lib/studyLevel'
 import { getTierId } from '../xr/lib/studyTier'
 import { getAnswerLanguage } from '../i18n/index.js'
 
+const safeHref = (url, fallback) => {
+  if (!url || typeof url !== 'string') return fallback
+  try {
+    const parsed = new URL(url, window.location.origin)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return parsed.href
+    }
+    return fallback
+  } catch {
+    return fallback
+  }
+}
+
 // Shared "ask a faculty tutor about what you're inspecting" panel for every
 // surface (Immersive Lab, Human Atlas, Curriculum subjects). Signed-in users
 // get a live level-aware Bedrock answer; signed-out users get a sign-in
@@ -119,8 +132,8 @@ export default function TutorAskPanel({ tutorId, tutorName, subjectLabel, partNa
         <div style={{ background: 'rgba(201,162,39,0.08)', border: '1px solid #c9a227', borderRadius: 6, padding: '0.65rem', fontSize: '0.85rem', color: '#dbe7f3', display: 'grid', gap: '0.5rem' }}>
           <strong>{paywalled.message || 'Monthly tutor quota exhausted.'}</strong>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <a className="kev-btn" href={paywalled.upgrade_url || '/pricing'}>See plans</a>
-            <a className="kev-btn" href={paywalled.billing_url || '/billing'}>Billing</a>
+            <a className="kev-btn" href={safeHref(paywalled.upgrade_url, '/pricing')}>See plans</a>
+            <a className="kev-btn" href={safeHref(paywalled.billing_url, '/billing')}>Billing</a>
           </div>
         </div>
       )}

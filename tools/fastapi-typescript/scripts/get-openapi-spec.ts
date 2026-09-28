@@ -19,6 +19,9 @@ export default async function main() {
   await fs.mkdir(directoryPath, { recursive: true });
 
   // Write file
+  // Dev-only codegen: persists the operator's own OpenAPI document (fetched
+  // from CORE_URL) to a fixed in-repo path - no third-party input.
+  // codeql[js/http-to-file-access]
   await fs.writeFile(filePath, JSON.stringify(file, null, 2));
   console.log("Successfully created openapi.json");
 }

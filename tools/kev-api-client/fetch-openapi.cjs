@@ -19,6 +19,9 @@ async function main() {
   const outDir = path.join(__dirname, '..', '..', 'src', 'generated', 'api');
   fs.mkdirSync(outDir, { recursive: true });
   const outFile = path.join(outDir, 'openapi.json');
+  // Dev-only codegen: persists the operator's own OpenAPI document (fetched
+  // from KEV_API_URL) to a fixed in-repo path - no third-party input.
+  // codeql[js/http-to-file-access]
   fs.writeFileSync(outFile, JSON.stringify(spec, null, 2));
   const paths = Object.keys(spec.paths || {});
   const xrPaths = paths.filter((p) => p.startsWith('/xr/'));

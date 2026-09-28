@@ -43,7 +43,7 @@ function pascal(name) {
 }
 
 function tsLiteral(value) {
-  if (typeof value === 'string') return `'${value.replace(/'/g, "\\'")}'`;
+  if (typeof value === 'string') return `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return 'unknown';
 }

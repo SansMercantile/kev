@@ -67,6 +67,12 @@ import { soundManager } from '../../utils/soundEffects';
 import { libApi } from '../../lib/xrApi';
 import { cachedFetch, queueOutbox } from '../../lib/offline';
 
+const secureFourDigit = () => {
+  const buf = new Uint32Array(1);
+  crypto.getRandomValues(buf);
+  return 1000 + (buf[0] % 9000);
+};
+
 interface Props {
   currentStudentName: string;
   onAdmissionSuccess?: (application: AdmissionApplication) => void;
@@ -238,7 +244,7 @@ export const VisitorsPortal: React.FC<Props> = ({
           assignedCampusFloor: 'Ground Floor Commons & First Floor STEM Wing',
           assignedTutor: 'Dr. Marcus Ward & Prof. KEV',
           virtualLockerNumber: `Locker B-${100 + admissionsList.length * 3}`,
-          rfidPassCode: `RFID-KEV-${Math.floor(1000 + Math.random() * 9000)}-AUTH`,
+          rfidPassCode: `RFID-KEV-${secureFourDigit()}-AUTH`,
           initialXPAwarded: 100,
           notes: 'Admitted with High Honors.'
         };
