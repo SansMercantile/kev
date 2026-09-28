@@ -14,6 +14,7 @@
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
 import { createStudio } from './studioRenderer'
+import { packCells } from './explosionLayout'
 import { PointerTap } from '../pointerTap'
 
 // ---------------------------------------------------------------- materials
@@ -211,20 +212,23 @@ export function buildPlants(scene) {
   }
   register('photosynthesis', 'Guard cells', 'Guard cells open and close stomata in response to conditions.', guards, [0, 0, 0])
 
-  // Soil disc (staging, not a pickable part).
+  // Soil disc (staging, not a pickable part) - hides with the stage on explode.
+  const scenery = []
   const soilDisc = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.62, 0.24, 48), soil)
   soilDisc.position.y = -1.98
   soilDisc.receiveShadow = true
   scene.add(soilDisc)
+  scenery.push(soilDisc)
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2
     const pebble = new THREE.Mesh(new THREE.SphereGeometry(0.05 + (i % 3) * 0.02, 8, 6), std('#57493a', 0.05, 0.9))
     pebble.position.set(Math.cos(a) * (0.9 + (i % 3) * 0.25), -1.84, Math.sin(a) * (0.9 + (i % 4) * 0.2))
     pebble.scale.y = 0.6
     scene.add(pebble)
+    scenery.push(pebble)
   }
 
-  return { parts, systems: ['roots', 'vascular', 'photosynthesis'] }
+  return { parts, systems: ['roots', 'vascular', 'photosynthesis'], scenery }
 }
 
 /** Bridge Systems: truss bridge with structure, motion and power services. */
@@ -515,22 +519,108 @@ export function buildEarth(scene) {
   return { parts, systems: ['layers', 'tectonics', 'atmosphere'], animated: clouds }
 }
 
-/** Generic fallback: the box catalog, upgraded (rounded geometry + PBR). */
+// --------------------------------------------------------- shape-spec DSL
+// immersiveSubjects.js P() parts carry an optional shape spec at tuple
+// index 6 ({ k, r, h, t, pts, rot, pos, size, c, op, met, rgh, cc, sheen },
+// or { shapes: [...] } for compound parts). Consumed here so catalog
+// subjects render the authored primitives instead of placeholder boxes.
+
+function shapeMaterial(baseColor, spec) {
+  const color = spec.c || baseColor
+  const transparent = spec.op !== undefined && spec.op < 1
+  const opts = {
+    color,
+    metalness: spec.met ?? 0.2,
+    roughness: spec.rgh ?? 0.45,
+    transparent,
+    opacity: transparent ? spec.op : 1,
+    depthWrite: !transparent,
+  }
+  if (spec.cc !== undefined || spec.sheen !== undefined) {
+    const m = new THREE.MeshPhysicalMaterial(opts)
+    if (spec.cc !== undefined) {
+      m.clearcoat = spec.cc
+      m.clearcoatRoughness = 0.25
+    }
+    if (spec.sheen !== undefined) {
+      m.sheen = spec.sheen
+      m.sheenRoughness = 0.5
+      m.sheenColor = new THREE.Color(color)
+    }
+    return m
+  }
+  return new THREE.MeshStandardMaterial(opts)
+}
+
+/** Geometry for one shape spec. Tube points are authored in subject space
+ * (same coordinates as part positions) and are rebased to part-local. */
+function shapeGeometry(spec, size, position) {
+  switch (spec.k) {
+    case 'cyl': {
+      const r = spec.r ?? Math.max(size[0], size[2]) * 0.5
+      return new THREE.CylinderGeometry(spec.rt ?? r, spec.rb ?? r, spec.h ?? size[1], 20)
+    }
+    case 'cone':
+      return new THREE.ConeGeometry(spec.r ?? size[0] * 0.5, spec.h ?? size[1], 18)
+    case 'sph':
+      return new THREE.SphereGeometry(spec.r ?? Math.max(...size) * 0.5, 18, 12)
+    case 'cap':
+      return new THREE.CapsuleGeometry(spec.r ?? size[0] * 0.5, spec.h ?? size[1], 3, 12)
+    case 'tor':
+      return new THREE.TorusGeometry(spec.r ?? Math.max(size[0], size[1]) * 0.5, spec.t ?? 0.02, 10, 28)
+    case 'tube': {
+      const pts = spec.pts.map((p) => new THREE.Vector3(p[0] - position[0], p[1] - position[1], p[2] - position[2]))
+      const curve = new THREE.CatmullRomCurve3(pts)
+      return new THREE.TubeGeometry(curve, Math.max(16, Math.min(64, pts.length * 8)), spec.r ?? 0.02, 8, false)
+    }
+    case 'box':
+    default: {
+      const s = spec.size || size
+      const radius = Math.max(0.001, Math.min(0.06, Math.min(...s) * 0.24))
+      return new RoundedBoxGeometry(s[0], s[1], s[2], 3, radius)
+    }
+  }
+}
+
+function buildShape(spec, size, position, baseColor) {
+  const mesh = new THREE.Mesh(shapeGeometry(spec, size, position), shapeMaterial(baseColor, spec))
+  if (spec.pos) mesh.position.set(...spec.pos)
+  if (spec.rot) mesh.rotation.set(...spec.rot)
+  return mesh
+}
+
+/** Generic fallback: the catalog, rendered at studio quality - authored
+ * shape specs become real primitives (PBR, clearcoat/sheen, opacity),
+ * compound parts group several primitives under one selectable name, and
+ * plain tuple parts keep the rounded-box treatment. */
 export function buildCatalogSubject(scene, subject) {
   const parts = []
   Object.entries(subject.parts).forEach(([systemId, list]) => {
     const system = subject.systems.find((s) => s.id === systemId) || { color: '#8fb8d8' }
     list.forEach((part) => {
-      const [name, position, size, description, source] = part
-      const mesh = new THREE.Mesh(
-        new RoundedBoxGeometry(size[0], size[1], size[2], 3, Math.min(0.06, Math.min(...size) * 0.24)),
-        std(system.color, 0.25, 0.45)
-      )
-      mesh.position.set(...position)
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      mesh.userData = { name, description, source: source || null, systemId, basePosition: new THREE.Vector3(...position) }
-      parts.push(mesh)
+      const [name, position, size, description, source, , shape] = part
+      let obj
+      if (shape && Array.isArray(shape.shapes) && shape.shapes.length) {
+        const group = new THREE.Group()
+        shape.shapes.forEach((s) => group.add(buildShape(s, size, position, system.color)))
+        obj = group
+      } else if (shape && shape.k) {
+        obj = buildShape(shape, size, position, system.color)
+      } else {
+        obj = new THREE.Mesh(
+          new RoundedBoxGeometry(size[0], size[1], size[2], 3, Math.max(0.001, Math.min(0.06, Math.min(...size) * 0.24))),
+          std(system.color, 0.25, 0.45)
+        )
+      }
+      obj.position.set(...position)
+      obj.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true
+          o.receiveShadow = true
+        }
+      })
+      obj.userData = { name, description, source: source || null, systemId, basePosition: new THREE.Vector3(...position) }
+      parts.push(obj)
     })
   })
   return { parts, systems: subject.systems.map((s) => s.id) }
@@ -548,12 +638,18 @@ export class SubjectViewer {
     this.host = host
     this.opts = opts
     this.subjectId = subjectId
-    this.state = { activeSystem: subject.systems[0]?.id, explode: 0, isolated: false, selectedName: null, labels: true, autoRotate: false }
+    this.state = { activeSystem: subject.systems[0]?.id, explode: 0, isolated: false, selectedName: null, labels: true, autoRotate: false, inspectorOpen: false }
     this.amount = 0
     this.disposed = false
     this.lastState = null
     this.partLabels = []
     this.labelThrottle = 0
+    this.layoutKey = ''
+    this.packingWidth = 1
+    this.packingHeight = 1
+    this.lastIsolate = ''
+    this.centers = []
+    this.offsets = []
 
     const isEarth = subjectId === 'earth'
     try {
@@ -578,6 +674,7 @@ export class SubjectViewer {
 
     const build = BUILDERS[subjectId]
     this.model = build ? build(this.studio.scene) : buildCatalogSubject(this.studio.scene, subject)
+    this.scenery = this.model.scenery || []
 
     // Group parts by system for solo/ghost visibility.
     this.groups = {}
@@ -593,6 +690,51 @@ export class SubjectViewer {
     })
     this.systemColors = {}
     subject.systems.forEach((s) => { this.systemColors[s.id] = s.color })
+
+    // Camera home + per-part metrics. The atlas fit()/fan constants come
+    // from scene.tsx (human-scale); subjects scale them to their own bounds
+    // and anchor the inventory grid on the assembled model's center.
+    const { camera, controls } = this.studio
+    this.restTargetY = controls.target.y
+    this.restMinDistance = controls.minDistance
+    this.normalDirection = camera.position.clone().sub(controls.target).normalize()
+    this.normalDistance = camera.position.distanceTo(controls.target)
+    const union = new THREE.Box3()
+    this.model.parts.forEach((p) => {
+      const b = new THREE.Box3().setFromObject(p)
+      union.union(b)
+      this.centers.push(b.getCenter(new THREE.Vector3()))
+      this.offsets.push(b.getCenter(new THREE.Vector3()))
+      const size = b.getSize(new THREE.Vector3())
+      p.userData.packWidth = Math.max(0.05, size.x) + 0.04
+      p.userData.packHeight = Math.max(0.05, size.y) + 0.04
+    })
+    const modelSize = union.getSize(new THREE.Vector3())
+    this.centerY = (union.min.y + union.max.y) / 2
+    this.fanScale = Math.max(1, Math.max(modelSize.x, modelSize.y, modelSize.z) / 1.8)
+
+    // Piece markers at high explode (round dots, from the atlas/vehicle).
+    const markerPositions = new Float32Array(this.model.parts.length * 3).fill(10000)
+    this.markerGeometry = new THREE.BufferGeometry()
+    this.markerGeometry.setAttribute('position', new THREE.BufferAttribute(markerPositions, 3))
+    this.markerMaterial = new THREE.PointsMaterial({ color: 0xf6bc99, size: 4, sizeAttenuation: false, depthWrite: false, depthTest: false, transparent: true, opacity: 0.75 })
+    this.markerMaterial.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <clipping_planes_fragment>',
+        '#include <clipping_planes_fragment>\nif (distance(gl_PointCoord, vec2(0.5)) > 0.5) discard;'
+      )
+    }
+    this.markers = new THREE.Points(this.markerGeometry, this.markerMaterial)
+    this.markers.frustumCulled = false
+    this.markers.renderOrder = 10
+    this.markers.visible = false
+    this.studio.scene.add(this.markers)
+
+    this.hover = document.createElement('div')
+    this.hover.className = 'atlas-hover'
+    this.hover.setAttribute('role', 'tooltip')
+    this.hover.hidden = true
+    host.appendChild(this.hover)
 
     // Numbered labels for the active system's parts.
     this._buildLabels()
@@ -621,27 +763,53 @@ export class SubjectViewer {
     const pointer = new THREE.Vector2()
     const tap = new PointerTap()
     const el = renderer.domElement
-    const down = (e) => tap.down(e.pointerId, e.clientX, e.clientY, e.pointerType === 'touch' ? 10 : 5)
-    const move = (e) => tap.move(e.pointerId, e.clientX, e.clientY)
-    const cancel = (e) => tap.cancel(e.pointerId)
-    const up = (e) => {
-      if (!tap.up(e.pointerId, e.clientX, e.clientY)) return
-      const r = el.getBoundingClientRect()
-      pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
-      raycaster.setFromCamera(pointer, camera)
-      const candidates = Object.values(this.groups)
+    let lastHover = 0
+    const pickables = () =>
+      Object.values(this.groups)
         .filter((g) => g.visible)
         .flatMap((g) => g.children)
         .filter((p) => p.visible)
-      const hits = raycaster.intersectObjects(candidates, true)
+    const pickPart = (e) => {
+      const r = el.getBoundingClientRect()
+      pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1)
+      raycaster.setFromCamera(pointer, camera)
+      const hits = raycaster.intersectObjects(pickables(), true)
       for (const hit of hits) {
         let o = hit.object
         while (o && !o.userData?.name) o = o.parent
-        if (o && o.userData?.name) {
-          this.opts.onSelect && this.opts.onSelect(o.userData.systemId, o.userData)
-          return
-        }
+        if (o && o.userData?.name) return o
       }
+      return null
+    }
+    const down = (e) => {
+      this.hover.hidden = true
+      tap.down(e.pointerId, e.clientX, e.clientY, e.pointerType === 'touch' ? 10 : 5)
+    }
+    const move = (e) => {
+      tap.move(e.pointerId, e.clientX, e.clientY)
+      if (e.buttons || e.pointerType === 'touch') {
+        this.hover.hidden = true
+        return
+      }
+      const now = performance.now()
+      if (now - lastHover < 40) return
+      lastHover = now
+      const x = e.clientX - el.getBoundingClientRect().left
+      const y = e.clientY - el.getBoundingClientRect().top
+      const part = pickPart(e)
+      this.hover.hidden = !part
+      el.style.cursor = part ? 'pointer' : ''
+      if (part) {
+        this.hover.textContent = part.userData.name
+        this.hover.style.left = `${Math.max(8, Math.min(x + 14, this.host.clientWidth - 260))}px`
+        this.hover.style.top = `${Math.max(8, Math.min(y + 18, this.host.clientHeight - 55))}px`
+      }
+    }
+    const cancel = (e) => tap.cancel(e.pointerId)
+    const up = (e) => {
+      if (!tap.up(e.pointerId, e.clientX, e.clientY)) return
+      const part = pickPart(e)
+      if (part) this.opts.onSelect && this.opts.onSelect(part.userData.systemId, part.userData)
     }
     el.addEventListener('pointerdown', down)
     el.addEventListener('pointermove', move)
@@ -694,6 +862,35 @@ export class SubjectViewer {
     })
   }
 
+  /** Isolate framing regions - port of the atlas/scene.tsx region block.
+   * The tool reserves its overlayed header/dock and detail sheet; KEV's
+   * inspector sits in a sibling column, so the free region is the host. */
+  _isolateRegions() {
+    const w = this.host.clientWidth
+    const h = this.host.clientHeight
+    return { left: 20, right: w - 20, top: 20, bottom: h - 20, w, h }
+  }
+
+  /**
+   * Camera fit - the atlas fit() structure (tools/human-atlas/app/scene.tsx)
+   * scaled to this subject: normalDistance is the assembled home distance,
+   * the pack distance frames the inventory grid, extent 0..1 maps
+   * assembled..fully packed, and the view swings to front at the end.
+   */
+  _fit(extent = 0, front = false) {
+    const { camera, controls } = this.studio
+    const fovFactor = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+    const height = Math.max(160, this.host.clientHeight)
+    const availableAspect = Math.max(0.35, this.host.clientWidth / height)
+    const packDistance = (((Math.max(this.packingHeight, this.packingWidth / availableAspect) / fovFactor) * this.host.clientHeight) / height) * 1.08
+    const distance = THREE.MathUtils.lerp(this.normalDistance, Math.max(0.2, packDistance), extent)
+    const direction = front || extent > 0.8 ? new THREE.Vector3(0, 0.02, 1) : this.normalDirection
+    controls.target.set(0, extent > 0.1 ? this.centerY : this.restTargetY, 0)
+    camera.position.copy(controls.target).addScaledVector(direction, distance)
+    controls.update()
+    this.studio.invalidate()
+  }
+
   _frame(dt) {
     if (this.disposed || this.failed) return false
     const s = this.state
@@ -709,58 +906,143 @@ export class SubjectViewer {
       this.lastState.selectedName !== s.selectedName ||
       this.lastState.labels !== s.labels
 
-    if (moving || stateChanged) {
-      if (stateChanged && (!this.lastState || this.lastState.selectedName !== s.selectedName)) this._applySelectionGlow()
+    if (moving || stateChanged || !this.lastState) {
       const systemIds = this.model.systems
-      systemIds.forEach((sysId, sysIndex) => {
-        const g = this.groups[sysId]
-        const isActive = sysId === s.activeSystem
-        g.visible = true
+
+      // Two-phase explode (scene.tsx): systems fan out radially, then every
+      // part packs into the aspect-aware inventory grid (packCells).
+      const nextLayoutKey = camera.aspect.toFixed(3)
+      if (nextLayoutKey !== this.layoutKey) {
+        const cards = this.model.parts.map((p, i) => ({ id: String(i), width: p.userData.packWidth, height: p.userData.packHeight }))
+        const layout = packCells(cards, camera.aspect)
+        this.packingWidth = layout.width
+        this.packingHeight = layout.height
+        this.model.parts.forEach((p, i) => {
+          const cell = layout.cells.get(String(i))
+          this.offsets[i] = cell ? new THREE.Vector3(cell.x, cell.y + this.centerY, 0) : this.centers[i].clone()
+        })
+        this.layoutKey = nextLayoutKey
+        if (this.amount > 0.05 && !s.isolated) this._fit(Math.max(0, (this.amount - 0.3) / 0.7))
+      }
+
+      const fan = 0.48 * this.fanScale
+      const lift = 0.28 * this.fanScale
+      const markerPos = this.markerGeometry.getAttribute('position')
+      this.model.parts.forEach((p, i) => {
+        const c = this.centers[i]
+        const dest = this.offsets[i]
+        const group = Math.max(0, systemIds.indexOf(p.userData.systemId))
+        const angle = (group / Math.max(1, systemIds.length)) * Math.PI * 2
+        let dx
+        let dy
+        let dz
+        if (this.amount <= 0.45) {
+          const t = this.amount / 0.45
+          dx = Math.sin(angle) * t * fan
+          dy = (c.y - this.centerY) * t * lift
+          dz = Math.cos(angle) * t * fan
+        } else {
+          const t = (this.amount - 0.45) / 0.55
+          dx = THREE.MathUtils.lerp(Math.sin(angle) * fan, dest.x - c.x, t)
+          dy = THREE.MathUtils.lerp((c.y - this.centerY) * lift, dest.y - c.y, t)
+          dz = THREE.MathUtils.lerp(Math.cos(angle) * fan, -c.z, t)
+        }
+        const base = p.userData.basePosition
+        p.position.set(base.x + dx, base.y + dy, base.z + dz)
+        p.visible = !s.isolated || p.userData.name === s.selectedName
+        if (p.visible) markerPos.setXYZ(i, c.x + dx, c.y + dy, c.z + dz)
+        else markerPos.setXYZ(i, 10000, 10000, 10000)
+      })
+      this.markerGeometry.attributes.position.needsUpdate = true
+
+      if (stateChanged && (!this.lastState || this.lastState.selectedName !== s.selectedName)) this._applySelectionGlow()
+      if (stateChanged) {
         // Ghost inactive systems instead of hiding them: context is kept,
         // the active system stays the hero.
-        g.traverse((o) => {
-          if (!o.isMesh) return
-          const mats = Array.isArray(o.material) ? o.material : [o.material]
-          mats.forEach((m) => {
-            if (m.userData.baseOpacity === undefined) {
-              m.userData.baseOpacity = m.opacity
-              m.userData.baseTransparent = m.transparent
-              m.userData.baseDepthWrite = m.depthWrite
-            }
-            const ghost = !isActive && !s.isolated
-            m.transparent = ghost ? true : m.userData.baseTransparent
-            m.opacity = ghost ? 0.07 : m.userData.baseOpacity
-            m.depthWrite = ghost ? false : m.userData.baseDepthWrite
+        systemIds.forEach((sysId) => {
+          const g = this.groups[sysId]
+          g.visible = true
+          const isActive = sysId === s.activeSystem
+          g.traverse((o) => {
+            if (!o.isMesh) return
+            const mats = Array.isArray(o.material) ? o.material : [o.material]
+            mats.forEach((m) => {
+              if (m.userData.baseOpacity === undefined) {
+                m.userData.baseOpacity = m.opacity
+                m.userData.baseTransparent = m.transparent
+                m.userData.baseDepthWrite = m.depthWrite
+              }
+              const ghost = !isActive && !s.isolated
+              m.transparent = ghost ? true : m.userData.baseTransparent
+              m.opacity = ghost ? 0.07 : m.userData.baseOpacity
+              m.depthWrite = ghost ? false : m.userData.baseDepthWrite
+            })
           })
         })
-        // Explode: systems separate vertically, parts fan out within.
-        g.position.y = (sysIndex - (systemIds.length - 1) / 2) * this.amount * 0.9
-        g.children.forEach((p, i) => {
-          const base = p.userData.basePosition
-          const dir = new THREE.Vector3(
-            Math.cos((i / Math.max(1, g.children.length)) * Math.PI * 2 + sysIndex),
-            (i % 2 === 0 ? 0.35 : -0.2) + (base.y > 0 ? 0.25 : -0.15),
-            Math.sin((i / Math.max(1, g.children.length)) * Math.PI * 2 + sysIndex)
-          ).normalize()
-          p.position.copy(base).addScaledVector(dir, this.amount * 0.85)
-          const isolatedHide = s.isolated && p.userData.name !== s.selectedName
-          const inactiveHide = s.isolated && p.userData.systemId !== s.activeSystem && p.userData.name !== s.selectedName
-          p.visible = !isolatedHide && !inactiveHide
-        })
-      })
+      }
+
       this.lastState = { activeSystem: s.activeSystem, isolated: s.isolated, selectedName: s.selectedName, labels: s.labels }
       this.studio.refreshShadows()
       this.studio.invalidate()
     }
+
+    // The camera follows the pack while the explode animates (scene.tsx).
+    if (moving && !s.isolated) this._fit(Math.max(0, (this.amount - 0.3) / 0.7), this.amount > 0.5)
+
+    // Isolate framing - the tool's setViewOffset region block.
+    const isolateKey =
+      s.isolated && s.selectedName
+        ? s.selectedName + ':' + (s.inspectorOpen ? 1 : 0) + ':' + camera.aspect.toFixed(3)
+        : ''
+    if (isolateKey !== this.lastIsolate || (s.isolated && moving)) {
+      if (isolateKey) {
+        const box = new THREE.Box3()
+        this.model.parts.forEach((p) => {
+          if (p.userData.name === s.selectedName) box.expandByObject(p)
+        })
+        if (!box.isEmpty()) {
+          const center = box.getCenter(new THREE.Vector3())
+          const size = box.getSize(new THREE.Vector3())
+          const { left, right, top, bottom, w, h } = this._isolateRegions()
+          const availableWidth = Math.max(150, right - left)
+          const availableHeight = Math.max(40, bottom - top)
+          camera.setViewOffset(w, h, w / 2 - (left + right) / 2, h / 2 - (top + bottom) / 2, w, h)
+          const fovFactor = 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+          const distance = Math.max(
+            0.07,
+            (Math.max((size.y * h) / availableHeight, (size.x * w) / availableWidth / camera.aspect, size.z) / fovFactor) * 1.35
+          )
+          controls.maxDistance = Math.max(40, distance * 2)
+          // Small structures need to be approachable while isolating.
+          controls.minDistance = Math.min(this.restMinDistance, distance)
+          controls.target.copy(center)
+          camera.position.copy(center).add(new THREE.Vector3(0.2, 0.1, 1).normalize().multiplyScalar(distance))
+          controls.update()
+          this.studio.invalidate()
+        }
+      } else if (this.lastIsolate) {
+        camera.clearViewOffset()
+        controls.minDistance = this.restMinDistance
+        this._fit(this.amount)
+      }
+      this.lastIsolate = isolateKey
+    }
+
+    controls.enableRotate = this.amount < 0.8
+    controls.mouseButtons.LEFT = this.amount < 0.8 ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN
+    controls.touches.ONE = this.amount < 0.8 ? THREE.TOUCH.ROTATE : THREE.TOUCH.PAN
+    const showStage = this.amount < 0.5 && !s.isolated
+    this.studio.stageGroup.visible = showStage
+    this.scenery.forEach((o) => { o.visible = showStage })
+    this.markers.visible = this.amount > 0.75
+    controls.autoRotate = s.autoRotate && !s.isolated && this.amount < 0.4 && !reducedMotion
+    if (controls.autoRotate) this.studio.invalidate()
 
     // Earth clouds drift continuously (gentle, reduced-motion aware).
     if (this.model.animated && !reducedMotion) {
       this.model.animated.rotation.y += dt * 0.08
       this.studio.invalidate()
     }
-
-    controls.autoRotate = s.autoRotate && !reducedMotion
-    if (controls.autoRotate) this.studio.invalidate()
 
     // Labels for the active system (throttled transform-only updates).
     const now = performance.now()
@@ -773,7 +1055,7 @@ export class SubjectViewer {
         const show =
           s.labels &&
           part.visible &&
-          part.userData.systemId === s.activeSystem &&
+          (part.userData.systemId === s.activeSystem || part.userData.name === s.selectedName) &&
           this.groups[part.userData.systemId] !== undefined
         if (b.hidden === show) b.hidden = !show
         if (!show) return
@@ -792,6 +1074,7 @@ export class SubjectViewer {
     if (this.failed) return
     this._pointerCleanup && this._pointerCleanup()
     this.partLabels.forEach((x) => x.b.remove())
+    this.hover && this.hover.remove()
     this.studio.dispose()
   }
 }
