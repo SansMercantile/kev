@@ -192,7 +192,7 @@ export class VehicleViewer {
   _loadModel() {
     const { scene } = this.studio
     new GLTFLoader().load(
-      '/models/model-x.glb?v=334',
+      '/models/model-x.glb',
       (gltf) => {
         if (this.disposed) {
           this._disposeObject(gltf.scene)

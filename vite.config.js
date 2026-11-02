@@ -29,12 +29,25 @@ export default defineConfig({
       workbox: {
         // SPA shell: stale app still boots with zero network.
         navigateFallback: 'index.html',
+        // Precache the 3D models so the immersive classroom works fully
+        // offline on first visit, not only after an online load: the Human
+        // Atlas (gzip geometry chunks + catalog) and the Model X GLB are core
+        // to the lessons and are version-pinned (?v=…) in the source, so a new
+        // build re-fetches them. Matched here by URL prefix.
+        additionalManifestEntries: [
+          { url: '/models/atlas.json', revision: 'atlas-1' },
+          ...Array.from({ length: 15 }, (_, i) => ({ url: `/models/body-${i}.bin.gz`, revision: 'atlas-1' })),
+          { url: '/models/model-x.glb', revision: 'modelx-334' },
+          { url: '/models/model-x-manifest.json', revision: 'modelx-334' },
+        ],
         // 3D catalogs + fonts: cache-first, they rarely change.
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/models/'),
             handler: 'CacheFirst',
-            options: { cacheName: 'kev-models', expiration: { maxEntries: 10, maxAgeSeconds: 30 * 24 * 3600 } },
+            // The full atlas (15 chunks + catalog) + Model X GLB + manifest
+            // exceed the old 10-entry cap, which evicted chunks mid-stream.
+            options: { cacheName: 'kev-models', expiration: { maxEntries: 40, maxAgeSeconds: 30 * 24 * 3600 } },
           },
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',

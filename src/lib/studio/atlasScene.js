@@ -181,13 +181,22 @@ export class AtlasViewer {
   async load() {
     const { onError, onProgress, onAtlas } = this.opts
     try {
-      // Version-pinned catalogue: the service worker caches /models/* for
-      // 30 days, so the catalogue generation travels in the URL. A stale
-      // cached catalogue mixed with newer code (or vice versa) previously
-      // crashed the frame loop with an out-of-bounds typed-array write.
-      const res = await fetch(`/models/atlas.json?v=${ATLAS_CATALOG_VERSION}`, { signal: this.abort.signal })
+      // Stable URL (no query): the service worker precaches /models/*, so a
+      // version query would miss the precache and force a network fetch. The
+      // catalogue generation travels in ATLAS_CATALOG_VERSION, which is
+      // validated against the payload below; a stale cache that mismatches
+      // triggers the self-heal in _frame rather than a crash loop.
+      const res = await fetch('/models/atlas.json', { signal: this.abort.signal })
       if (!res.ok) throw new Error('The anatomy catalogue could not be loaded.')
       const atlas = await res.json()
+      // Guard against a stale precache: a catalogue from a different BodyParts3D
+      // generation than the code expects would mis-size the typed-array state.
+      // Surface it as a normal load error so the host swaps in the box fallback.
+      const expectsV4 = ATLAS_CATALOG_VERSION.includes('bodyparts3d-4.0')
+      const servesV4 = typeof atlas.version === 'string' && atlas.version.includes('4.0')
+      if (expectsV4 !== servesV4) {
+        throw new Error('The cached anatomy catalogue is out of date. Reload to refresh it.')
+      }
       if (this.disposed) return
       this.atlas = atlas
       onAtlas && onAtlas(atlas)
@@ -284,7 +293,8 @@ export class AtlasViewer {
     const atlas = this.atlas
     const chunk = atlas.chunks[ci]
     const compressed = Boolean(chunk.gzip)
-    const chunkUrl = `${compressed ? chunk.gzip : chunk.url}?v=${ATLAS_CATALOG_VERSION}`
+    // Stable chunk URL (see load()) so the service-worker precache matches.
+    const chunkUrl = compressed ? chunk.gzip : chunk.url
     const response = await fetch(chunkUrl, { signal: this.abort.signal })
     const buffer = await decodeModelResponse(response, chunk.bytes, compressed)
     if (this.disposed) return
