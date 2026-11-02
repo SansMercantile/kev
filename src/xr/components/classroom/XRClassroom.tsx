@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { Sparkles, Hand, Volume2, VolumeX, Users, Monitor, Maximize2, MessageSquare, Send } from 'lucide-react';
+import { Sparkles, Hand, Volume2, VolumeX, Users, Monitor, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { createStudio, StudioHandle } from '../../../lib/studio/studioRenderer';
 import { xrApi, xrAuthHeaders } from '../../lib/xrApi';
 import { getStudyLevelId } from '../../lib/studyLevel';
 import { getTierId } from '../../lib/studyTier';
@@ -64,299 +65,209 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
   ]);
   const [chatInput, setChatInput] = useState<string>('');
 
+  // Studio-grade renderer: PMREM/IBL + ACES + three-point lighting + PCF soft
+  // shadows + a dirty-flag loop — the same baseline the atlas, vehicle and
+  // subject viewers use, so the auditorium matches the rest of the school.
+  // Hologram spin, teacher breathing and OrbitControls damping mark the loop
+  // as animating; idle frames render nothing.
   const threeRef = useRef<{
-    renderer: THREE.WebGLRenderer;
+    studio: StudioHandle;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
     hologramGroup: THREE.Group;
     floatingReactions: THREE.Group;
     teacherMesh: THREE.Group;
-    isDragging: boolean;
-    prevMousePos: { x: number; y: number };
-    animId: number;
   } | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const host = containerRef.current;
+    if (!host) return undefined;
 
-    const width = containerRef.current.clientWidth || 800;
-    const height = containerRef.current.clientHeight || 500;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060914);
-
-    const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
-    // Default Front Desk Seat Position
-    camera.position.set(0, 2.2, 5.5);
-    camera.lookAt(0, 1.8, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    containerRef.current.replaceChildren(renderer.domElement);
+    let studio: StudioHandle;
+    try {
+      studio = createStudio(host, {
+        theme: 'dark',
+        stage: null, // the classroom builds its own stage + floor
+        grid: false,
+        fov: 50,
+        cameraPosition: [0, 2.2, 4.5],
+        target: [0, 2.0, -2.5],
+        minDistance: 1.2,
+        maxDistance: 22,
+        shadows: true,
+      });
+    } catch {
+      return undefined; // host reports WebGL-unavailable via the studio; nothing to clean up
+    }
+    const { scene, camera, controls } = studio;
+    controls.enablePan = false;
+    // Seat views are driven by state (see the seatView effect); keep the
+    // studio's damping for smooth orbiting between them.
+    controls.target.set(0, 2.0, -2.5);
 
     // --- CLASSROOM ARCHITECTURE BUILD ---
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(24, 24);
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x0f172a,
-      roughness: 0.8,
-      metalness: 0.2,
-    });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
+    const applyShadow = (o: THREE.Object3D) => {
+      o.traverse((c) => {
+        if ((c as THREE.Mesh).isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+        }
+      });
+    };
+
+    // Floor (receives the key-light shadow)
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(24, 24),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.2 })
+    );
     floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
     scene.add(floor);
 
-    // Grid accent lines
     const grid = new THREE.GridHelper(24, 24, 0x38bdf8, 0x1e293b);
     grid.position.y = 0.01;
     scene.add(grid);
 
-    // Stage Platform
-    const stageGeo = new THREE.CylinderGeometry(5.0, 5.2, 0.4, 32);
-    const stageMat = new THREE.MeshStandardMaterial({
-      color: 0x1e293b,
-      roughness: 0.4,
-      metalness: 0.3,
-    });
-    const stage = new THREE.Mesh(stageGeo, stageMat);
+    // Stage platform + glowing rim
+    const stage = new THREE.Mesh(
+      new THREE.CylinderGeometry(5.0, 5.2, 0.4, 48),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.45, metalness: 0.35 })
+    );
     stage.position.set(0, 0.2, -2.5);
+    applyShadow(stage);
     scene.add(stage);
 
-    // Glowing stage rim ring
-    const ringGeo = new THREE.RingGeometry(4.8, 5.0, 32);
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(4.8, 5.0, 48),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide })
+    );
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(0, 0.41, -2.5);
     scene.add(ring);
 
-    // Holographic Center Projector Base
-    const holoBaseGeo = new THREE.CylinderGeometry(1.2, 1.4, 0.3, 24);
-    const holoBaseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.2 });
-    const holoBase = new THREE.Mesh(holoBaseGeo, holoBaseMat);
+    // Holographic projector base + beam cone
+    const holoBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(1.2, 1.4, 0.3, 32),
+      new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85, roughness: 0.2 })
+    );
     holoBase.position.set(0, 0.55, -2.5);
+    applyShadow(holoBase);
     scene.add(holoBase);
 
-    // Holographic Beam Cone
-    const coneGeo = new THREE.ConeGeometry(2.2, 3.5, 32, 1, true);
-    const coneMat = new THREE.MeshBasicMaterial({
-      color: 0x38bdf8,
-      transparent: true,
-      opacity: 0.1,
-      side: THREE.DoubleSide,
-    });
-    const holoCone = new THREE.Mesh(coneGeo, coneMat);
+    const holoCone = new THREE.Mesh(
+      new THREE.ConeGeometry(2.2, 3.5, 48, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.1, side: THREE.DoubleSide })
+    );
     holoCone.position.set(0, 2.3, -2.5);
     holoCone.rotation.x = Math.PI;
     scene.add(holoCone);
 
-    // Presentation Screen on Back Wall
-    const screenGeo = new THREE.PlaneGeometry(8, 4.5);
-    const screenMat = new THREE.MeshStandardMaterial({
-      color: 0x0284c7,
-      emissive: 0x0369a1,
-      emissiveIntensity: 0.3,
-      roughness: 0.2,
-    });
-    const screen = new THREE.Mesh(screenGeo, screenMat);
+    // Presentation screen + frame
+    const screen = new THREE.Mesh(
+      new THREE.PlaneGeometry(8, 4.5),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0369a1, emissiveIntensity: 0.4, roughness: 0.2 })
+    );
     screen.position.set(0, 4.2, -7.0);
     scene.add(screen);
-
-    // Screen frame
-    const frameGeo = new THREE.BoxGeometry(8.4, 4.9, 0.2);
-    const frameMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 });
-    const frame = new THREE.Mesh(frameGeo, frameMat);
+    const frame = new THREE.Mesh(
+      new THREE.BoxGeometry(8.4, 4.9, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.75, roughness: 0.4 })
+    );
     frame.position.set(0, 4.2, -7.1);
+    applyShadow(frame);
     scene.add(frame);
 
-    // Tiered Student Desks
-    const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
-    const seatMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.3 });
-
-    // Row 1 Desks
+    // Tiered student desks + holographic terminals + classmates
+    const deskMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5, metalness: 0.3 });
+    const seatMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.35, metalness: 0.2 });
     [-3, -1, 1, 3].forEach((xPos, idx) => {
-      const deskGeo = new THREE.BoxGeometry(1.4, 0.9, 0.6);
-      const desk = new THREE.Mesh(deskGeo, deskMat);
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.6), deskMat);
       desk.position.set(xPos, 0.45, 3.0);
+      applyShadow(desk);
       scene.add(desk);
-
-      // Student tablet / holographic terminal on desk
-      const tabletGeo = new THREE.BoxGeometry(0.5, 0.04, 0.35);
-      const tabletMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
-      const tablet = new THREE.Mesh(tabletGeo, tabletMat);
+      const tablet = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.04, 0.35),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+      );
       tablet.position.set(xPos, 0.92, 3.0);
       scene.add(tablet);
-
-      // Student avatar sphere (classmates)
       if (idx !== 1) {
-        // Leave seat 1 for user!
-        const avatarGeo = new THREE.SphereGeometry(0.3, 16, 16);
-        const avatar = new THREE.Mesh(avatarGeo, seatMat);
+        const avatar = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 20), seatMat);
         avatar.position.set(xPos, 1.4, 3.7);
+        applyShadow(avatar);
         scene.add(avatar);
       }
     });
-
-    // Row 2 Raised Tier Desks
     [-3.2, -1.1, 1.1, 3.2].forEach((xPos) => {
-      const deskGeo = new THREE.BoxGeometry(1.4, 1.4, 0.6);
-      const desk = new THREE.Mesh(deskGeo, deskMat);
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.4, 0.6), deskMat);
       desk.position.set(xPos, 0.7, 6.0);
+      applyShadow(desk);
       scene.add(desk);
-
-      const avatarGeo = new THREE.SphereGeometry(0.3, 16, 16);
-      const avatar = new THREE.Mesh(avatarGeo, seatMat);
+      const avatar = new THREE.Mesh(new THREE.SphereGeometry(0.3, 20, 20), seatMat);
       avatar.position.set(xPos, 1.8, 6.7);
+      applyShadow(avatar);
       scene.add(avatar);
     });
 
-    // Teacher Avatar at Stage Podium
+    // Teacher avatar at the podium
     const teacherGroup = new THREE.Group();
-    const tHeadGeo = new THREE.SphereGeometry(0.35, 20, 20);
-    const tHeadMat = new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.2 });
-    const tHead = new THREE.Mesh(tHeadGeo, tHeadMat);
+    const tHead = new THREE.Mesh(
+      new THREE.SphereGeometry(0.35, 24, 24),
+      new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.25, metalness: 0.2 })
+    );
     tHead.position.set(0, 1.9, 0);
     teacherGroup.add(tHead);
-
-    const tBodyGeo = new THREE.ConeGeometry(0.45, 1.2, 16);
-    const tBodyMat = new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.4 });
-    const tBody = new THREE.Mesh(tBodyGeo, tBodyMat);
+    const tBody = new THREE.Mesh(
+      new THREE.ConeGeometry(0.45, 1.2, 24),
+      new THREE.MeshStandardMaterial({ color: 0x6366f1, roughness: 0.4, metalness: 0.2 })
+    );
     tBody.position.set(0, 1.0, 0);
     teacherGroup.add(tBody);
-
     teacherGroup.position.set(-2.8, 0.4, -2.5);
+    applyShadow(teacherGroup);
     scene.add(teacherGroup);
 
-    // Floating Hologram Group in Center of Stage
+    // Floating hologram + reactions
     const hologramGroup = new THREE.Group();
     hologramGroup.position.set(0, 2.4, -2.5);
     scene.add(hologramGroup);
-
-    // Floating Reactions Group
     const floatingReactions = new THREE.Group();
     scene.add(floatingReactions);
 
-    // Stage Lighting
+    // Stage spot (adds to the studio's three-point set)
     const stageLight = new THREE.SpotLight(0x38bdf8, 3.0, 20, Math.PI / 4, 0.3);
     stageLight.position.set(0, 8, -1);
     stageLight.target = stage;
     scene.add(stageLight);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    scene.add(ambientLight);
+    studio.refreshShadows();
+    studio.invalidate();
 
-    // Mouse / drag controls
-    let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevMousePos.x;
-      const dy = e.clientY - prevMousePos.y;
-
-      camera.rotation.y -= dx * 0.003;
-      camera.rotation.x -= dy * 0.002;
-
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
-    const dom = renderer.domElement;
-    dom.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-
-    // Touch support
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    // Per-frame hook: spin the hologram, breathe the teacher. Returning true
+    // keeps the loop rendering (damping + animation); reduced-motion keeps
+    // damping but drops the continuous spin/bob.
+    studio.onFrame((dt: number) => {
+      if (!studio.reducedMotion) {
+        hologramGroup.rotation.y += dt * 0.9;
+        hologramGroup.position.y = 2.4 + Math.sin(performance.now() / 500) * 0.08;
+        teacherGroup.position.y = 0.4 + Math.sin(performance.now() / 667) * 0.03;
       }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - prevMousePos.x;
-      const dy = e.touches[0].clientY - prevMousePos.y;
-      camera.rotation.y -= dx * 0.005;
-      camera.rotation.x -= dy * 0.003;
-      prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-    const onTouchEnd = () => {
-      isDragging = false;
-    };
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-    dom.addEventListener('touchend', onTouchEnd);
+      return true; // OrbitControls damping needs continuous frames
+    });
 
-    // Animation Loop
-    let clock = new THREE.Clock();
-    let animId = 0;
-
-    const animate = () => {
-      animId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
-
-      // Rotate central hologram
-      hologramGroup.rotation.y += 0.015;
-      hologramGroup.position.y = 2.4 + Math.sin(elapsed * 2) * 0.08;
-
-      // Subtle breathing motion on teacher avatar
-      teacherGroup.position.y = 0.4 + Math.sin(elapsed * 1.5) * 0.03;
-
-      renderer.render(scene, camera);
-    };
-
-    animId = requestAnimationFrame(animate);
-
-    threeRef.current = {
-      renderer,
-      scene,
-      camera,
-      hologramGroup,
-      floatingReactions,
-      teacherMesh: teacherGroup,
-      isDragging,
-      prevMousePos,
-      animId,
-    };
-
-    const handleResize = () => {
-      if (!containerRef.current || !threeRef.current) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
-      threeRef.current.camera.aspect = w / h;
-      threeRef.current.camera.updateProjectionMatrix();
-      threeRef.current.renderer.setSize(w, h);
-    };
-
-    window.addEventListener('resize', handleResize);
+    threeRef.current = { studio, scene, camera, hologramGroup, floatingReactions, teacherMesh: teacherGroup };
 
     return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener('resize', handleResize);
-      dom.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
-      dom.removeEventListener('touchend', onTouchEnd);
-      renderer.dispose();
+      threeRef.current = null;
+      studio.dispose();
     };
   }, []);
 
-  // Update central 3D hologram model based on selection
+  // Update central 3D hologram model based on selection. Rebuilding the group
+  // is a scene change, so mark the studio dirty to paint the new hologram.
   useEffect(() => {
     if (!threeRef.current) return;
-    const { hologramGroup } = threeRef.current;
+    const { studio, hologramGroup } = threeRef.current;
     hologramGroup.clear();
 
     if (hologramModel === 'molecule') {
@@ -435,23 +346,30 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
       ring.rotation.x = Math.PI / 2;
       hologramGroup.add(ring);
     }
+    studio.invalidate();
   }, [hologramModel]);
 
-  // Update Camera View according to selected seat perspective
+  // Update Camera View according to selected seat perspective. OrbitControls
+  // owns the camera orientation, so a seat change sets position + target and
+  // re-renders (damping eases the move) rather than calling lookAt, which the
+  // controls would immediately overwrite.
   useEffect(() => {
     if (!threeRef.current) return;
-    const { camera } = threeRef.current;
+    const { studio, camera } = threeRef.current;
+    const { controls } = studio;
 
     if (seatView === 'front') {
       camera.position.set(0, 2.2, 4.5);
-      camera.lookAt(0, 2.0, -2.5);
+      controls.target.set(0, 2.0, -2.5);
     } else if (seatView === 'balcony') {
       camera.position.set(0, 5.5, 8.5);
-      camera.lookAt(0, 2.2, -2.5);
+      controls.target.set(0, 2.2, -2.5);
     } else if (seatView === 'teacher') {
       camera.position.set(-2.5, 2.4, -2.2);
-      camera.lookAt(0, 1.8, 4.5);
+      controls.target.set(0, 1.8, 4.5);
     }
+    controls.update();
+    studio.invalidate();
   }, [seatView]);
 
   // Send spatial chat message
