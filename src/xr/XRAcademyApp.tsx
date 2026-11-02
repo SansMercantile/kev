@@ -282,6 +282,8 @@ export default function App() {
   const [isLabQuickStartOpen, setIsLabQuickStartOpen] = useState<boolean>(false);
   const [isEquipmentShopOpen, setIsEquipmentShopOpen] = useState<boolean>(false);
   const [isPeerMentorOpen, setIsPeerMentorOpen] = useState<boolean>(false);
+  // Which discipline the virtual library shelf opens on ('all' = unfiltered).
+  const [librarySubject, setLibrarySubject] = useState<'all' | LabId>('all');
 
   // These three overlays render unconditionally (they gate on an `isOpen` prop),
   // which would pull their chunks into the first paint. Latching them means the
@@ -593,6 +595,23 @@ export default function App() {
           >
             <BookOpen className="w-3.5 h-3.5 text-cyan-300" />
             {t('xr.curriculum')}
+          </button>
+          <button
+            onClick={() => {
+              // Jump straight to the virtual library shelf, filtered to the
+              // active class's textbooks — one click from anywhere.
+              setLibrarySubject(activeLab);
+              setViewMode('curriculum');
+            }}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'curriculum'
+                ? 'bg-amber-600 text-white font-semibold shadow-md shadow-amber-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Open the virtual library — classic textbooks & seminal papers for your class"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-amber-300" />
+            Library
           </button>
           <button
             onClick={() => setViewMode('challenge')}
@@ -993,6 +1012,19 @@ export default function App() {
               <span>{t('xr.quickStart')}</span>
             </button>
 
+            {/* Textbook bridge: read the classic text behind this bench */}
+            <button
+              onClick={() => {
+                setLibrarySubject(activeLab);
+                setViewMode('curriculum');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold cursor-pointer shadow-sm transition-all"
+              title="Read the classic textbook & seminal papers behind this experiment"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              <span>Textbook</span>
+            </button>
+
             {/* Lab Getting Started & Spatial Controls Orientation Trigger */}
             <button
               onClick={() => setIsLabGuideOpen(true)}
@@ -1214,6 +1246,9 @@ export default function App() {
                 <PaperSummarizer />
               </div>
               <CourseViewer
+                key={librarySubject === 'all' ? 'modules' : `library-${librarySubject}`}
+                initialSection={librarySubject === 'all' ? 'modules' : 'library'}
+                initialLibrarySubject={librarySubject}
                 onSelectLab={(labId) => {
                   setActiveLab(labId);
                   setViewMode('labs');

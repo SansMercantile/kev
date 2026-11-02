@@ -8,12 +8,14 @@ import { useToast } from '../toast/ToastContext';
 
 interface Props {
   onNavigateToLab: (labId: LabId) => void;
+  /** Pre-select a discipline so a student jumping from a lab/facility lands on the right shelf. */
+  initialSubject?: 'all' | LabId;
 }
 
-export const VirtualLibraryShelf: React.FC<Props> = ({ onNavigateToLab }) => {
+export const VirtualLibraryShelf: React.FC<Props> = ({ onNavigateToLab, initialSubject = 'all' }) => {
   const { showToast } = useToast();
   const [selectedBook, setSelectedBook] = useState<LibraryPublication | null>(null);
-  const [activeSubject, setActiveSubject] = useState<'all' | LabId>('all');
+  const [activeSubject, setActiveSubject] = useState<'all' | LabId>(initialSubject);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [packTopics, setPackTopics] = useState<{ id: string; title: string; summary: string; keyTerms: string[] }[]>([]);
   const [packOffline, setPackOffline] = useState<boolean>(false);

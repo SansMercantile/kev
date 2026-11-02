@@ -8,6 +8,10 @@ interface Props {
   onSelectLab: (labId: LabId) => void;
   onOpenQuiz: (lesson: Lesson) => void;
   onRequestAITutor?: (context: string) => void;
+  /** Open straight on a section (the Library button jumps here with 'library'). */
+  initialSection?: 'modules' | 'library';
+  /** Pre-filter the library shelf to one discipline. */
+  initialLibrarySubject?: 'all' | LabId;
 }
 
 const ICON_MAP: Record<string, any> = {
@@ -18,8 +22,8 @@ const ICON_MAP: Record<string, any> = {
   ShieldCheck,
 };
 
-export const CourseViewer: React.FC<Props> = ({ onSelectLab, onOpenQuiz, onRequestAITutor }) => {
-  const [activeCurriculumSection, setActiveCurriculumSection] = useState<'modules' | 'library'>('modules');
+export const CourseViewer: React.FC<Props> = ({ onSelectLab, onOpenQuiz, onRequestAITutor, initialSection, initialLibrarySubject }) => {
+  const [activeCurriculumSection, setActiveCurriculumSection] = useState<'modules' | 'library'>(initialSection ?? 'modules');
   const [selectedCourse, setSelectedCourse] = useState<Course>(COURSES[0]);
   const [selectedLesson, setSelectedLesson] = useState<Lesson>(COURSES[0].lessons[0]);
 
@@ -61,7 +65,7 @@ export const CourseViewer: React.FC<Props> = ({ onSelectLab, onOpenQuiz, onReque
       </div>
 
       {activeCurriculumSection === 'library' ? (
-        <VirtualLibraryShelf onNavigateToLab={onSelectLab} />
+        <VirtualLibraryShelf initialSubject={initialLibrarySubject ?? 'all'} onNavigateToLab={onSelectLab} />
       ) : (
         <div className="w-full flex-1 flex flex-col md:flex-row gap-6 overflow-hidden">
           {/* Left Sidebar: Course Library */}
