@@ -35,6 +35,8 @@ import {
   refreshOnUnauthorized,
   useNativeUser,
 } from './lib/nativeAuth'
+import RoleLogin from './components/RoleLogin'
+import { getRole, ROLES } from './lib/roleSession'
 
 function AuthButton() {
   const { t } = useTranslation()
@@ -76,6 +78,21 @@ function AuthButton() {
       </Link>
     </>
   )
+}
+
+/**
+ * Role gate, mirroring AppPlatform. The teaching studio is a staff surface:
+ * until a visitor chooses the teacher door it shows the role login, and only
+ * a teacher session proceeds. Convenience, not the boundary - the platform's
+ * RoleGate and the backend re-check independently.
+ */
+function RoleGate({ roles, children }) {
+  const [, setTick] = useState(0)
+  const role = getRole()
+  if (!role || (roles && !roles.includes(role))) {
+    return <RoleLogin onSignedIn={() => setTick((n) => n + 1)} />
+  }
+  return children
 }
 
 // KEV is a work-in-progress product with real costs (Bedrock calls) and
@@ -257,7 +274,7 @@ const App = () => {
             <Route path="/signup" element={<Signup />} />
             <Route path="/login" element={<Login />} />
             <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
-            <Route path="/teacher" element={<Suspense fallback={<section className="kev-section">Loading teaching studio...</section>}><TeacherStudio /></Suspense>} />
+            <Route path="/teacher" element={<RoleGate roles={[ROLES.TEACHER]}><Suspense fallback={<section className="kev-section">Loading teaching studio...</section>}><TeacherStudio /></Suspense></RoleGate>} />
           </Routes>
         </main>
 
