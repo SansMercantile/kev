@@ -56,6 +56,7 @@ import { CampusAnnouncementsTicker } from './components/header/CampusAnnouncemen
 import { FocusTimer } from './components/labs/FocusTimer';
 import { useToast } from './components/toast/ToastContext';
 import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from './lib/studyLevel';
+import { getCurrentSubjectId, setCurrentSubjectId } from './lib/currentSubject';
 // ---------------------------------------------------------------------------
 // Code splitting
 // ---------------------------------------------------------------------------
@@ -210,7 +211,12 @@ export default function App() {
   const { showBadgeToast, showXPToast, showToast } = useToast();
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('campus');
-  const [activeLab, setActiveLab] = useState<LabId>('chemistry');
+  // The active lab opens on the student's current class (the shared school
+  // signal the Immersive Lab / auditorium write), so the building is coherent.
+  const [activeLab, setActiveLabState] = useState<LabId>(() => {
+    const s = getCurrentSubjectId();
+    return s === 'chemistry' || s === 'astrophysics' || s === 'biology' || s === 'optics' ? s : 'chemistry';
+  });
   // Science programmes: adaptive teaching tier, sketch-to-simulation bench,
   // step-by-step lab guide and the one-click study kit.
   const [scienceTier, setScienceTier] = useState<string>(() => getTierId());
@@ -445,6 +451,16 @@ export default function App() {
 
   const handleBackToCampus = () => {
     setViewMode('campus');
+  };
+
+  /**
+   * Switch the active laboratory and keep the school's shared class signal in
+   * step: a student who walks into the optics lab is, for the rest of the
+   * building (auditorium deck, Immersive Lab, tutors), now studying optics.
+   */
+  const setActiveLab = (labId: LabId) => {
+    setActiveLabState(labId);
+    setCurrentSubjectId(labId);
   };
 
   /**
