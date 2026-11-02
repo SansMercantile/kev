@@ -6,6 +6,7 @@ import { createStudio, StudioHandle } from '../../../lib/studio/studioRenderer';
 import { xrApi, xrAuthHeaders } from '../../lib/xrApi';
 import { getStudyLevelId } from '../../lib/studyLevel';
 import { getTierId } from '../../lib/studyTier';
+import { getCurrentSubjectId, setCurrentSubjectId } from '../../lib/currentSubject';
 import { getAnswerLanguage } from '../../../i18n/index.js';
 
 interface Props {
@@ -19,51 +20,175 @@ const CLASSMATES = [
   { id: 'noah', name: 'Noah B.', seat: 'Desk 2B', role: 'Student', status: 'Running Simulation' },
 ];
 
-const LECTURE_SLIDES = [
-  {
-    id: 1,
-    title: 'Welcome to KEV XR Science Auditorium',
-    subtitle: 'Module 4: Spatial Chemistry & Quantum Electrodynamics',
-    bulletPoints: [
-      'Today: Exploring molecular geometry, electron repulsion & orbital dynamics',
-      'Please inspect the central 3D hologram projected on the lecture podium',
-      'Raise your hand anytime or ask Professor KEV for real-time Socratic guidance',
+type HologramKind = 'molecule' | 'dna' | 'orbit';
+
+interface LessonSlide {
+  id: number;
+  title: string;
+  subtitle: string;
+  bulletPoints: string[];
+}
+
+interface SubjectLesson {
+  module: string;
+  defaultHologram: HologramKind;
+  slides: LessonSlide[];
+}
+
+// Per-subject lesson decks. A school auditorium teaches the class the student
+// is actually taking, so the slides and the default hologram follow the active
+// subject (from the Immersive Lab / shared lesson store) instead of a single
+// fixed chemistry deck. Each deck ends on the same scientific-method slide —
+// how to work in the virtual lab is universal.
+const METHOD_SLIDE: LessonSlide = {
+  id: 99,
+  title: 'Scientific Method in Virtual XR Labs',
+  subtitle: 'Empirical Verification & AI Lab Collaboration',
+  bulletPoints: [
+    'Formulate falsifiable hypotheses before tweaking simulation parameters',
+    'Log quantitative measurements into your digital lab notebook',
+    'Compare simulated models against physical empirical benchmark observations',
+  ],
+};
+
+const SUBJECT_LESSONS: Record<string, SubjectLesson> = {
+  chemistry: {
+    module: 'Module 4: Spatial Chemistry & Quantum Electrodynamics',
+    defaultHologram: 'molecule',
+    slides: [
+      {
+        id: 1,
+        title: 'Welcome to the Spatial Chemistry Session',
+        subtitle: 'Module 4: Spatial Chemistry & Quantum Electrodynamics',
+        bulletPoints: [
+          'Today: molecular geometry, electron repulsion & orbital dynamics',
+          'Inspect the central 3D hologram projected on the lecture podium',
+          'Raise your hand or ask Professor KEV for real-time Socratic guidance',
+        ],
+      },
+      {
+        id: 2,
+        title: 'VSEPR Theory & Spatial Geometry',
+        subtitle: 'Why 3D Spatial Geometry Dictates Chemical Function',
+        bulletPoints: [
+          'Electron pairs repel each other to reach minimal electrostatic potential',
+          'Water adopts a bent 104.5° angle from oxygen’s bulky lone pairs',
+          'Methane’s 4 identical bonds form a perfect 109.5° tetrahedron',
+        ],
+      },
+      METHOD_SLIDE,
     ],
   },
-  {
-    id: 2,
-    title: 'VSEPR Theory & Spatial Geometry',
-    subtitle: 'Why 3D Spatial Geometry Dictates Chemical Function',
-    bulletPoints: [
-      'Electron pairs repel each other to achieve minimal electrostatic potential',
-      'Water adopts a bent angle of 104.5° due to oxygen’s bulky lone pairs',
-      'Methane’s 4 identical bonds form a perfect 109.5° tetrahedron',
+  anatomy: {
+    module: 'Module 7: Human Anatomy & Physiology',
+    defaultHologram: 'dna',
+    slides: [
+      {
+        id: 1,
+        title: 'Welcome to the Human Anatomy Session',
+        subtitle: 'Module 7: Human Anatomy & Physiology',
+        bulletPoints: [
+          'Today: body systems and how they interlock to sustain life',
+          'The hologram shows a DNA helix — the blueprint every cell reads',
+          'Open the Immersive Lab afterwards to dissect the full Human Atlas',
+        ],
+      },
+      {
+        id: 2,
+        title: 'From DNA to Organ Systems',
+        subtitle: 'How Genetic Instruction Becomes Living Structure',
+        bulletPoints: [
+          'DNA encodes proteins; proteins build the tissues of every organ',
+          'The double helix unzips so each strand templates a copy',
+          'Mutations in structure explain why systems fail — form is function',
+        ],
+      },
+      METHOD_SLIDE,
     ],
   },
-  {
-    id: 3,
-    title: 'Scientific Method in Virtual XR Labs',
-    subtitle: 'Empirical Verification & AI Lab Collaboration',
-    bulletPoints: [
-      'Formulate falsifiable hypotheses before tweaking simulation parameters',
-      'Log quantitative measurements into your digital lab notebook',
-      'Compare simulated models against physical empirical benchmark observations',
+  biology: {
+    module: 'Module 5: Cell Biology & Genetics',
+    defaultHologram: 'dna',
+    slides: [
+      {
+        id: 1,
+        title: 'Welcome to the Cell Biology Session',
+        subtitle: 'Module 5: Cell Biology & Genetics',
+        bulletPoints: [
+          'Today: the eukaryotic cell — nucleus, mitochondria and membrane flow',
+          'The hologram shows DNA, the molecule at the centre of the nucleus',
+          'Ask Professor KEV to walk any organelle step by step',
+        ],
+      },
+      {
+        id: 2,
+        title: 'Energy and Information in the Cell',
+        subtitle: 'Mitochondria Power the Machinery DNA Directs',
+        bulletPoints: [
+          'Ribosomes read mRNA to assemble proteins from DNA’s code',
+          'Mitochondria fold their inner membrane to maximise ATP output',
+          'The endomembrane system ships proteins to where the cell needs them',
+        ],
+      },
+      METHOD_SLIDE,
     ],
   },
-];
+  astrophysics: {
+    module: 'Module 9: Gravitation & Orbital Mechanics',
+    defaultHologram: 'orbit',
+    slides: [
+      {
+        id: 1,
+        title: 'Welcome to the Astrophysics Session',
+        subtitle: 'Module 9: Gravitation & Orbital Mechanics',
+        bulletPoints: [
+          'Today: why planets orbit instead of falling straight into the Sun',
+          'The hologram is a star with an orbiting planet and its ring plane',
+          'We will vary mass and velocity and watch the orbit respond',
+        ],
+      },
+      {
+        id: 2,
+        title: 'Kepler’s Laws and the Balance of Orbits',
+        subtitle: 'Gravity Supplies the Centripetal Pull',
+        bulletPoints: [
+          'An orbit is perpetual free-fall: tangential speed vs gravitational pull',
+          'Equal areas in equal times — planets sweep faster near perihelion',
+          'Orbital period grows with the 3/2 power of the semi-major axis',
+        ],
+      },
+      METHOD_SLIDE,
+    ],
+  },
+};
+
+const DEFAULT_LESSON: SubjectLesson = SUBJECT_LESSONS.chemistry;
 
 export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [handRaised, setHandRaised] = useState<boolean>(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
-  const [hologramModel, setHologramModel] = useState<'molecule' | 'dna' | 'orbit'>('molecule');
+  // The class being taught follows the school's shared subject signal (set by
+  // the Immersive Lab / labs); the student can also switch deck directly here.
+  const [subjectId, setSubjectId] = useState<string>(() => getCurrentSubjectId());
+  const lesson: SubjectLesson = SUBJECT_LESSONS[subjectId] ?? DEFAULT_LESSON;
+  const [hologramModel, setHologramModel] = useState<HologramKind>(lesson.defaultHologram);
   const [seatView, setSeatView] = useState<'front' | 'balcony' | 'teacher'>('front');
   const [ambientAudio, setAmbientAudio] = useState<boolean>(false);
   const [chatMessages, setChatMessages] = useState<{ sender: string; text: string; time: string }[]>([
-    { sender: 'Professor KEV', text: 'Welcome students! Today we are examining 3D molecular dipole moments.', time: '10:00 AM' },
-    { sender: 'Maya K.', text: 'The bent angle in the water hologram is so clear now!', time: '10:02 AM' },
+    { sender: 'Professor KEV', text: 'Welcome students! Find your seat and we will begin today’s demonstration.', time: '10:00 AM' },
+    { sender: 'Maya K.', text: 'The 3D hologram makes this so much clearer than the textbook diagram!', time: '10:02 AM' },
   ]);
   const [chatInput, setChatInput] = useState<string>('');
+
+  // Switching class resets the deck and the hologram to that subject's opener.
+  const selectSubject = (id: string) => {
+    setSubjectId(id);
+    setCurrentSubjectId(id);
+    const next = SUBJECT_LESSONS[id] ?? DEFAULT_LESSON;
+    setCurrentSlideIndex(0);
+    setHologramModel(next.defaultHologram);
+  };
 
   // Studio-grade renderer: PMREM/IBL + ACES + three-point lighting + PCF soft
   // shadows + a dirty-flag loop — the same baseline the atlas, vehicle and
@@ -394,7 +519,7 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
       body: JSON.stringify({
         question,
         currentLab: 'XR Auditorium',
-        context: 'Student asked a question during a live XR Auditorium lecture at KEV XR Science Academy.',
+        context: `Student asked a question during a live ${lesson.module} session in the XR Auditorium at KEV XR Science Academy (current slide: ${lesson.slides[currentSlideIndex].title}).`,
         studentLevel: getStudyLevelId(),
         tier: getTierId(),
         language: getAnswerLanguage(),
@@ -448,8 +573,29 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
                 Live Session
               </span>
             </h3>
-            <p className="text-xs text-slate-400">Collaborative 3D Holographic Lecture Hall</p>
+            <p className="text-xs text-slate-400">{lesson.module}</p>
           </div>
+        </div>
+
+        {/* Class / subject switcher: the auditorium teaches the student's
+            current class; switching here updates the shared school signal. */}
+        <div className="flex items-center gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800">
+          <span className="hidden lg:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1.5">
+            Class
+          </span>
+          {(['chemistry', 'anatomy', 'biology', 'astrophysics'] as const).map((id) => (
+            <button
+              key={id}
+              onClick={() => selectSubject(id)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all capitalize ${
+                subjectId === id
+                  ? 'bg-indigo-600 text-white font-semibold shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {id === 'anatomy' ? 'Anatomy' : id === 'astrophysics' ? 'Astro' : id}
+            </button>
+          ))}
         </div>
 
         {/* Seat Perspective Selector */}
@@ -515,19 +661,19 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
               Auditorium Whiteboard Screen
             </span>
             <div className="flex items-center gap-1 text-[11px] text-slate-400 font-mono">
-              <span>Slide {currentSlideIndex + 1}</span> / {LECTURE_SLIDES.length}
+              <span>Slide {currentSlideIndex + 1}</span> / {lesson.slides.length}
             </div>
           </div>
 
           <h4 className="font-bold text-white text-sm leading-snug mb-1">
-            {LECTURE_SLIDES[currentSlideIndex].title}
+            {lesson.slides[currentSlideIndex].title}
           </h4>
           <p className="text-xs text-cyan-300 font-medium mb-2.5">
-            {LECTURE_SLIDES[currentSlideIndex].subtitle}
+            {lesson.slides[currentSlideIndex].subtitle}
           </p>
 
           <ul className="space-y-1.5 text-xs text-slate-300">
-            {LECTURE_SLIDES[currentSlideIndex].bulletPoints.map((bp, i) => (
+            {lesson.slides[currentSlideIndex].bulletPoints.map((bp, i) => (
               <li key={i} className="flex items-start gap-1.5 leading-relaxed">
                 <span className="text-cyan-400 font-bold shrink-0">•</span>
                 <span>{bp}</span>
@@ -544,8 +690,8 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
               Previous Slide
             </button>
             <button
-              onClick={() => setCurrentSlideIndex((prev) => Math.min(LECTURE_SLIDES.length - 1, prev + 1))}
-              disabled={currentSlideIndex === LECTURE_SLIDES.length - 1}
+              onClick={() => setCurrentSlideIndex((prev) => Math.min(lesson.slides.length - 1, prev + 1))}
+              disabled={currentSlideIndex === lesson.slides.length - 1}
               className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-xs text-white font-medium cursor-pointer"
             >
               Next Slide
@@ -655,7 +801,7 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
           <button
             onClick={() =>
               onRequestAITutor?.(
-                `Hello Professor KEV! I am in the XR Science Classroom watching Slide ${currentSlideIndex + 1}: ${LECTURE_SLIDES[currentSlideIndex].title}. Can you provide a detailed explanation with questions for our study group?`
+                `Hello Professor KEV! I am in the XR Science Classroom watching Slide ${currentSlideIndex + 1}: ${lesson.slides[currentSlideIndex].title}. Can you provide a detailed explanation with questions for our study group?`
               )
             }
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-medium shadow-md shadow-indigo-500/20 cursor-pointer"

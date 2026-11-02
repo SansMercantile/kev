@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { IMMERSIVE_SUBJECTS, IMMERSIVE_SUBJECT_ORDER } from '../lib/immersiveSubjects'
 import { xrClient } from '../lib/xrClient'
 import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from '../xr/lib/studyLevel'
+import { setCurrentSubjectId } from '../xr/lib/currentSubject'
 import { getTierId, setTierId, SCIENCE_TIERS } from '../xr/lib/studyTier'
 import { anatomyExplanation } from '../lib/anatomySystems'
 import StudyKitModal from '../xr/components/programs/StudyKitModal'
@@ -243,6 +244,9 @@ export default function ImmersiveLab() {
   const selectSubject = (subjectId) => {
     const next = IMMERSIVE_SUBJECTS[subjectId]
     setActiveSubjectId(subjectId)
+    // Share the class with the rest of the school (auditorium, labs, tutors)
+    // so the whole building teaches the subject the student is dissecting.
+    setCurrentSubjectId(next.labId || subjectId)
     setActiveSystem(next.systems[0].id)
     setExplode(0)
     setIsolated(false)

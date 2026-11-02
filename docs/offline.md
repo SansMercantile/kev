@@ -8,9 +8,15 @@ Students learn without internet. Layers, in order of use:
 (`vite.config.js`):
 
 - **Precache**: the built shell (JS/CSS/HTML) — a reload with zero network
-  still boots the app.
-- **CacheFirst** (`kev-models`, 30d): `/models/*.json` — the 3,432-concept
-  anatomy catalog and 334-piece vehicle manifest keep deep search working.
+  still boots the app. The 3D models are precached too (all 18 files:
+  `atlas.json` + 15 gzip geometry chunks + `model-x.glb` + manifest) so the
+  immersive classroom works offline on a first-visit device, not only after
+  an online load. Model URLs carry no query string so runtime fetches match
+  the precache; the atlas validates the cached catalogue generation on load
+  and self-heals a stale one.
+- **CacheFirst** (`kev-models`, 40 entries, 30d): `/models/*` — runtime
+  cache for the same models on deployments where precache is bypassed; the
+  40-entry cap stops the atlas chunks evicting each other mid-stream.
 - **CacheFirst** (`kev-fonts`, 30d): Google Fonts.
 - **NetworkFirst** (`kev-api`, 4s timeout, 24h): GET `/api/*` — fresh when
   online, last-good copy when not.
@@ -34,7 +40,9 @@ Students learn without internet. Layers, in order of use:
 
 ## 3. What works fully offline
 
-- All 3D labs + Immersive Lab + Human Atlas (procedural, bundled data).
+- All 3D labs + Immersive Lab + Human Atlas + Model X (precached models +
+  procedural, bundled data) — the full immersive classroom works offline on
+  any device, first visit included.
 - Lab notebook (IndexedDB drafts/observations/snapshots, PDF export, print).
 - Campus floors/rooms/teleport (static mirror after first load from cache).
 - Library study packs once opened online (per-discipline topic notes).
