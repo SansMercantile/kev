@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useTranslation } from 'react-i18next';
 import { Sparkles, Hand, Volume2, VolumeX, Users, Monitor, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { createStudio, StudioHandle } from '../../../lib/studio/studioRenderer';
@@ -279,6 +280,7 @@ SUBJECT_LESSONS.earth = {
 const DEFAULT_LESSON: SubjectLesson = SUBJECT_LESSONS.chemistry;
 
 export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [handRaised, setHandRaised] = useState<boolean>(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
@@ -695,14 +697,14 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
             current class; switching here updates the shared school signal. */}
         <div className="flex items-center gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800">
           <span className="hidden lg:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1.5">
-            Class
+            {t('xr.classLabel')}
           </span>
           <select
             value={subjectId in SUBJECT_LESSONS ? subjectId : 'chemistry'}
             onChange={(e) => selectSubject(e.target.value)}
             className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-indigo-300 border border-slate-700 text-xs font-medium cursor-pointer focus:outline-none focus:border-indigo-500"
-            title="Choose the class this auditorium is teaching"
-            aria-label="Class taught in this auditorium"
+            title={t('xr.classPickerHint')}
+            aria-label={t('xr.classPickerHint')}
           >
             {Object.keys(SUBJECT_LESSONS).map((id) => (
               <option key={id} value={id} className="capitalize">

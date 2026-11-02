@@ -178,7 +178,13 @@
     "floorBioOptics": "Bio & Optics",
     "floorAstro": "Astrophysics",
     "floorXrLabs": "XR Labs",
-    "mapTitle": "KEV Virtual Campus Map & Teleportation Directory"
+    "mapTitle": "KEV Virtual Campus Map & Teleportation Directory",
+    "library": "Library",
+    "textbook": "Textbook",
+    "libraryHint": "Open the virtual library — classic textbooks & seminal papers for your class",
+    "textbookHint": "Read the classic textbook & seminal papers behind this experiment",
+    "classLabel": "Class",
+    "classPickerHint": "Choose the class this auditorium is teaching"
   },
   "surface": {
     "continueInKev": "Continue in KEV"

@@ -178,7 +178,13 @@
     "floorBioOptics": "I-Bio ne-Optics",
     "floorAstro": "I-Astrophysics",
     "floorXrLabs": "Iilebhu ze-XR",
-    "mapTitle": "Imephu Yekhampasi Enyulu Ye-KEV Noluhlu Lothutho"
+    "mapTitle": "Imephu Yekhampasi Enyulu Ye-KEV Noluhlu Lothutho",
+    "library": "Ilayibrari",
+    "textbook": "Incwadi yezifundo",
+    "libraryHint": "Vula ithala leencwadi elibonakalayo — iincwadi zezifundo ezidumileyo neengcinga zesifundo sakho",
+    "textbookHint": "Funda incwadi yezifundo edumileyo neengcinga ezikweli vxelo",
+    "classLabel": "Isifundo",
+    "classPickerHint": "Khetha isifundo le oditoriyam ifundisa"
   },
   "surface": {
     "continueInKev": "Qhubeka kwi-KEV"

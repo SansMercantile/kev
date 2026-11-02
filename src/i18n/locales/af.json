@@ -178,7 +178,13 @@
     "floorBioOptics": "Bio & Optika",
     "floorAstro": "Astrofisika",
     "floorXrLabs": "XR-labbe",
-    "mapTitle": "KEV Virtuele Kampuskaart & Teleportasiegids"
+    "mapTitle": "KEV Virtuele Kampuskaart & Teleportasiegids",
+    "library": "Biblioteek",
+    "textbook": "Handboek",
+    "libraryHint": "Maak die virtuele biblioteek oop — klassieke handboeke & vakkundiges vir jou klas",
+    "textbookHint": "Lees die klassieke handboek & vakkundige werke agter hierdie eksperiment",
+    "classLabel": "Klas",
+    "classPickerHint": "Kies die klas wat hierdie ouditorium onderrig"
   },
   "surface": {
     "continueInKev": "Gaan voort in KEV"

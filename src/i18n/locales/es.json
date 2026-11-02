@@ -178,7 +178,13 @@
     "floorBioOptics": "Bio y óptica",
     "floorAstro": "Astrofísica",
     "floorXrLabs": "Laboratorios XR",
-    "mapTitle": "Mapa del campus virtual KEV y directorio"
+    "mapTitle": "Mapa del campus virtual KEV y directorio",
+    "library": "Biblioteca",
+    "textbook": "Libro de texto",
+    "libraryHint": "Abrir la biblioteca virtual: libros de texto clásicos y artículos fundamentales para tu clase",
+    "textbookHint": "Lee el libro de texto clásico y los artículos fundamentales detrás de este experimento",
+    "classLabel": "Clase",
+    "classPickerHint": "Elige la clase que este auditorio está enseñando"
   },
   "surface": {
     "continueInKev": "Continúa en KEV"

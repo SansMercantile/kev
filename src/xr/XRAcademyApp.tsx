@@ -622,10 +622,10 @@ export default function App() {
                 ? 'bg-amber-600 text-white font-semibold shadow-md shadow-amber-600/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
-            title="Open the virtual library — classic textbooks & seminal papers for your class"
+            title={t('xr.libraryHint', 'Open the virtual library — classic textbooks & seminal papers for your class')}
           >
             <BookOpen className="w-3.5 h-3.5 text-amber-300" />
-            Library
+            {t('xr.library')}
           </button>
           <button
             onClick={() => setViewMode('challenge')}
@@ -1033,10 +1033,10 @@ export default function App() {
                 setViewMode('curriculum');
               }}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold cursor-pointer shadow-sm transition-all"
-              title="Read the classic textbook & seminal papers behind this experiment"
+              title={t('xr.textbookHint', 'Read the classic textbook & seminal papers behind this experiment')}
             >
               <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-              <span>Textbook</span>
+              <span>{t('xr.textbook')}</span>
             </button>
 
             {/* Lab Getting Started & Spatial Controls Orientation Trigger */}
