@@ -128,10 +128,29 @@ interface Props {
   onFloorChange?: (floor: CampusFloorNumber) => void;
   onNavigateToLab?: (labId: LabId) => void;
   onNavigateToClassroom?: () => void;
+  /** Open the virtual library shelf (Virtual School library). */
+  onNavigateToLibrary?: () => void;
+  /** Open the VR Sports Arena (Virtual School gymnasium). */
+  onNavigateToSports?: () => void;
   onRequestAITutor?: (context: string) => void;
   teleportTargetFacility?: CampusFacility | null;
   onClearTeleportTarget?: () => void;
 }
+
+/**
+ * Where a Virtual School facility leads when a student walks in. Keyed by
+ * `schoolFacilityType` (the generated mirror carries no `associatedLabId` for
+ * the bookable rooms, so the type is the stable routing key). Learning rooms
+ * go to their lab bench or the matching school surface; commons return null
+ * and open the VS detail view instead.
+ */
+const VS_FACILITY_DESTINATION: Record<string, { kind: 'lab' | 'library' | 'classroom' | 'sports'; labId?: LabId }> = {
+  laboratory: { kind: 'lab', labId: 'chemistry' },
+  library: { kind: 'library' },
+  auditorium: { kind: 'classroom' },
+  lecture_hall: { kind: 'classroom' },
+  gymnasium: { kind: 'sports' },
+};
 
 /** Peer mentors standing in the concourse, using real avatar asset keys. */
 const PEER_PRESETS = [
@@ -188,6 +207,8 @@ export const VirtualCampus: React.FC<Props> = ({
   onFloorChange,
   onNavigateToLab,
   onNavigateToClassroom,
+  onNavigateToLibrary,
+  onNavigateToSports,
   onRequestAITutor,
   teleportTargetFacility,
   onClearTeleportTarget,
@@ -296,10 +317,28 @@ export const VirtualCampus: React.FC<Props> = ({
       handleEnterLabDoor(facility.associatedLabId, facility.name);
       return;
     }
-    if (onOpenVirtualSchool && String(facility.id).startsWith('vs-')) {
-      campusAudio.playPortalWarpSound();
-      onOpenVirtualSchool(facility.sourceFacilityId ?? facility.id);
-      return;
+    // Virtual School rooms route by type to their working surface: the science
+    // lab to a bench, the library to the shelf, the auditorium/lecture hall to
+    // the auditorium, the gymnasium to the sports arena. Commons (cafeteria,
+    // entrance, offices) open the VS detail view as before.
+    if (String(facility.id).startsWith('vs-')) {
+      const dest = VS_FACILITY_DESTINATION[facility.schoolFacilityType ?? facility.type ?? ''];
+      if (dest) {
+        setTransitionEvent({ type: 'door', destinationName: facility.name, fromFloor: activeFloorNum, labColor: facility.color });
+        setPendingAction(() => () => {
+          if (dest.kind === 'lab' && dest.labId && onNavigateToLab) onNavigateToLab(dest.labId);
+          else if (dest.kind === 'library' && onNavigateToLibrary) onNavigateToLibrary();
+          else if (dest.kind === 'classroom' && onNavigateToClassroom) onNavigateToClassroom();
+          else if (dest.kind === 'sports' && onNavigateToSports) onNavigateToSports();
+          else onOpenVirtualSchool?.(facility.sourceFacilityId ?? facility.id);
+        });
+        return;
+      }
+      if (onOpenVirtualSchool) {
+        campusAudio.playPortalWarpSound();
+        onOpenVirtualSchool(facility.sourceFacilityId ?? facility.id);
+        return;
+      }
     }
     setTransitionEvent({
       type: 'door',
@@ -313,7 +352,7 @@ export const VirtualCampus: React.FC<Props> = ({
     });
   }, [
     activeFloorNum, handleEnterLabDoor, nearbyFacility, onEnterClassroom,
-    onNavigateToClassroom, onOpenVirtualSchool,
+    onNavigateToClassroom, onNavigateToLibrary, onNavigateToSports, onNavigateToLab, onOpenVirtualSchool,
   ]);
 
   const handleAskTutorHere = useCallback(() => {
@@ -1041,7 +1080,17 @@ export const VirtualCampus: React.FC<Props> = ({
                   className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-purple-500/20 transition-all flex items-center gap-1.5"
                 >
                   <DoorOpen className="w-3.5 h-3.5" />
-                  <span>{nearbyFacility.interactActionLabel || 'Enter'}</span>
+                  <span>{(() => {
+                    // Virtual School rooms name their working surface.
+                    if (String(nearbyFacility.id).startsWith('vs-')) {
+                      const dest = VS_FACILITY_DESTINATION[nearbyFacility.schoolFacilityType ?? nearbyFacility.type ?? ''];
+                      if (dest?.kind === 'lab') return 'Enter Science Lab';
+                      if (dest?.kind === 'library') return 'Open Library';
+                      if (dest?.kind === 'classroom') return 'Enter Auditorium';
+                      if (dest?.kind === 'sports') return 'Enter Sports Arena';
+                    }
+                    return nearbyFacility.interactActionLabel || 'Enter';
+                  })()}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}

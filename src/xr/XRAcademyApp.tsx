@@ -1152,6 +1152,11 @@ export default function App() {
                   setViewMode('labs');
                 }}
                 onNavigateToClassroom={() => setViewMode('classroom')}
+                onNavigateToLibrary={() => {
+                  setLibrarySubject(activeLab);
+                  setViewMode('curriculum');
+                }}
+                onNavigateToSports={() => setViewMode('sports')}
                 onRequestAITutor={handleOpenTutorWithPrompt}
                 teleportTargetFacility={teleportTargetFacility}
                 onClearTeleportTarget={() => setTeleportTargetFacility(null)}
