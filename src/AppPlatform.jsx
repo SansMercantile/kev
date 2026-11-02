@@ -219,13 +219,13 @@ const AppPlatform = () => {
                 </RoleGate>
               )}
             />
-            <Route path="/curriculum" element={<Curriculum />} />
-            <Route path="/virtual-school" element={<VirtualSchoolMap />} />
+            <Route path="/curriculum" element={<RequireAuth><Curriculum /></RequireAuth>} />
+            <Route path="/virtual-school" element={<RequireAuth><VirtualSchoolMap /></RequireAuth>} />
             <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />
-            <Route path="/anatomy" element={<Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense>} />
+            <Route path="/anatomy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense></RequireAuth>} />
             <Route path="/xr-academy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading XR Academy...</section>}><XRAcademy /></Suspense></RequireAuth>} />
-            <Route path="/agents" element={<Agents />} />
-            <Route path="/portal" element={<Portal />} />
+            <Route path="/agents" element={<RequireAuth><Agents /></RequireAuth>} />
+            <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
             <Route path="/signup" element={<Signup />} />
