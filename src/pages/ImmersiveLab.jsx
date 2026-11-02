@@ -244,9 +244,11 @@ export default function ImmersiveLab() {
   const selectSubject = (subjectId) => {
     const next = IMMERSIVE_SUBJECTS[subjectId]
     setActiveSubjectId(subjectId)
-    // Share the class with the rest of the school (auditorium, labs, tutors)
-    // so the whole building teaches the subject the student is dissecting.
-    setCurrentSubjectId(next.labId || subjectId)
+    // Share the class with the rest of the school so the whole building
+    // teaches the subject the student is dissecting. Pass the subject id (not
+    // the labId) so the auditorium's per-class deck matches exactly; surfaces
+    // that need the physical lab read subject.labId from the catalog.
+    setCurrentSubjectId(subjectId)
     setActiveSystem(next.systems[0].id)
     setExplode(0)
     setIsolated(false)

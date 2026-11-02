@@ -162,6 +162,120 @@ const SUBJECT_LESSONS: Record<string, SubjectLesson> = {
   },
 };
 
+// Immersive-bench classes (plants, bridge, EV, earth) route to the physics
+// playground in the immersive catalog; the auditorium teaches them too.
+SUBJECT_LESSONS.plants = {
+  module: 'Module 6: Plant Physiology & Photosynthesis',
+  defaultHologram: 'dna',
+  slides: [
+    {
+      id: 1,
+      title: 'Welcome to the Botany Session',
+      subtitle: 'Module 6: Plant Physiology & Photosynthesis',
+      bulletPoints: [
+        'Today: how roots, vascular tissue and leaves move water and energy',
+        'The hologram shows DNA — the code behind every chloroplast',
+        'Open the Immersive Lab to trace xylem and phloem in 3D',
+      ],
+    },
+    {
+      id: 2,
+      title: 'Moving Water and Sugar',
+      subtitle: 'Xylem Up, Phloem Down',
+      bulletPoints: [
+        'Xylem pulls water and minerals up from the roots by transpiration',
+        'Phloem distributes the sugars photosynthesis makes in the leaves',
+        'Stomata open and close to balance CO₂ intake against water loss',
+      ],
+    },
+    METHOD_SLIDE,
+  ],
+};
+
+SUBJECT_LESSONS.engineering = {
+  module: 'Module 8: Structural Engineering & Load Paths',
+  defaultHologram: 'orbit',
+  slides: [
+    {
+      id: 1,
+      title: 'Welcome to the Engineering Session',
+      subtitle: 'Module 8: Structural Engineering & Load Paths',
+      bulletPoints: [
+        'Today: how a truss bridge carries load through structure, not bulk',
+        'Watch how forces travel from deck to truss to foundation',
+        'We will explode the bridge in the Immersive Lab to see each member',
+      ],
+    },
+    {
+      id: 2,
+      title: 'Tension, Compression and Triangles',
+      subtitle: 'Why the Truss is the Strongest Simple Shape',
+      bulletPoints: [
+        'A triangle cannot deform without changing a side length — it is rigid',
+        'Trusses turn bending loads into pure tension and compression',
+        'Expansion joints let the deck move with temperature without cracking',
+      ],
+    },
+    METHOD_SLIDE,
+  ],
+};
+
+SUBJECT_LESSONS.vehicle = {
+  module: 'Module 8: Electric Vehicle Systems & Energy',
+  defaultHologram: 'orbit',
+  slides: [
+    {
+      id: 1,
+      title: 'Welcome to the EV Engineering Session',
+      subtitle: 'Module 8: Electric Vehicle Systems & Energy',
+      bulletPoints: [
+        'Today: energy storage, drive units, chassis and body systems',
+        'An EV is applied physics — energy, forces and motion in one machine',
+        'We will take the Model X apart in the Immersive Lab, piece by piece',
+      ],
+    },
+    {
+      id: 2,
+      title: 'From Battery to Wheel',
+      subtitle: 'Regenerative Braking and the Drive Unit',
+      bulletPoints: [
+        'The lithium-ion battery stores energy; the inverter meters it to the motor',
+        'During braking the motors run backwards and return charge to the pack',
+        'Adaptive suspension reads the road and adjusts each air spring',
+      ],
+    },
+    METHOD_SLIDE,
+  ],
+};
+
+SUBJECT_LESSONS.earth = {
+  module: 'Module 9: Earth Systems & Plate Tectonics',
+  defaultHologram: 'orbit',
+  slides: [
+    {
+      id: 1,
+      title: 'Welcome to the Earth Science Session',
+      subtitle: 'Module 9: Earth Systems & Plate Tectonics',
+      bulletPoints: [
+        'Today: the layered planet and the systems that shape its surface',
+        'The hologram is a star — our Sun drives nearly every surface process',
+        'We will open the Earth in the Immersive Lab, core to cloud',
+      ],
+    },
+    {
+      id: 2,
+      title: 'A Restless Crust',
+      subtitle: 'Convection Moves the Plates We Live On',
+      bulletPoints: [
+        'The mantle creeps by slow convection, dragging the plates above',
+        'Plate boundaries make earthquakes, mountains and volcanoes',
+        'The atmosphere moves the Sun’s energy and water around the globe',
+      ],
+    },
+    METHOD_SLIDE,
+  ],
+};
+
 const DEFAULT_LESSON: SubjectLesson = SUBJECT_LESSONS.chemistry;
 
 export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
@@ -583,19 +697,19 @@ export const XRClassroom: React.FC<Props> = ({ onRequestAITutor }) => {
           <span className="hidden lg:inline text-[10px] font-mono uppercase tracking-wider text-slate-500 px-1.5">
             Class
           </span>
-          {(['chemistry', 'anatomy', 'biology', 'astrophysics'] as const).map((id) => (
-            <button
-              key={id}
-              onClick={() => selectSubject(id)}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all capitalize ${
-                subjectId === id
-                  ? 'bg-indigo-600 text-white font-semibold shadow-md'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {id === 'anatomy' ? 'Anatomy' : id === 'astrophysics' ? 'Astro' : id}
-            </button>
-          ))}
+          <select
+            value={subjectId in SUBJECT_LESSONS ? subjectId : 'chemistry'}
+            onChange={(e) => selectSubject(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-indigo-300 border border-slate-700 text-xs font-medium cursor-pointer focus:outline-none focus:border-indigo-500"
+            title="Choose the class this auditorium is teaching"
+            aria-label="Class taught in this auditorium"
+          >
+            {Object.keys(SUBJECT_LESSONS).map((id) => (
+              <option key={id} value={id} className="capitalize">
+                {SUBJECT_LESSONS[id].module.replace(/^Module \d+:\s*/, '')}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Seat Perspective Selector */}

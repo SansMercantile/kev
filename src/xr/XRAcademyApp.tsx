@@ -214,8 +214,22 @@ export default function App() {
   // The active lab opens on the student's current class (the shared school
   // signal the Immersive Lab / auditorium write), so the building is coherent.
   const [activeLab, setActiveLabState] = useState<LabId>(() => {
+    // Map the shared class onto one of the four physical labs. Immersive-bench
+    // subjects land on the lab that matches their science: plants->biology,
+    // engineering->optics, vehicle->chemistry (energy/thermodynamics),
+    // earth->astrophysics.
     const s = getCurrentSubjectId();
-    return s === 'chemistry' || s === 'astrophysics' || s === 'biology' || s === 'optics' ? s : 'chemistry';
+    const SUBJECT_TO_LAB: Record<string, LabId> = {
+      chemistry: 'chemistry',
+      astrophysics: 'astrophysics',
+      biology: 'biology',
+      optics: 'optics',
+      plants: 'biology',
+      engineering: 'optics',
+      vehicle: 'chemistry',
+      earth: 'astrophysics',
+    };
+    return SUBJECT_TO_LAB[s] ?? 'chemistry';
   });
   // Science programmes: adaptive teaching tier, sketch-to-simulation bench,
   // step-by-step lab guide and the one-click study kit.

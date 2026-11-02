@@ -145,6 +145,12 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
     const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // Match the studio baseline (atlas/vehicle/subjects/classroom): sRGB output
+    // + ACES filmic tone mapping so colors and highlights grade like the rest
+    // of the school instead of the default linear/fixed pipeline.
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     containerRef.current.replaceChildren(renderer.domElement);
 
     // Illumination
