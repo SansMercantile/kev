@@ -39,8 +39,9 @@
  *     (`currentFloor`, `teleportTargetFacility`, `onNavigateToLab`,
  *     `onNavigateToClassroom`, `onRequestAITutor`) — the map teleport and the
  *     elevator switcher were inert. They are now honoured.
- *   • `PHOTOREALISTIC_ASSETS.avatars['cellular-lead']` does not exist, so a peer
- *     avatar rendered with an undefined photo. Corrected to a real key.
+ *   • avatar lookups that indexed `PHOTOREALISTIC_ASSETS.avatars` by a data
+ *     key could return undefined; `avatarFor()` now guarantees a portrait, and
+ *     alias keys (cellular-lead, optics-specialist, ai-fellow) exist.
  *   • the scene leaked geometries and materials on every floor change (only
  *     `renderer.dispose()` ran). Teardown is now deterministic.
  *   • `import 'framer-motion'` — not a declared dependency. Uses `motion/react`,
@@ -168,8 +169,9 @@ const PEER_PRESETS = [
   {
     name: 'Sofia Chen', role: 'Genomics Lead', x: -5, z: -5,
     primaryColor: '#a855f7', glowColor: '#c084fc',
-    // Was 'cellular-lead', a key that does not exist in PHOTOREALISTIC_ASSETS.
-    photoUrl: PHOTOREALISTIC_ASSETS.avatars['nano-tech'],
+    // 'cellular-lead' is the matching alias in PHOTOREALISTIC_ASSETS (cell bio
+    // portrait); both resolve via avatarFor(), so the lookup is never undefined.
+    photoUrl: PHOTOREALISTIC_ASSETS.avatars['cellular-lead'],
   },
   {
     name: 'Tariq Al-Mansoor', role: 'Quantum Optics', x: 3, z: 5,
