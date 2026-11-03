@@ -205,10 +205,12 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
     dom.addEventListener('touchmove', onTouchMove, { passive: true });
     dom.addEventListener('touchend', onTouchEnd);
 
-    // Animation loop
+    // Animation loop (paused while the tab is hidden - background tabs cost
+    // battery/data on low-end devices for a scene no one is watching).
     let animId = 0;
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      if (document.hidden) return;
       renderer.render(scene, camera);
     };
     animId = requestAnimationFrame(animate);

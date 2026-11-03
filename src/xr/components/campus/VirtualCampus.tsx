@@ -673,6 +673,11 @@ export const VirtualCampus: React.FC<Props> = ({
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      // Paused while the tab is hidden: the walk sim, peer animation, audio and
+      // the high-fidelity render all cost battery on a scene no one is
+      // watching. Resetting the clock on return avoids a large delta jump that
+      // would teleport the player.
+      if (document.hidden) { clock.getDelta(); return; }
       const delta = Math.min(clock.getDelta(), 0.1);
       const elapsed = clock.getElapsedTime();
 

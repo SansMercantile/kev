@@ -379,6 +379,9 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      // Paused while the tab is hidden - rotation, ATP pulse and the render
+      // pass cost battery on a scene no one is watching.
+      if (document.hidden) return;
       const elapsed = clock.getElapsedTime();
 
       if (!isDragging) {

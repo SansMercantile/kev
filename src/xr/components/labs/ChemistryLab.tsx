@@ -359,6 +359,9 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      // Paused while the tab is hidden - a background tab running thermal
+      // vibration + a render pass costs battery for a scene no one is watching.
+      if (document.hidden) return;
       const elapsedTime = clock.getElapsedTime();
 
       // Gentle continuous rotation when not dragging

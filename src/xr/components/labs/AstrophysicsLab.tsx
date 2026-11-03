@@ -284,6 +284,10 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
+      // Paused while the tab is hidden: N-body integration and the render pass
+      // both cost battery on a scene no one is watching, and pausing keeps the
+      // simulation deterministic (orbits resume exactly where they stopped).
+      if (document.hidden) { lastTime = performance.now(); return; }
       const now = performance.now();
       const dt = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
