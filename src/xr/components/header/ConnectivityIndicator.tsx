@@ -70,8 +70,29 @@ export const ConnectivityIndicator: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Periodic heartbeat every 30 seconds
-    const interval = setInterval(checkBackendSync, 30000);
+    // Periodic heartbeat every 30s — but only while the tab is visible. A
+    // background tab pinging the backend twice a minute is wasted battery and
+    // data on the low-end devices this app targets; on return to the tab we
+    // re-verify immediately so the status is fresh.
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const startHeartbeat = () => {
+      if (interval === null) interval = setInterval(checkBackendSync, 30000);
+    };
+    const stopHeartbeat = () => {
+      if (interval !== null) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+    const handleVisibility = () => {
+      if (document.hidden) stopHeartbeat();
+      else {
+        checkBackendSync();
+        startHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startHeartbeat();
 
     // Close popover when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
@@ -84,7 +105,8 @@ export const ConnectivityIndicator: React.FC = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      stopHeartbeat();
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
