@@ -100,6 +100,7 @@ import {
 import { disposeAllTextures } from '../../render/proceduralTextures';
 import { PHOTOREALISTIC_ASSETS } from '../../assets/images';
 import { campusAudio, type AudioEngineSettings } from '../../services/campusAudioEngine';
+import { schoolFacilityTypeOf } from '../../lib/schoolFacilityType';
 import type { AvatarConfig, CampusFacility, LabId } from '../../types';
 
 export type CampusFloorNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
@@ -138,11 +139,11 @@ interface Props {
 }
 
 /**
- * Where a Virtual School facility leads when a student walks in. Keyed by
- * `schoolFacilityType` (the generated mirror carries no `associatedLabId` for
- * the bookable rooms, so the type is the stable routing key). Learning rooms
- * go to their lab bench or the matching school surface; commons return null
- * and open the VS detail view instead.
+ * Where a Virtual School facility leads when a student walks in. Keyed by the
+ * canonical school-facility type (see `schoolFacilityTypeOf` in xr/lib), which
+ * is reliably present for every bookable room. Learning rooms go to their lab
+ * bench or the matching school surface; commons are absent and open the VS
+ * detail view.
  */
 const VS_FACILITY_DESTINATION: Record<string, { kind: 'lab' | 'library' | 'classroom' | 'sports'; labId?: LabId }> = {
   laboratory: { kind: 'lab', labId: 'chemistry' },
@@ -182,6 +183,9 @@ function toCampusFacility(facility: SchoolFacility, floorColour?: string): Campu
   return {
     ...facility,
     type: facility.type,
+    // Reliably present: derive the canonical school-facility type so consumers
+    // never see it missing (see schoolFacilityTypeOf in xr/lib).
+    schoolFacilityType: schoolFacilityTypeOf(facility),
     coordinates: {
       x: facility.coordinates.x,
       z: facility.coordinates.z,
@@ -322,7 +326,7 @@ export const VirtualCampus: React.FC<Props> = ({
     // the auditorium, the gymnasium to the sports arena. Commons (cafeteria,
     // entrance, offices) open the VS detail view as before.
     if (String(facility.id).startsWith('vs-')) {
-      const dest = VS_FACILITY_DESTINATION[facility.schoolFacilityType ?? facility.type ?? ''];
+      const dest = VS_FACILITY_DESTINATION[facility.schoolFacilityType ?? ''];
       if (dest) {
         setTransitionEvent({ type: 'door', destinationName: facility.name, fromFloor: activeFloorNum, labColor: facility.color });
         setPendingAction(() => () => {
@@ -1083,7 +1087,7 @@ export const VirtualCampus: React.FC<Props> = ({
                   <span>{(() => {
                     // Virtual School rooms name their working surface.
                     if (String(nearbyFacility.id).startsWith('vs-')) {
-                      const dest = VS_FACILITY_DESTINATION[nearbyFacility.schoolFacilityType ?? nearbyFacility.type ?? ''];
+                      const dest = VS_FACILITY_DESTINATION[nearbyFacility.schoolFacilityType ?? ''];
                       if (dest?.kind === 'lab') return 'Enter Science Lab';
                       if (dest?.kind === 'library') return 'Open Library';
                       if (dest?.kind === 'classroom') return 'Enter Auditorium';

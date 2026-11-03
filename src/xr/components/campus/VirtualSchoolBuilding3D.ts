@@ -34,6 +34,7 @@ import {
 } from '../../render/campusKit';
 import type { TierSettings } from '../../render/highFidelityRenderer';
 import type { SchoolFacility, VirtualSchool, VirtualSchoolLevel } from '../../data/schoolCampus';
+import { schoolFacilityTypeOf } from '../../lib/schoolFacilityType';
 
 export interface VirtualSchoolBuildOptions {
   school: VirtualSchool;
@@ -213,10 +214,10 @@ export function buildVirtualSchoolBuilding(options: VirtualSchoolBuildOptions): 
       room.position.set(fx, fy, fz);
       room.name = `vs-${facility.id}`;
 
-      // Floor finish varies by facility kind.
-      const floorMat = facility.schoolFacilityType === 'gymnasium' || facility.type === 'gymnasium'
-        ? materials.vinyl
-        : facility.type === 'library' || facility.type === 'auditorium' || facility.type === 'lecture_hall'
+      // Floor finish varies by facility kind (canonical type, reliably present).
+      const facType = schoolFacilityTypeOf(facility);
+      const floorMat = facType === 'gymnasium' ? materials.vinyl
+        : facType === 'library' || facType === 'auditorium' || facType === 'lecture_hall'
           ? materials.carpet
           : materials.vinyl;
       const roomFloor = new THREE.Mesh(new THREE.BoxGeometry(roomW, 0.1, roomD), floorMat);
@@ -263,9 +264,8 @@ export function buildVirtualSchoolBuilding(options: VirtualSchoolBuildOptions): 
       roomSign.position.set(0, roomH + 0.62, roomD / 2 + 0.06);
       room.add(roomSign);
 
-      // Subject hologram inside the room.
-      const glyph = GLYPH_FOR_TYPE[facility.schoolFacilityType ?? '']
-        ?? GLYPH_FOR_TYPE[facility.type] ?? 'grid';
+      // Subject hologram inside the room (canonical type, reliably present).
+      const glyph = GLYPH_FOR_TYPE[facType] ?? GLYPH_FOR_TYPE[facility.type] ?? 'grid';
       const holo = createHologramProjector({
         accent,
         height: Math.min(1.9, roomH * 0.62),
