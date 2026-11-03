@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { Organelle } from '../../types';
 import { Dna, Sparkles, Layers, Eye, Zap, Camera, Search, Play } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -120,13 +121,13 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
+    controls: OrbitControls;
     cellGroup: THREE.Group;
     dnaGroup: THREE.Group;
     organelleMeshes: Map<string, THREE.Mesh>;
     membraneMesh: THREE.Mesh;
     dnaBaseMeshes: THREE.Mesh[];
     isDragging: boolean;
-    prevMousePos: { x: number; y: number };
     animId: number;
   } | null>(null);
 
@@ -306,72 +307,21 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
       dnaBaseMeshes.push(bondMesh);
     }
 
-    // Interaction controls (drag to rotate)
+    // OrbitControls: damped orbit + pinch zoom, the studio feel (atlas /
+    // vehicle / subjects / classroom). Drag orbits the camera around the cell /
+    // helix; the groups' own idle spin stays as the teaching gesture. Replaces
+    // the hand-rolled group-spin drag, which had no damping and no pinch zoom.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 12;
+    controls.update();
     let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevMousePos.x;
-      const dy = e.clientY - prevMousePos.y;
-
-      if (activeTab === 'cell') {
-        cellGroup.rotation.y += dx * 0.01;
-        cellGroup.rotation.x += dy * 0.01;
-      } else {
-        dnaGroup.rotation.y += dx * 0.01;
-        dnaGroup.rotation.x += dy * 0.01;
-      }
-
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.005, 3.5, 12);
-    };
-
-    const dom = renderer.domElement;
-    dom.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    dom.addEventListener('wheel', onWheel, { passive: false });
-
-    // Touch support
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - prevMousePos.x;
-      const dy = e.touches[0].clientY - prevMousePos.y;
-      if (activeTab === 'cell') {
-        cellGroup.rotation.y += dx * 0.015;
-        cellGroup.rotation.x += dy * 0.015;
-      } else {
-        dnaGroup.rotation.y += dx * 0.015;
-        dnaGroup.rotation.x += dy * 0.015;
-      }
-      prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-    const onTouchEnd = () => {
-      isDragging = false;
-    };
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-    dom.addEventListener('touchend', onTouchEnd);
+    controls.addEventListener('start', () => { isDragging = true; });
+    controls.addEventListener('end', () => { isDragging = false; });
 
     // Animation Loop
     let clock = new THREE.Clock();
@@ -383,6 +333,8 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
       // pass cost battery on a scene no one is watching.
       if (document.hidden) return;
       const elapsed = clock.getElapsedTime();
+
+      controls.update();
 
       if (!isDragging) {
         cellGroup.rotation.y += 0.004;
@@ -405,13 +357,13 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
       renderer,
       scene,
       camera,
+      controls,
       cellGroup,
       dnaGroup,
       organelleMeshes,
       membraneMesh,
       dnaBaseMeshes,
       isDragging,
-      prevMousePos,
       animId,
     };
 
@@ -429,13 +381,7 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
-      dom.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('wheel', onWheel);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
-      dom.removeEventListener('touchend', onTouchEnd);
+      controls.dispose();
       renderer.dispose();
     };
   }, []);
@@ -452,6 +398,9 @@ export const CellularBiologyLab: React.FC<Props> = ({ onCaptureSnapshot, onReque
       threeRef.current.dnaGroup.visible = true;
       threeRef.current.camera.position.set(0, 0, 5.5);
     }
+    // Keep OrbitControls' spherical state in step with the programmatic move.
+    threeRef.current.controls.target.set(0, 0, 0);
+    threeRef.current.controls.update();
   }, [activeTab]);
 
   // X-Ray Mode toggle

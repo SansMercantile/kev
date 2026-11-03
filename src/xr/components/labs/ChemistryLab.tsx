@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { MoleculePreset } from '../../types';
 import { Play, RotateCcw, Zap, Sparkles, Thermometer, Info, Eye, Camera } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -190,6 +191,7 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
+    controls: OrbitControls;
     moleculeGroup: THREE.Group;
     particles: THREE.Points;
     dipoleArrow?: THREE.ArrowHelper;
@@ -197,7 +199,6 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
     atomMeshes: THREE.Mesh[];
     basePositions: THREE.Vector3[];
     isDragging: boolean;
-    prevMousePos: { x: number; y: number };
     animationFrameId: number;
   } | null>(null);
 
@@ -271,66 +272,23 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
     const electronCloudsGroup = new THREE.Group();
     moleculeGroup.add(electronCloudsGroup);
 
-    // Drag-to-rotate interaction
+    // OrbitControls: damped orbit + pinch zoom, the studio feel (atlas /
+    // vehicle / subjects / classroom). Drag orbits the camera; the molecule's
+    // own idle spin (below) stays as the teaching gesture. Replaces the
+    // hand-rolled object-spin drag, which had no damping and no pinch zoom.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 3.5;
+    controls.maxDistance = 14;
+    controls.update();
     let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const deltaX = e.clientX - prevMousePos.x;
-      const deltaY = e.clientY - prevMousePos.y;
-
-      moleculeGroup.rotation.y += deltaX * 0.01;
-      moleculeGroup.rotation.x += deltaY * 0.01;
-
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      camera.position.z = THREE.MathUtils.clamp(camera.position.z + e.deltaY * 0.005, 3.5, 14);
-    };
-
-    // Touch support for mobile / tablets
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const deltaX = e.touches[0].clientX - prevMousePos.x;
-      const deltaY = e.touches[0].clientY - prevMousePos.y;
-
-      moleculeGroup.rotation.y += deltaX * 0.015;
-      moleculeGroup.rotation.x += deltaY * 0.015;
-
-      prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-
-    const onTouchEnd = () => {
-      isDragging = false;
-    };
+    controls.addEventListener('start', () => { isDragging = true; });
+    controls.addEventListener('end', () => { isDragging = false; });
 
     const dom = renderer.domElement;
-    dom.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    dom.addEventListener('wheel', onWheel, { passive: false });
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-    dom.addEventListener('touchend', onTouchEnd);
 
     // Raycaster for selecting individual atoms
     const raycaster = new THREE.Raycaster();
@@ -364,7 +322,11 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
       if (document.hidden) return;
       const elapsedTime = clock.getElapsedTime();
 
-      // Gentle continuous rotation when not dragging
+      controls.update();
+
+      // Gentle continuous rotation when the camera is idle (teaching gesture:
+      // the molecule presents every face). Dragging orbits the camera, not the
+      // molecule, so the spin pauses while the student is manipulating the view.
       if (!isDragging) {
         moleculeGroup.rotation.y += 0.003;
       }
@@ -395,13 +357,13 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
       renderer,
       scene,
       camera,
+      controls,
       moleculeGroup,
       particles,
       electronCloudsGroup,
       atomMeshes: [],
       basePositions: [],
       isDragging,
-      prevMousePos,
       animationFrameId: animId,
     };
 
@@ -419,14 +381,8 @@ export const ChemistryLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITu
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
-      dom.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('wheel', onWheel);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
-      dom.removeEventListener('touchend', onTouchEnd);
       dom.removeEventListener('click', onClick);
+      controls.dispose();
       renderer.dispose();
     };
   }, []);

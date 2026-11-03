@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OpticalSetup } from '../../types';
 import { Sparkles, Compass, Sliders, Camera, HelpCircle, Eye } from 'lucide-react';
 
@@ -57,11 +58,10 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
+    controls: OrbitControls;
     prismMesh: THREE.Mesh;
     raysGroup: THREE.Group;
     normalLine: THREE.Line;
-    isDragging: boolean;
-    prevMousePos: { x: number; y: number };
     animId: number;
   } | null>(null);
 
@@ -136,74 +136,18 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
     const raysGroup = new THREE.Group();
     scene.add(raysGroup);
 
-    // Orbit Controls
-    let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-    let spherical = { radius: 12, theta: Math.PI / 4, phi: Math.PI / 3.4 };
-
-    const updateCameraPos = () => {
-      camera.position.x = spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-      camera.position.y = spherical.radius * Math.cos(spherical.phi);
-      camera.position.z = spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
-      camera.lookAt(0, 0, 0);
-    };
-    updateCameraPos();
-
-    const dom = renderer.domElement;
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevMousePos.x;
-      const dy = e.clientY - prevMousePos.y;
-
-      spherical.theta -= dx * 0.008;
-      spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.008, 0.15, Math.PI / 2.05);
-      updateCameraPos();
-
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      spherical.radius = THREE.MathUtils.clamp(spherical.radius + e.deltaY * 0.01, 6, 22);
-      updateCameraPos();
-    };
-
-    dom.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    dom.addEventListener('wheel', onWheel, { passive: false });
-
-    // Touch support
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - prevMousePos.x;
-      const dy = e.touches[0].clientY - prevMousePos.y;
-      spherical.theta -= dx * 0.012;
-      spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.012, 0.15, Math.PI / 2.05);
-      updateCameraPos();
-      prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-    const onTouchEnd = () => {
-      isDragging = false;
-    };
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-    dom.addEventListener('touchend', onTouchEnd);
+    // OrbitControls: the studio interaction (damped orbit + pinch zoom), the
+    // same feel as the atlas/vehicle/subjects/classroom. Replaces the
+    // hand-rolled spherical drag, which had no damping and no pinch zoom.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 6;
+    controls.maxDistance = 22;
+    controls.maxPolarAngle = Math.PI / 2.05;
+    controls.update();
 
     // Animation loop (paused while the tab is hidden - background tabs cost
     // battery/data on low-end devices for a scene no one is watching).
@@ -211,6 +155,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
     const animate = () => {
       animId = requestAnimationFrame(animate);
       if (document.hidden) return;
+      controls.update();
       renderer.render(scene, camera);
     };
     animId = requestAnimationFrame(animate);
@@ -219,11 +164,10 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
       renderer,
       scene,
       camera,
+      controls,
       prismMesh,
       raysGroup,
       normalLine,
-      isDragging,
-      prevMousePos,
       animId,
     };
 
@@ -241,13 +185,7 @@ export const OpticsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestAITutor
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
-      dom.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('wheel', onWheel);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
-      dom.removeEventListener('touchend', onTouchEnd);
+      controls.dispose();
       renderer.dispose();
     };
   }, []);

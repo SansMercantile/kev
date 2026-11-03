@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CelestialBody } from '../../types';
 import { Orbit, Sparkles, FastForward, Play, Pause, RotateCcw, Rocket, Camera, AlertCircle } from 'lucide-react';
 
@@ -98,9 +99,8 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
     camera: THREE.PerspectiveCamera;
+    controls: OrbitControls;
     grid: THREE.GridHelper;
-    isDragging: boolean;
-    prevMousePos: { x: number; y: number };
     animId: number;
   } | null>(null);
 
@@ -208,75 +208,19 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
       trailLines.set(b.id, trailLine);
     });
 
-    // Orbit Controls (drag to rotate camera)
-    let isDragging = false;
-    let prevMousePos = { x: 0, y: 0 };
-    let spherical = { radius: 26, theta: Math.PI / 4, phi: Math.PI / 3.2 };
-
-    const updateCameraPos = () => {
-      camera.position.x = spherical.radius * Math.sin(spherical.phi) * Math.sin(spherical.theta);
-      camera.position.y = spherical.radius * Math.cos(spherical.phi);
-      camera.position.z = spherical.radius * Math.sin(spherical.phi) * Math.cos(spherical.theta);
-      camera.lookAt(0, 0, 0);
-    };
-    updateCameraPos();
-
-    const dom = renderer.domElement;
-    const onMouseDown = (e: MouseEvent) => {
-      isDragging = true;
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isDragging) return;
-      const dx = e.clientX - prevMousePos.x;
-      const dy = e.clientY - prevMousePos.y;
-
-      spherical.theta -= dx * 0.008;
-      spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.008, 0.15, Math.PI / 2.05);
-      updateCameraPos();
-
-      prevMousePos = { x: e.clientX, y: e.clientY };
-    };
-
-    const onMouseUp = () => {
-      isDragging = false;
-    };
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      spherical.radius = THREE.MathUtils.clamp(spherical.radius + e.deltaY * 0.02, 10, 48);
-      updateCameraPos();
-    };
-
-    dom.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    dom.addEventListener('wheel', onWheel, { passive: false });
-
-    // Touch support
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      }
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const dx = e.touches[0].clientX - prevMousePos.x;
-      const dy = e.touches[0].clientY - prevMousePos.y;
-      spherical.theta -= dx * 0.01;
-      spherical.phi = THREE.MathUtils.clamp(spherical.phi - dy * 0.01, 0.15, Math.PI / 2.05);
-      updateCameraPos();
-      prevMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    };
-    const onTouchEnd = () => {
-      isDragging = false;
-    };
-
-    dom.addEventListener('touchstart', onTouchStart, { passive: true });
-    dom.addEventListener('touchmove', onTouchMove, { passive: true });
-    dom.addEventListener('touchend', onTouchEnd);
+    // OrbitControls: damped orbit + pinch zoom, the studio feel (atlas /
+    // vehicle / subjects / classroom). The N-body sim keeps running; the camera
+    // orbits the star system. Replaces the hand-rolled spherical drag, which
+    // had no damping and no pinch zoom.
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 10;
+    controls.maxDistance = 48;
+    controls.maxPolarAngle = Math.PI / 2.05;
+    controls.update();
 
     // Animation / Physics Integration Loop
     let lastTime = performance.now();
@@ -291,6 +235,8 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
       const now = performance.now();
       const dt = Math.min((now - lastTime) / 1000, 0.05);
       lastTime = now;
+
+      controls.update();
 
       if (stateRef.current) {
         const { bodies, meshes, trailLines } = stateRef.current;
@@ -390,9 +336,8 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
       renderer,
       scene,
       camera,
+      controls,
       grid,
-      isDragging,
-      prevMousePos,
       animId,
     };
 
@@ -410,13 +355,7 @@ export const AstrophysicsLab: React.FC<Props> = ({ onCaptureSnapshot, onRequestA
     return () => {
       cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
-      dom.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      dom.removeEventListener('wheel', onWheel);
-      dom.removeEventListener('touchstart', onTouchStart);
-      dom.removeEventListener('touchmove', onTouchMove);
-      dom.removeEventListener('touchend', onTouchEnd);
+      controls.dispose();
       renderer.dispose();
     };
   }, []);
