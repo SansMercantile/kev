@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, CameraOff, Play, RotateCcw, Sparkles, Activity, Zap, Trophy, AlertCircle, Music, Heart, Wind } from 'lucide-react';
+import { Camera, CameraOff, Play, RotateCcw, Sparkles, Activity, Zap, Trophy, AlertCircle, Music, Heart, Wind, Watch, Bluetooth } from 'lucide-react';
 import { useToast } from '../toast/ToastContext';
+import { connectHeartRate, isHeartRateSupported, type HeartRateConnection } from '../../lib/heartRate';
 
 /**
  * Motion Gym — camera PE, the honest Kinect.
@@ -66,6 +67,15 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
   const [peakEnergy, setPeakEnergy] = useState(0);
   const [sessionSeconds, setSessionSeconds] = useState(0);
 
+  // Smartwatch heart-rate link (Web Bluetooth Heart Rate Service). Optional:
+  // the game plays fine camera-only; a connected watch adds the real pulse.
+  const [hrSupported] = useState(() => isHeartRateSupported());
+  const [hrConnection, setHrConnection] = useState<HeartRateConnection | null>(null);
+  const [bpm, setBpm] = useState<number | null>(null);
+  const [hrError, setHrError] = useState<string | null>(null);
+  const [hrConnecting, setHrConnecting] = useState(false);
+  const hrRef = useRef<HeartRateConnection | null>(null);
+
   const rafRef = useRef(0);
   const prevFrameRef = useRef<Uint8ClampedArray | null>(null);
   const lastBeatRef = useRef(0);
@@ -99,6 +109,43 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
       stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);
+
+  // ---- Smartwatch: connect / disconnect / cleanup on unmount ----
+  useEffect(() => {
+    return () => {
+      hrRef.current?.disconnect();
+    };
+  }, []);
+
+  const handleConnectWatch = async () => {
+    setHrError(null);
+    setHrConnecting(true);
+    try {
+      const conn = await connectHeartRate(
+        (reading) => setBpm(reading.bpm),
+        () => {
+          setHrConnection(null);
+          setBpm(null);
+          hrRef.current = null;
+        }
+      );
+      hrRef.current = conn;
+      setHrConnection(conn);
+      showToast({ type: 'info', title: 'Smartwatch linked', message: `Reading live pulse from ${conn.deviceName}.` });
+    } catch (err: any) {
+      const msg = err?.message || 'Could not connect to a heart-rate wearable.';
+      setHrError(msg.includes('cancelled') || msg.includes('User cancelled') ? 'Connection cancelled.' : msg);
+    } finally {
+      setHrConnecting(false);
+    }
+  };
+
+  const handleDisconnectWatch = () => {
+    hrRef.current?.disconnect();
+    hrRef.current = null;
+    setHrConnection(null);
+    setBpm(null);
+  };
 
   // ---- Optical motion: per-frame pixel differencing + centroid + L/R split ----
   const analyse = useCallback(() => {
@@ -175,15 +222,17 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
         }
         setBeatTimer((now - lastBeatRef.current) / BEAT_MS);
       } else {
-        // Fitness: count active seconds above the target line.
-        if (m.energy >= FITNESS_TARGET) setActiveSeconds((s) => s + dt);
+        // Fitness: count active seconds. With a smartwatch linked, the zone is
+        // a real cardio band (elevated pulse) instead of the motion proxy.
+        const inZone = bpm !== null ? bpm >= 110 : m.energy >= FITNESS_TARGET;
+        if (inZone) setActiveSeconds((s) => s + dt);
       }
     };
     lastBeatRef.current = performance.now();
     lastTickRef.current = performance.now();
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [running, cameraActive, mode, analyse, targetIdx, combo]);
+  }, [running, cameraActive, mode, analyse, targetIdx, combo, bpm]);
 
   const startSession = () => {
     setScore(0); setCombo(0); setBestCombo(0); setTargetIdx(0);
@@ -267,6 +316,33 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
             {running ? 'End & Bank XP' : 'Start Session'}
           </button>
         </div>
+
+        {/* Smartwatch link (Web Bluetooth Heart Rate Service) */}
+        {hrSupported && (
+          <div className="flex items-center gap-2">
+            {hrConnection ? (
+              <button
+                onClick={handleDisconnectWatch}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-semibold cursor-pointer transition-all"
+                title={`Connected to ${hrConnection.deviceName} — tap to disconnect`}
+              >
+                <Watch className="w-3.5 h-3.5" />
+                <span>{bpm !== null ? `${bpm} bpm` : 'Linking…'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            ) : (
+              <button
+                onClick={handleConnectWatch}
+                disabled={hrConnecting}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-semibold cursor-pointer transition-all disabled:opacity-50"
+                title="Link a heart-rate smartwatch over Bluetooth (standard Heart Rate Service)"
+              >
+                <Bluetooth className="w-3.5 h-3.5 text-cyan-400" />
+                <span>{hrConnecting ? 'Pairing…' : 'Link Watch'}</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Body */}
@@ -292,7 +368,11 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
             </p>
             <p className="text-xs text-slate-400 text-center max-w-sm mt-2">
               Motion Gym reads your movement from the webcam in-page — frames never leave your device.
+              {hrSupported && ' Link a heart-rate smartwatch to add your real pulse.'}
             </p>
+            {hrError && (
+              <p className="mt-3 text-xs text-rose-300 text-center max-w-sm">{hrError}</p>
+            )}
           </div>
         )}
 
@@ -353,17 +433,17 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-72">
                 <div className="p-3 rounded-2xl bg-slate-950/85 border border-slate-800 text-center">
                   <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 mb-1.5">
-                    <span className="flex items-center gap-1"><Wind className="w-3 h-3" /> intensity</span>
-                    <span className={energy >= FITNESS_TARGET ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
-                      {energy >= FITNESS_TARGET ? 'IN THE ZONE' : 'keep moving'}
+                    <span className="flex items-center gap-1"><Wind className="w-3 h-3" /> {bpm !== null ? 'cardio zone' : 'intensity'}</span>
+                    <span className={(bpm !== null ? bpm >= 110 : energy >= FITNESS_TARGET) ? 'text-emerald-400 font-bold' : 'text-slate-400'}>
+                      {(bpm !== null ? bpm >= 110 : energy >= FITNESS_TARGET) ? 'IN THE ZONE' : 'keep moving'}
                     </span>
                   </div>
                   <div className="h-3 rounded-full bg-slate-800 overflow-hidden relative">
                     <div
-                      className={`h-full transition-all ${energy >= FITNESS_TARGET ? 'bg-emerald-400' : 'bg-amber-400'}`}
-                      style={{ width: `${Math.min(100, energy * 100)}%` }}
+                      className={`h-full transition-all ${(bpm !== null ? bpm >= 110 : energy >= FITNESS_TARGET) ? 'bg-emerald-400' : 'bg-amber-400'}`}
+                      style={{ width: `${Math.min(100, bpm !== null ? (bpm / 180) * 100 : energy * 100)}%` }}
                     />
-                    <div className="absolute inset-y-0 border-l-2 border-white/70" style={{ left: `${FITNESS_TARGET * 100}%` }} />
+                    <div className="absolute inset-y-0 border-l-2 border-white/70" style={{ left: `${bpm !== null ? (110 / 180) * 100 : FITNESS_TARGET * 100}%` }} />
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-mono">
                     <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
@@ -371,8 +451,19 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
                       <div className="text-[9px] text-slate-500">active</div>
                     </div>
                     <div className="p-1.5 rounded bg-slate-900 border border-slate-800">
-                      <div className="text-cyan-300 font-bold">{Math.round(peakEnergy * 100)}%</div>
-                      <div className="text-[9px] text-slate-500">peak</div>
+                      {bpm !== null ? (
+                        <>
+                          <div className="text-rose-400 font-bold flex items-center justify-center gap-1">
+                            <Heart className="w-3 h-3 fill-current" /> {bpm}
+                          </div>
+                          <div className="text-[9px] text-slate-500">bpm (watch)</div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-cyan-300 font-bold">{Math.round(peakEnergy * 100)}%</div>
+                          <div className="text-[9px] text-slate-500">peak</div>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
