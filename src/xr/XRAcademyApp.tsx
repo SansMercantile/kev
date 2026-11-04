@@ -87,6 +87,7 @@ const OpticsLab = lazy(() =>
 const TwinChallengeView = lazy(() => import('./components/programs/TwinChallengeView'));
 const BiomeReconView = lazy(() => import('./components/programs/BiomeReconView'));
 const PulseLabView = lazy(() => import('./components/programs/PulseLabView'));
+const QuantumLabView = lazy(() => import('./components/programs/QuantumLabView'));
 const SketchBench = lazy(() => import('./components/programs/SketchBench'));
 const StudyKitModal = lazy(() => import('./components/programs/StudyKitModal'));
 const PaperSummarizer = lazy(() => import('./components/programs/PaperSummarizer'));
@@ -662,6 +663,18 @@ export default function App() {
           >
             <Activity className="w-3.5 h-3.5 text-rose-300" />
             Pulse Lab
+          </button>
+          <button
+            onClick={() => setViewMode('quantum')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'quantum'
+                ? 'bg-violet-600 text-white font-semibold shadow-md shadow-violet-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Quantum Optimization Lab - the Ising decoder: watch a real optimizer cool into a solution"
+          >
+            <Atom className="w-3.5 h-3.5 text-violet-300" />
+            Quantum Lab
           </button>
           <button
             onClick={() => setViewMode('dashboard')}
@@ -1320,6 +1333,10 @@ export default function App() {
               }}
               onRequestAITutor={handleOpenTutorWithPrompt}
             />
+          )}
+
+          {viewMode === 'quantum' && (
+            <QuantumLabView />
           )}
 
           {viewMode === 'dashboard' && (
