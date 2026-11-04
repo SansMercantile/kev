@@ -88,6 +88,7 @@ const TwinChallengeView = lazy(() => import('./components/programs/TwinChallenge
 const BiomeReconView = lazy(() => import('./components/programs/BiomeReconView'));
 const PulseLabView = lazy(() => import('./components/programs/PulseLabView'));
 const QuantumLabView = lazy(() => import('./components/programs/QuantumLabView'));
+const DimensionExplorerView = lazy(() => import('./components/programs/DimensionExplorerView'));
 const SketchBench = lazy(() => import('./components/programs/SketchBench'));
 const StudyKitModal = lazy(() => import('./components/programs/StudyKitModal'));
 const PaperSummarizer = lazy(() => import('./components/programs/PaperSummarizer'));
@@ -675,6 +676,18 @@ export default function App() {
           >
             <Atom className="w-3.5 h-3.5 text-violet-300" />
             Quantum Lab
+          </button>
+          <button
+            onClick={() => setViewMode('dimensions')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'dimensions'
+                ? 'bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Dimension Explorer - a real 4D tesseract, projected down to 3D: steer the 4th axis"
+          >
+            <Atom className="w-3.5 h-3.5 text-cyan-300" />
+            Dimensions
           </button>
           <button
             onClick={() => setViewMode('dashboard')}
@@ -1337,6 +1350,10 @@ export default function App() {
 
           {viewMode === 'quantum' && (
             <QuantumLabView />
+          )}
+
+          {viewMode === 'dimensions' && (
+            <DimensionExplorerView />
           )}
 
           {viewMode === 'dashboard' && (

@@ -1,6 +1,6 @@
 export type LabId = 'chemistry' | 'astrophysics' | 'biology' | 'optics';
 
-export type ViewMode = 'campus' | 'labs' | 'classroom' | 'curriculum' | 'notebook' | 'dashboard' | 'sports' | 'physics' | 'visitors' | 'challenge' | 'biome' | 'pulse' | 'quantum';
+export type ViewMode = 'campus' | 'labs' | 'classroom' | 'curriculum' | 'notebook' | 'dashboard' | 'sports' | 'physics' | 'visitors' | 'challenge' | 'biome' | 'pulse' | 'quantum' | 'dimensions';
 
 export type XRMode = 'standard' | 'ar' | 'vr-stereoscopic';
 
