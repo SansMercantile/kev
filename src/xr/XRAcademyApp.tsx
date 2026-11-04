@@ -89,6 +89,7 @@ const BiomeReconView = lazy(() => import('./components/programs/BiomeReconView')
 const PulseLabView = lazy(() => import('./components/programs/PulseLabView'));
 const QuantumLabView = lazy(() => import('./components/programs/QuantumLabView'));
 const DimensionExplorerView = lazy(() => import('./components/programs/DimensionExplorerView'));
+const MotionGymView = lazy(() => import('./components/sports/MotionGymView'));
 const SketchBench = lazy(() => import('./components/programs/SketchBench'));
 const StudyKitModal = lazy(() => import('./components/programs/StudyKitModal'));
 const PaperSummarizer = lazy(() => import('./components/programs/PaperSummarizer'));
@@ -723,6 +724,18 @@ export default function App() {
           >
             <Dumbbell className="w-3.5 h-3.5 text-emerald-300" />
             Sports
+          </button>
+          <button
+            onClick={() => setViewMode('motiongym')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              viewMode === 'motiongym'
+                ? 'bg-emerald-600 text-white font-semibold shadow-md shadow-emerald-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+            }`}
+            title="Motion Gym — camera PE: dance & cardio games that read your movement from the webcam"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-300" />
+            Motion Gym
           </button>
           <button
             onClick={() => setViewMode('visitors')}
@@ -1396,6 +1409,13 @@ export default function App() {
               studentStats={studentStats}
               onAwardXP={handleAwardXP}
               onBackToCampus={handleBackToCampus}
+            />
+          )}
+
+          {viewMode === 'motiongym' && (
+            <MotionGymView
+              studentName={studentStats.name}
+              onAwardXP={handleAwardXP}
             />
           )}
 
