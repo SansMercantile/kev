@@ -1,30 +1,31 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, CameraOff, Play, RotateCcw, Sparkles, Activity, Zap, Trophy, AlertCircle, Music, Heart, Wind, Watch, Bluetooth } from 'lucide-react';
+import { Camera, CameraOff, Play, RotateCcw, Sparkles, Activity, Zap, Trophy, AlertCircle, Music, Heart, Wind, Watch, Bluetooth, PersonStanding, Wifi, WifiOff } from 'lucide-react';
 import { useToast } from '../toast/ToastContext';
 import { connectHeartRate, isHeartRateSupported, type HeartRateConnection } from '../../lib/heartRate';
+import { createAdaptivePoseEngine, type AdaptivePoseEngine, type PoseFrame, POSE_PARTS } from '../../lib/poseEngine';
 
 /**
- * Motion Gym — camera PE, the honest Kinect.
+ * Motion Gym — camera PE with a real skeleton, the honest Kinect.
  *
- * Point the camera at yourself and move: the game reads your motion from the
- * video frames with a dependency-free optical-motion approach (per-frame pixel
- * differencing + the motion's centroid + a left/right energy split), so it
- * works on any device with a webcam — no model download, no GPU requirement,
- * no cloud round-trip. That is deliberately NOT a MediaPipe/TensorFlow pose
- * estimator (none is bundled, and the honest version is framed as such): it
- * reads *how much* and *where* you move, which is all a dance/fitness game
- * needs.
+ * Point the camera at yourself and move: the game reads your *pose* — actual
+ * skeletal keypoints (wrists, elbows, shoulders, hips, nose) — through the
+ * connection-adaptive pose engine (`src/xr/lib/poseEngine.ts`):
+ *
+ *   • Online  → **TF.js PoseNet** (heavy, high-accuracy 17-keypoint model).
+ *   • Offline → **MediaPipe Pose Lite** (5.5 MB model bundled in the PWA,
+ *     WASM in-package) — a real 33-point pose with zero network.
+ *
+ * The engine falls back to the offline tier if the online model can't load
+ * (a school network that blocks CDNs still gets a pose). Every frame is
+ * analysed in-page; video never leaves the device, and the copy says so.
  *
  * Two game modes:
- *   • Dance Beat — a target zone lights up (left / right / high); reach the
- *     matching part of the frame before the beat passes to score. Combo builds.
- *   • Fitness Burst — keep your motion energy above the target line for the
- *     whole interval (a "just keep moving" cardio challenge).
+ *   • Dance Beat — a target lights up (left wrist / right wrist / both hands
+ *     up); hit the matching *body part* position before the beat passes.
+ *   • Fitness Burst — keep your whole-body motion energy above the line (or
+ *     your real pulse in the cardio band, with a smartwatch linked).
  *
- * XP flows through the standard onAwardXP contract into the student account,
- * and a session summary (active time, peak energy, best combo, score) can be
- * logged to the lab notebook — the offline-sync pattern the notebook already
- * uses. Privacy: frames are analysed in-page and never leave the device.
+ * XP flows through the standard onAwardXP contract into the student account.
  */
 
 interface Props {
@@ -34,10 +35,11 @@ interface Props {
 
 type GameMode = 'dance' | 'fitness';
 
+// Beat targets read real body-part positions: which wrist, and hands-over-head.
 const BEAT_TARGETS = [
-  { id: 'left', label: 'LEFT', color: '#22d3ee', zone: 'left' },
-  { id: 'right', label: 'RIGHT', color: '#a855f7', zone: 'right' },
-  { id: 'high', label: 'REACH UP', color: '#f59e0b', zone: 'high' },
+  { id: 'left', label: 'LEFT HAND', color: '#22d3ee', zone: 'left' },
+  { id: 'right', label: 'RIGHT HAND', color: '#a855f7', zone: 'right' },
+  { id: 'high', label: 'HANDS UP', color: '#f59e0b', zone: 'high' },
 ] as const;
 
 export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Scholar' }) => {
@@ -77,7 +79,12 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
   const hrRef = useRef<HeartRateConnection | null>(null);
 
   const rafRef = useRef(0);
-  const prevFrameRef = useRef<Uint8ClampedArray | null>(null);
+  const poseEngineRef = useRef<AdaptivePoseEngine | null>(null);
+  const [poseTier, setPoseTier] = useState<string>('loading');
+  const [poseReady, setPoseReady] = useState(false);
+  const [poseError, setPoseError] = useState<string | null>(null);
+  const [skeleton, setSkeleton] = useState<PoseFrame | null>(null);
+  const prevWristsRef = useRef<{ left: { x: number; y: number } | null; right: { x: number; y: number } | null }>({ left: null, right: null });
   const lastBeatRef = useRef(0);
   const lastTickRef = useRef(0);
 
@@ -147,54 +154,87 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
     setBpm(null);
   };
 
-  // ---- Optical motion: per-frame pixel differencing + centroid + L/R split ----
-  const analyse = useCallback(() => {
-    const video = videoRef.current;
-    const work = workCanvasRef.current;
-    if (!video || !work || video.readyState < 2) return null;
-    const w = 96, h = 72; // tiny analysis grid — cheap and motion-rich
-    work.width = w;
-    work.height = h;
-    const ctx = work.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, w, h);
-    const frame = ctx.getImageData(0, 0, w, h).data;
-    const prev = prevFrameRef.current;
-    prevFrameRef.current = frame;
-    if (!prev) return { energy: 0, cx: 0.5, cy: 0.5, left: 0, right: 0 };
+  // ---- Adaptive pose engine: load the right tier for the connection ----
+  useEffect(() => {
+    let cancelled = false;
+    setPoseTier('loading');
+    createAdaptivePoseEngine()
+      .then((engine) => {
+        if (cancelled) { engine.dispose(); return; }
+        poseEngineRef.current = engine;
+        setPoseTier(engine.label);
+        setPoseReady(Boolean(engine.posenet || engine.mediapipe));
+        if (!engine.posenet && !engine.mediapipe) {
+          setPoseError('No pose model could load. Check your connection and reload.');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPoseError('The pose engine failed to start. Check your connection and reload.');
+      });
+    return () => {
+      cancelled = true;
+      poseEngineRef.current?.dispose();
+      poseEngineRef.current = null;
+    };
+  }, []);
 
-    let changed = 0, sumX = 0, sumY = 0, left = 0, right = 0;
-    for (let i = 0; i < frame.length; i += 4) {
-      const dr = Math.abs(frame[i] - prev[i]);
-      const dg = Math.abs(frame[i + 1] - prev[i + 1]);
-      const db = Math.abs(frame[i + 2] - prev[i + 2]);
-      if (dr + dg + db > 60) {
-        const px = (i / 4) % w;
-        const py = Math.floor(i / 4 / w);
-        changed++;
-        sumX += px;
-        sumY += py;
-        if (px < w / 2) left++; else right++;
-      }
+  // ---- Pose detection on the current frame (sync offline, async online) ----
+  const analyse = useCallback(async (): Promise<{ energy: number; cx: number; cy: number; leftWrist: { x: number; y: number } | null; rightWrist: { x: number; y: number } | null; handsUp: boolean; frame: PoseFrame | null }> => {
+    const video = videoRef.current;
+    const engine = poseEngineRef.current;
+    if (!video || !engine || video.readyState < 2) {
+      return { energy: 0, cx: 0.5, cy: 0.5, leftWrist: null, rightWrist: null, handsUp: false, frame: null };
     }
-    const energy = Math.min(1, changed / (w * h) * 6); // scaled to ~0..1
-    const cx = changed ? sumX / changed / w : 0.5;
-    const cy = changed ? sumY / changed / h : 0.5;
-    return { energy, cx, cy, left, right };
+
+    let frame: PoseFrame | null = null;
+    if (engine.posenet) {
+      frame = await engine.posenet.detectAsync(video);
+    } else if (engine.mediapipe) {
+      frame = engine.mediapipe.detect(video, performance.now());
+    }
+    if (!frame) {
+      return { energy: 0, cx: 0.5, cy: 0.5, leftWrist: null, rightWrist: null, handsUp: false, frame: null };
+    }
+
+    // Real body parts from the skeleton (canonical POSE_PARTS indices).
+    const part = (idx: number) => frame!.landmarks[idx] ?? null;
+    const leftWristLm = part(POSE_PARTS.leftWrist);
+    const rightWristLm = part(POSE_PARTS.rightWrist);
+    const nose = part(POSE_PARTS.nose);
+
+    const leftWrist = leftWristLm && leftWristLm.confidence > 0.35 ? { x: leftWristLm.x, y: leftWristLm.y } : null;
+    const rightWrist = rightWristLm && rightWristLm.confidence > 0.35 ? { x: rightWristLm.x, y: rightWristLm.y } : null;
+
+    // Whole-body motion energy: how far the wrists moved since last frame.
+    const prev = prevWristsRef.current;
+    let motion = 0;
+    if (leftWrist && prev.left) motion += Math.hypot(leftWrist.x - prev.left.x, leftWrist.y - prev.left.y);
+    if (rightWrist && prev.right) motion += Math.hypot(rightWrist.x - prev.right.x, rightWrist.y - prev.right.y);
+    prevWristsRef.current = { left: leftWrist, right: rightWrist };
+    const energy = Math.min(1, motion * 4 + frame.confidence * 0.2);
+
+    // Hands up = either wrist clearly above the nose.
+    const handsUp = Boolean(
+      nose && ((leftWrist && leftWrist.y < nose.y - 0.05) || (rightWrist && rightWrist.y < nose.y - 0.05))
+    );
+
+    return { energy, cx: frame.centroidX, cy: frame.centroidY, leftWrist, rightWrist, handsUp, frame };
   }, []);
 
   // ---- Game loop ----
   useEffect(() => {
-    if (!running || !cameraActive) return;
+    if (!running || !cameraActive || !poseReady) return;
     const BEAT_MS = 2000;
-    const tick = (now: number) => {
+    let alive = true;
+    const tick = async (now: number) => {
+      if (!alive) return;
       rafRef.current = requestAnimationFrame(tick);
       if (document.hidden) { lastTickRef.current = now; return; }
-      const m = analyse();
-      if (!m) return;
+      const m = await analyse();
+      if (!m || !m.frame) return;
+      setSkeleton(m.frame);
       setEnergy(m.energy);
       setCentroid({ x: m.cx, y: m.cy });
-      setLeftRight({ left: m.left, right: m.right });
       setPeakEnergy((p) => Math.max(p, m.energy));
 
       const dt = (now - lastTickRef.current) / 1000;
@@ -202,13 +242,14 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
       setSessionSeconds((s) => s + dt);
 
       if (mode === 'dance') {
-        // Advance the beat target every BEAT_MS; score if the player reached the zone.
+        // Advance the beat target every BEAT_MS; score if the player hit the
+        // matching *body part* position (real wrists / hands-up, not pixels).
         if (now - lastBeatRef.current >= BEAT_MS) {
           const target = BEAT_TARGETS[targetIdx % BEAT_TARGETS.length];
           const hit =
-            (target.zone === 'left' && m.left > m.right * 1.4 && m.left > 30) ||
-            (target.zone === 'right' && m.right > m.left * 1.4 && m.right > 30) ||
-            (target.zone === 'high' && m.cy < 0.38 && m.energy > 0.2);
+            (target.zone === 'left' && m.leftWrist && m.leftWrist.x < 0.5) ||
+            (target.zone === 'right' && m.rightWrist && m.rightWrist.x > 0.5) ||
+            (target.zone === 'high' && m.handsUp);
           if (hit) {
             const newCombo = combo + 1;
             setCombo(newCombo);
@@ -231,8 +272,8 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
     lastBeatRef.current = performance.now();
     lastTickRef.current = performance.now();
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [running, cameraActive, mode, analyse, targetIdx, combo, bpm]);
+    return () => { alive = false; cancelAnimationFrame(rafRef.current); };
+  }, [running, cameraActive, poseReady, mode, analyse, targetIdx, combo, bpm]);
 
   const startSession = () => {
     setScore(0); setCombo(0); setBestCombo(0); setTargetIdx(0);
@@ -279,7 +320,19 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
                 Camera PE
               </span>
             </h3>
-            <p className="text-xs text-slate-400">Dance & cardio games that read your movement from the webcam — on-device, private</p>
+            <p className="text-xs text-slate-400 flex items-center gap-1.5">
+              Real skeleton pose, on-device
+              {poseReady && (
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${
+                  poseEngineRef.current?.tier === 'posenet'
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                }`}>
+                  {poseEngineRef.current?.tier === 'posenet' ? <Wifi className="w-2.5 h-2.5" /> : <WifiOff className="w-2.5 h-2.5" />}
+                  {poseEngineRef.current?.tier === 'posenet' ? 'PoseNet HD' : 'Pose Lite (offline)'}
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -305,15 +358,16 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
           </button>
           <button
             onClick={running ? endSession : startSession}
-            disabled={!cameraActive}
+            disabled={!cameraActive || !poseReady}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all disabled:opacity-50 ${
               running
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
                 : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
             }`}
+            title={!poseReady ? 'Loading the pose model…' : undefined}
           >
             {running ? <RotateCcw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {running ? 'End & Bank XP' : 'Start Session'}
+            {running ? 'End & Bank XP' : poseReady ? 'Start Session' : 'Loading pose…'}
           </button>
         </div>
 
@@ -373,20 +427,56 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
             {hrError && (
               <p className="mt-3 text-xs text-rose-300 text-center max-w-sm">{hrError}</p>
             )}
+            {poseError && (
+              <p className="mt-2 text-xs text-amber-300 text-center max-w-sm">{poseError}</p>
+            )}
           </div>
         )}
 
         {cameraActive && (
           <>
-            {/* Motion centroid reticle */}
-            <div
-              className="absolute w-10 h-10 rounded-full border-2 border-emerald-400/80 pointer-events-none transition-all duration-75 z-10"
-              style={{
-                left: `calc(${(1 - centroid.x) * 100}% - 20px)`,
-                top: `calc(${centroid.y * 100}% - 20px)`,
-                boxShadow: '0 0 18px rgba(52,211,153,0.6)',
-              }}
-            />
+            {/* Skeleton overlay: real keypoints from the pose engine, mirrored
+                like the video. Wrists + nose get emphasis (the dance targets). */}
+            {skeleton && (
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" viewBox="0 0 100 100" preserveAspectRatio="none">
+                {/* bones: shoulders, elbows->wrists, shoulders->hips */}
+                {(() => {
+                  const lm = skeleton.landmarks;
+                  const P = (i: number) => lm[i];
+                  const vis = (i: number) => (lm[i]?.confidence ?? 0) > 0.3;
+                  const mx = (i: number) => (1 - P(i).x) * 100; // mirrored
+                  const my = (i: number) => P(i).y * 100;
+                  const bones: [number, number][] = [
+                    [POSE_PARTS.leftShoulder, POSE_PARTS.rightShoulder],
+                    [POSE_PARTS.leftShoulder, POSE_PARTS.leftElbow],
+                    [POSE_PARTS.leftElbow, POSE_PARTS.leftWrist],
+                    [POSE_PARTS.rightShoulder, POSE_PARTS.rightElbow],
+                    [POSE_PARTS.rightElbow, POSE_PARTS.rightWrist],
+                    [POSE_PARTS.leftShoulder, POSE_PARTS.leftHip],
+                    [POSE_PARTS.rightShoulder, POSE_PARTS.rightHip],
+                    [POSE_PARTS.leftHip, POSE_PARTS.rightHip],
+                  ];
+                  return bones.map(([a, b], k) =>
+                    vis(a) && vis(b) ? (
+                      <line key={k} x1={mx(a)} y1={my(a)} x2={mx(b)} y2={my(b)} stroke="#22d3ee" strokeWidth={0.7} opacity={0.75} vectorEffect="non-scaling-stroke" />
+                    ) : null
+                  );
+                })()}
+                {/* joints */}
+                {skeleton.landmarks.map((lm, i) =>
+                  lm.confidence > 0.3 ? (
+                    <circle
+                      key={i}
+                      cx={(1 - lm.x) * 100}
+                      cy={lm.y * 100}
+                      r={i === POSE_PARTS.leftWrist || i === POSE_PARTS.rightWrist || i === POSE_PARTS.nose ? 1.8 : 1.0}
+                      fill={i === POSE_PARTS.leftWrist || i === POSE_PARTS.rightWrist ? '#f59e0b' : i === POSE_PARTS.nose ? '#34d399' : '#22d3ee'}
+                      opacity={0.9}
+                    />
+                  ) : null
+                )}
+              </svg>
+            )}
 
             {/* Dance target zone */}
             {running && mode === 'dance' && (
@@ -491,9 +581,9 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
         </div>
         <p className="text-[10px] text-slate-500 max-w-xl leading-relaxed flex items-start gap-1.5">
           <Sparkles className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
-          Motion Gym reads how much and where you move from webcam frames (per-frame differencing + motion centroid) —
-          all on-device, no video leaves your device. It is not a MediaPipe/TF pose estimator (none is bundled); it is
-          the honest version that works on any webcam. XP banks to {studentName}&apos;s account on End.
+          Motion Gym reads your real skeleton (wrists, elbows, shoulders, hips) from the webcam, on-device — no video
+          leaves your device. Online it uses TF.js PoseNet (high-accuracy); offline it uses the bundled MediaPipe Pose
+          Lite, so it works with zero internet. {hrSupported && 'Link a smartwatch for a real pulse.'} XP banks to {studentName}&apos;s account on End.
         </p>
       </div>
     </div>

@@ -29,6 +29,10 @@ export default defineConfig({
       workbox: {
         // SPA shell: stale app still boots with zero network.
         navigateFallback: 'index.html',
+        // The MediaPipe pose WASM (14.6 MB each) is fetched CacheFirst on
+        // demand (see runtimeCaching), never precached — exclude it from the
+        // precache glob so workbox's 2 MiB file cap does not fail the build.
+        globIgnores: ['**/pose-wasm/**'],
         // Precache the 3D models so the immersive classroom works fully
         // offline on first visit, not only after an online load: the Human
         // Atlas (gzip geometry chunks + catalog) and the Model X GLB are core
@@ -39,6 +43,9 @@ export default defineConfig({
           ...Array.from({ length: 15 }, (_, i) => ({ url: `/models/body-${i}.bin.gz`, revision: 'atlas-1' })),
           { url: '/models/model-x.glb', revision: 'modelx-334' },
           { url: '/models/model-x-manifest.json', revision: 'modelx-334' },
+          // Motion Gym's offline pose model (MediaPipe Pose Lite, 5.5 MB) so
+          // camera PE works with zero network on a first-visit device.
+          { url: '/models/pose_landmarker_lite.task', revision: 'pose-lite-1' },
         ],
         // 3D catalogs + fonts: cache-first, they rarely change.
         runtimeCaching: [
@@ -48,6 +55,14 @@ export default defineConfig({
             // The full atlas (15 chunks + catalog) + Model X GLB + manifest
             // exceed the old 10-entry cap, which evicted chunks mid-stream.
             options: { cacheName: 'kev-models', expiration: { maxEntries: 40, maxAgeSeconds: 30 * 24 * 3600 } },
+          },
+          {
+            // MediaPipe pose WASM (28 MB): CacheFirst on demand, NOT precached
+            // (too heavy for the precache). Fetched once when Motion Gym first
+            // runs the offline tier, then served from cache thereafter.
+            urlPattern: ({ url }) => url.pathname.startsWith('/pose-wasm/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'kev-pose-wasm', expiration: { maxEntries: 8, maxAgeSeconds: 30 * 24 * 3600 } },
           },
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
