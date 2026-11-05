@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -57,6 +57,7 @@ import { FocusTimer } from './components/labs/FocusTimer';
 import { useToast } from './components/toast/ToastContext';
 import { getStudyLevelId, setStudyLevelId, STUDY_LEVEL_OPTIONS } from './lib/studyLevel';
 import { getCurrentSubjectId, setCurrentSubjectId } from './lib/currentSubject';
+import { pullStudentProgress, pushStudentProgress } from './lib/progressSync';
 // ---------------------------------------------------------------------------
 // Code splitting
 // ---------------------------------------------------------------------------
@@ -328,6 +329,58 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('kev_lab_snapshots', JSON.stringify(snapshots));
   }, [snapshots]);
+
+  // --- Server progress sync (durable across devices) ------------------------
+  // Pull once on mount: the server's durable record merges over local (local
+  // is the fast cache + offline buffer). Track the server version for
+  // last-writer-wins conflict resolution on writes.
+  const progressVersionRef = useRef<number>(0);
+  const progressPulledRef = useRef<string>('');
+  useEffect(() => {
+    const id = studentStats.id;
+    if (!id || progressPulledRef.current === id) return;
+    progressPulledRef.current = id;
+    let cancelled = false;
+    pullStudentProgress(id, studentStats).then(({ stats, version }) => {
+      if (cancelled) return;
+      progressVersionRef.current = version;
+      // Only apply if the server actually had something (a pull of a fresh
+      // record returns local unchanged with version 0).
+      if (version > 0) setStudentStats(stats);
+    }).catch(() => { /* offline: local keeps working */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentStats.id]);
+
+  // Push on change (debounced): the write carries the version; a conflict
+  // means another device wrote newer, so re-sync instead of clobbering.
+  const progressPushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    const id = studentStats.id;
+    if (!id || progressPulledRef.current !== id) return;
+    if (progressPushTimer.current) clearTimeout(progressPushTimer.current);
+    progressPushTimer.current = setTimeout(() => {
+      pushStudentProgress({ ...studentStats, id }, progressVersionRef.current).then(({ version, conflict, truth }) => {
+        progressVersionRef.current = version;
+        if (conflict && truth) {
+          // Another device wrote newer: adopt the server's truth and keep going.
+          setStudentStats((prev) => ({
+            ...prev,
+            xp: truth.xp,
+            badges: truth.badges,
+            completedLabsCount: truth.completedLabsCount,
+            quizzesPassedCount: truth.quizzesPassedCount,
+            unlockedEquipmentIds: truth.unlockedEquipmentIds,
+            equippedToolId: truth.equippedToolId ?? prev.equippedToolId,
+          }));
+        }
+      }).catch(() => { /* offline: next change re-syncs */ });
+    }, 1200);
+    return () => {
+      if (progressPushTimer.current) clearTimeout(progressPushTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentStats]);
 
   // Check and grant badges
   const checkAndAwardBadge = (badgeName: string, reason: string) => {
