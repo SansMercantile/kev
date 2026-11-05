@@ -3,6 +3,8 @@ import { Camera, CameraOff, Play, RotateCcw, Sparkles, Activity, Zap, Trophy, Al
 import { useToast } from '../toast/ToastContext';
 import { connectHeartRate, isHeartRateSupported, type HeartRateConnection } from '../../lib/heartRate';
 import { createAdaptivePoseEngine, type AdaptivePoseEngine, type PoseFrame, POSE_PARTS } from '../../lib/poseEngine';
+import { joinDanceBattle, type DanceBattleHandle, type BattlePlayer, type BattleResult } from '../../lib/danceBattle';
+import { getProfile } from '../../../lib/roleSession';
 
 /**
  * Motion Gym — camera PE with a real skeleton, the honest Kinect.
@@ -33,7 +35,7 @@ interface Props {
   studentName?: string;
 }
 
-type GameMode = 'dance' | 'fitness';
+type GameMode = 'dance' | 'fitness' | 'battle';
 
 // Beat targets read real body-part positions: which wrist, and hands-over-head.
 const BEAT_TARGETS = [
@@ -77,6 +79,17 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
   const [hrError, setHrError] = useState<string | null>(null);
   const [hrConnecting, setHrConnecting] = useState(false);
   const hrRef = useRef<HeartRateConnection | null>(null);
+
+  // Dance Battle: real-time multiplayer over the backend WS. The server is the
+  // referee (shared beat clock + leaderboard); pose eval stays on-device.
+  const [battleRoom, setBattleRoom] = useState<string | null>(null);
+  const [battleLeaderboard, setBattleLeaderboard] = useState<BattlePlayer[]>([]);
+  const [battleBeatIndex, setBattleBeatIndex] = useState(0);
+  const [battleSequence, setBattleSequence] = useState<string[]>([]);
+  const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
+  const [battleError, setBattleError] = useState<string | null>(null);
+  const [battleConnected, setBattleConnected] = useState(false);
+  const battleRef = useRef<DanceBattleHandle | null>(null);
 
   const rafRef = useRef(0);
   const poseEngineRef = useRef<AdaptivePoseEngine | null>(null);
@@ -152,6 +165,68 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
     hrRef.current = null;
     setHrConnection(null);
     setBpm(null);
+  };
+
+  // ---- Dance Battle: join / leave / cleanup on unmount ----
+  useEffect(() => {
+    return () => {
+      battleRef.current?.close();
+    };
+  }, []);
+
+  const handleJoinBattle = () => {
+    setBattleError(null);
+    setBattleResult(null);
+    const profile = getProfile();
+    const cohort = profile?.cohort || 'senior';
+    const name = profile?.name || studentName;
+    const handle = joinDanceBattle(
+      { cohort, name },
+      {
+        onJoined: (roomId) => {
+          setBattleRoom(roomId);
+          setBattleConnected(true);
+        },
+        onState: (state) => {
+          setBattleLeaderboard(state.leaderboard || []);
+          setBattleBeatIndex(state.beatIndex ?? 0);
+          setBattleSequence(state.sequence || []);
+        },
+        onBeat: (state) => {
+          setBattleLeaderboard(state.leaderboard || []);
+          setBattleBeatIndex(state.beatIndex ?? 0);
+        },
+        onResult: (result) => {
+          setBattleResult(result);
+          setBattleLeaderboard(result.leaderboard || []);
+          setRunning(false);
+          // Bank XP for the placement through the standard contract.
+          const me = (result.leaderboard || []).findIndex((p) => p.name === name);
+          const place = me >= 0 ? me + 1 : 0;
+          const myScore = me >= 0 ? result.leaderboard[me].score : 0;
+          const xp = Math.min(250, Math.round(myScore / 4) + (place === 1 ? 50 : place === 2 ? 25 : place === 3 ? 10 : 0));
+          if (xp > 0 && onAwardXP) {
+            onAwardXP(xp, `Dance Battle: ${place === 1 ? '1st' : place === 2 ? '2nd' : place === 3 ? '3rd' : `${place}th`} place, score ${myScore}`);
+          }
+          if (place === 1) {
+            showToast({ type: 'badge', title: 'Dance Battle Champion', message: 'Won the Dance Battle!' });
+          }
+        },
+        onError: (detail) => setBattleError(detail),
+        onClose: () => setBattleConnected(false),
+      }
+    );
+    battleRef.current = handle;
+  };
+
+  const handleLeaveBattle = () => {
+    battleRef.current?.leave();
+    battleRef.current?.close();
+    battleRef.current = null;
+    setBattleRoom(null);
+    setBattleConnected(false);
+    setBattleLeaderboard([]);
+    setBattleResult(null);
   };
 
   // ---- Adaptive pose engine: load the right tier for the connection ----
@@ -241,7 +316,7 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
       lastTickRef.current = now;
       setSessionSeconds((s) => s + dt);
 
-      if (mode === 'dance') {
+      if (mode === 'dance' || mode === 'battle') {
         // Advance the beat target every BEAT_MS; score if the player hit the
         // matching *body part* position (real wrists / hands-up, not pixels).
         if (now - lastBeatRef.current >= BEAT_MS) {
@@ -250,13 +325,29 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
             (target.zone === 'left' && m.leftWrist && m.leftWrist.x < 0.5) ||
             (target.zone === 'right' && m.rightWrist && m.rightWrist.x > 0.5) ||
             (target.zone === 'high' && m.handsUp);
-          if (hit) {
-            const newCombo = combo + 1;
-            setCombo(newCombo);
-            setBestCombo((b) => Math.max(b, newCombo));
-            setScore((s) => s + 10 + newCombo * 2);
+          if (mode === 'battle' && battleRef.current?.connected) {
+            // Battle: report to the server referee (shared clock + leaderboard),
+            // which updates the board for everyone. Local combo mirrors it.
+            if (hit) {
+              battleRef.current.sendHit(battleBeatIndex);
+              const newCombo = combo + 1;
+              setCombo(newCombo);
+              setBestCombo((b) => Math.max(b, newCombo));
+            } else {
+              battleRef.current.sendMiss();
+              setCombo(0);
+            }
+            battleRef.current.advance();
           } else {
-            setCombo(0);
+            // Solo dance: local scoring.
+            if (hit) {
+              const newCombo = combo + 1;
+              setCombo(newCombo);
+              setBestCombo((b) => Math.max(b, newCombo));
+              setScore((s) => s + 10 + newCombo * 2);
+            } else {
+              setCombo(0);
+            }
           }
           setTargetIdx((i) => i + 1);
           lastBeatRef.current = now;
@@ -273,7 +364,7 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
     lastTickRef.current = performance.now();
     rafRef.current = requestAnimationFrame(tick);
     return () => { alive = false; cancelAnimationFrame(rafRef.current); };
-  }, [running, cameraActive, poseReady, mode, analyse, targetIdx, combo, bpm]);
+  }, [running, cameraActive, poseReady, mode, analyse, targetIdx, combo, bpm, battleBeatIndex]);
 
   const startSession = () => {
     setScore(0); setCombo(0); setBestCombo(0); setTargetIdx(0);
@@ -284,6 +375,12 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
   const endSession = () => {
     setRunning(false);
     // Award XP from the session outcome, through the standard contract.
+    if (mode === 'battle') {
+      // Battle XP is banked by the server's result event (placement-based);
+      // leaving early just closes the session without a false award.
+      handleLeaveBattle();
+      return;
+    }
     if (mode === 'dance') {
       const xp = Math.min(200, Math.round(score / 5));
       if (xp > 0 && onAwardXP) {
@@ -357,17 +454,29 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
             Fitness Burst
           </button>
           <button
-            onClick={running ? endSession : startSession}
+            onClick={() => setMode('battle')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer transition-all ${
+              mode === 'battle' ? 'bg-amber-600 text-white font-semibold' : 'text-slate-400 hover:text-white'
+            }`}
+            title="Dance Battle: real-time multiplayer against your age band (online)"
+          >
+            <Trophy className="w-3.5 h-3.5" />
+            Battle
+          </button>
+          <button
+            onClick={running ? endSession : (mode === 'battle' ? (battleRoom ? startSession : handleJoinBattle) : startSession)}
             disabled={!cameraActive || !poseReady}
             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all disabled:opacity-50 ${
               running
                 ? 'bg-rose-600 hover:bg-rose-500 text-white'
+                : mode === 'battle'
+                ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white'
                 : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
             }`}
             title={!poseReady ? 'Loading the pose model…' : undefined}
           >
             {running ? <RotateCcw className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {running ? 'End & Bank XP' : poseReady ? 'Start Session' : 'Loading pose…'}
+            {running ? (mode === 'battle' ? 'Leave Battle' : 'End & Bank XP') : !poseReady ? 'Loading pose…' : mode === 'battle' ? (battleRoom ? 'Start Battle' : 'Join Battle') : 'Start Session'}
           </button>
         </div>
 
@@ -507,7 +616,7 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
               </div>
             )}
 
-            {/* Score / combo */}
+            {/* Score / combo (solo dance) */}
             {running && mode === 'dance' && (
               <div className="absolute top-4 right-4 z-20 text-right">
                 <div className="text-3xl font-black text-white font-mono">{score}</div>
@@ -515,6 +624,56 @@ export const MotionGymView: React.FC<Props> = ({ onAwardXP, studentName = 'Schol
                 {combo > 1 && (
                   <div className="mt-1 text-lg font-black text-amber-400 font-mono">x{combo} combo</div>
                 )}
+              </div>
+            )}
+
+            {/* Battle: live leaderboard */}
+            {mode === 'battle' && battleRoom && (
+              <div className="absolute top-4 right-4 z-20 w-56 p-3 rounded-2xl bg-slate-950/90 border border-amber-500/40 shadow-2xl">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-semibold flex items-center gap-1.5">
+                  <Trophy className="w-3.5 h-3.5" />
+                  {battleResult ? 'Final Results' : 'Live Leaderboard'}
+                </span>
+                <div className="mt-2 space-y-1">
+                  {(battleLeaderboard.length ? battleLeaderboard : [{ name: 'You', score: 0, combo: 0, bestCombo: 0, hits: 0 }]).map((p, i) => (
+                    <div key={p.name} className={`flex items-center justify-between px-2 py-1 rounded-lg text-xs font-mono ${
+                      i === 0 && battleLeaderboard.length ? 'bg-amber-500/20 text-amber-200 border border-amber-500/40' : 'bg-slate-900/60 text-slate-300'
+                    }`}>
+                      <span className="truncate">{i + 1}. {p.name}</span>
+                      <span className="font-bold shrink-0 ml-2">{p.score}</span>
+                    </div>
+                  ))}
+                </div>
+                {battleResult?.winner && (
+                  <div className="mt-2 pt-2 border-t border-amber-500/30 text-center text-[11px] font-mono text-amber-300">
+                    🏆 {battleResult.winner.name} wins!
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Battle: shared target + beat index */}
+            {running && mode === 'battle' && (
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 text-center">
+                <div
+                  className="px-6 py-3 rounded-2xl font-black text-2xl tracking-widest border-2 shadow-2xl"
+                  style={{ color: BEAT_TARGETS[targetIdx % BEAT_TARGETS.length].color, borderColor: BEAT_TARGETS[targetIdx % BEAT_TARGETS.length].color, background: 'rgba(2,6,23,0.8)' }}
+                >
+                  {BEAT_TARGETS[targetIdx % BEAT_TARGETS.length].label}
+                </div>
+                <div className="mt-1.5 text-[11px] font-mono text-slate-300">
+                  beat {(battleBeatIndex % Math.max(1, battleSequence.length || 8)) + 1} / {battleSequence.length || 8}
+                </div>
+                <div className="mt-1 h-1.5 w-48 mx-auto rounded-full bg-slate-800 overflow-hidden">
+                  <div className="h-full bg-amber-400 transition-none" style={{ width: `${beatTimer * 100}%` }} />
+                </div>
+              </div>
+            )}
+
+            {/* Battle: connection error */}
+            {mode === 'battle' && battleError && (
+              <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 px-3 py-1.5 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs">
+                {battleError}
               </div>
             )}
 
