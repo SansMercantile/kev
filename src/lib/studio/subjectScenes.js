@@ -654,7 +654,7 @@ export class SubjectViewer {
     const isEarth = subjectId === 'earth'
     try {
       this.studio = createStudio(host, {
-        theme: isEarth ? 'space' : 'dark',
+        theme: isEarth ? 'space' : 'light',
         stage: isEarth ? null : 'plinth',
         stageRadius: isEarth ? 3 : subjectId === 'plants' ? 2.2 : 3.1,
         grid: !isEarth,

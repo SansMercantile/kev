@@ -280,11 +280,11 @@ const App = () => {
 
         <footer className="kev-footer">
           <div className="kev-footer-inner">
-            <p style={{ fontWeight: 700, color: '#0f172a' }}>KEV</p>
-            <p style={{ maxWidth: '740px', color: '#475569' }}>
+            <p style={{ fontWeight: 700, color: 'var(--foreground)' }}>KEV</p>
+            <p style={{ maxWidth: '740px', color: 'var(--muted-foreground)' }}>
               {t('nav.footerTagline')}
             </p>
-            <p style={{ color: '#68778c', fontSize: '0.95rem' }}>
+            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.95rem' }}>
               {liveCounts ? t('nav.footerRights', liveCounts) : t('nav.footerRightsPlain')}
             </p>
           </div>

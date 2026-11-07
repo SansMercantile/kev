@@ -437,10 +437,14 @@ export default function ImmersiveLab() {
   const loadingAtlas = activeSubjectId === 'anatomy' && !atlas.fallback && atlas.progress < 100 && !atlas.error
   const loadingVehicle = activeSubjectId === 'vehicle' && !vehicleReady && !sceneError
 
-  // The studio is the atlas: light gallery for anatomy + vehicle (the atlas /
-  // model-x tool look), navy studio for the procedural subjects, deep space
-  // for Earth. The page chrome stays one quiet surface so the model reads.
-  const lightStudio = activeSubjectId === 'anatomy' || activeSubjectId === 'vehicle'
+  // The whole studio reads in the atlas palette (code-for-code from
+  // tools/human-atlas): light gallery surface, dark slate ink. Earth keeps its
+  // deep-space scene, so its card stays dark for contrast.
+  const spaceScene = activeSubjectId === 'earth'
+  const ink = spaceScene ? '#f8fafc' : '#20242b'
+  const subInk = spaceScene ? '#9db2c8' : '#68727d'
+  const faintInk = spaceScene ? '#7b8ea3' : '#8a949e'
+  const accent = '#263b48'
 
   // Subjects grouped by discipline for the tab rail (the atlas groups its 15
   // systems; the page groups its 13 worlds the same way, not 17 flat buttons).
@@ -451,9 +455,9 @@ export default function ImmersiveLab() {
   ]
 
   const chip = (active) => ({
-    background: active ? '#f0b35b' : 'rgba(255,255,255,0.04)',
-    color: active ? '#231603' : '#cfe0f2',
-    border: `1px solid ${active ? '#f0b35b' : 'rgba(120,150,185,0.28)'}`,
+    background: active ? accent : 'rgba(255,255,255,0.6)',
+    color: active ? '#f3f4f4' : ink,
+    border: `1px solid ${active ? accent : 'rgba(24,37,54,0.16)'}`,
     borderRadius: 999,
     padding: '0.42rem 0.85rem',
     fontSize: '0.8rem',
@@ -463,9 +467,9 @@ export default function ImmersiveLab() {
     transition: 'background .15s ease, color .15s ease, border-color .15s ease',
   })
   const ghostBtn = (active) => ({
-    background: active ? 'rgba(240,179,91,0.14)' : 'rgba(255,255,255,0.04)',
-    color: active ? '#ffd9a0' : '#cfe0f2',
-    border: `1px solid ${active ? '#f0b35b' : 'rgba(120,150,185,0.28)'}`,
+    background: active ? 'rgba(38,59,72,0.10)' : 'rgba(255,255,255,0.6)',
+    color: active ? accent : ink,
+    border: `1px solid ${active ? accent : 'rgba(24,37,54,0.14)'}`,
     borderRadius: 8,
     padding: '0.45rem 0.7rem',
     fontSize: '0.8rem',
@@ -474,9 +478,9 @@ export default function ImmersiveLab() {
     transition: 'background .15s ease, color .15s ease, border-color .15s ease',
   })
   const toolBtn = (disabled) => ({
-    background: 'rgba(255,255,255,0.04)',
-    color: disabled ? '#5b7089' : '#cfe0f2',
-    border: '1px solid rgba(120,150,185,0.28)',
+    background: 'rgba(255,255,255,0.6)',
+    color: disabled ? faintInk : ink,
+    border: '1px solid rgba(24,37,54,0.14)',
     borderRadius: 8,
     padding: '0.45rem 0.7rem',
     fontSize: '0.8rem',
@@ -484,20 +488,22 @@ export default function ImmersiveLab() {
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
   })
+  const panelBg = spaceScene ? '#0d2136' : '#ffffff'
+  const panelBorder = spaceScene ? '1px solid rgba(120,150,185,0.28)' : '1px solid rgba(24,37,54,0.12)'
 
   return (
-    <main style={{ background: '#07111f', color: '#f8fafc', minHeight: 'calc(100vh - 76px)' }}>
+    <main style={{ background: '#f3f4f4', color: ink, minHeight: 'calc(100vh - 76px)' }}>
       <div style={{ maxWidth: 1320, margin: '0 auto', padding: '1.25rem 20px 3rem' }}>
         {/* Studio header: eyebrow + title + one line of guidance. */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap', paddingBottom: '0.9rem', borderBottom: '1px solid rgba(120,150,185,0.18)' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '1rem', flexWrap: 'wrap', paddingBottom: '0.9rem', borderBottom: '1px solid rgba(24,37,54,0.12)' }}>
           <div style={{ minWidth: 0 }}>
-            <p style={{ color: '#f0b35b', letterSpacing: '0.16em', fontSize: '0.7rem', fontWeight: 700, margin: 0 }}>{subject.eyebrow} · KEV ATLAS</p>
-            <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", color: '#f8fafc', margin: '0.3rem 0 0.3rem', fontSize: '1.7rem', lineHeight: 1.15 }}>{t(`subjects.${activeSubjectId}.label`, subject.label)}</h1>
-            <p style={{ color: '#9db2c8', maxWidth: 640, margin: 0, fontSize: '0.9rem' }}>{t(`subjects.${activeSubjectId}.description`, subject.description)}</p>
-            <p style={{ color: '#7b8ea3', fontSize: '0.78rem', margin: '0.45rem 0 0' }}>
+            <p style={{ color: '#737d89', letterSpacing: '0.16em', fontSize: '0.7rem', fontWeight: 600, margin: 0 }}>{subject.eyebrow} · KEV ATLAS</p>
+            <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", color: ink, margin: '0.3rem 0 0.3rem', fontSize: '1.7rem', lineHeight: 1.15 }}>{t(`subjects.${activeSubjectId}.label`, subject.label)}</h1>
+            <p style={{ color: subInk, maxWidth: 640, margin: 0, fontSize: '0.9rem' }}>{t(`subjects.${activeSubjectId}.description`, subject.description)}</p>
+            <p style={{ color: faintInk, fontSize: '0.78rem', margin: '0.45rem 0 0' }}>
               {t('viewer.guidedBy', { tutor: tutorLabel, track: trackLabel, floor: subject.floor })}{' '}
-              <a href="/xr-academy" style={{ color: '#f0b35b' }}>{t('viewer.openFullXrLab')}</a>
-              {' '}· <a href="/agents" style={{ color: '#f0b35b' }}>{t('viewer.allTutors')}</a>
+              <a href="/xr-academy" style={{ color: accent }}>{t('viewer.openFullXrLab')}</a>
+              {' '}· <a href="/agents" style={{ color: accent }}>{t('viewer.allTutors')}</a>
             </p>
           </div>
           <div style={{ display: 'grid', gap: '0.5rem', justifyItems: 'end' }}>
@@ -505,14 +511,14 @@ export default function ImmersiveLab() {
               value={studyLevel}
               onChange={(e) => { setStudyLevel(e.target.value); setStudyLevelId(e.target.value) }}
               title="Study level - subjects and tutors adapt to this grade"
-              style={{ background: '#0d2136', border: '1px solid rgba(120,150,185,0.35)', borderRadius: 8, color: '#f0b35b', padding: '0.5rem 0.7rem', fontSize: '0.8rem' }}
+              style={{ background: '#ffffff', border: '1px solid rgba(24,37,54,0.16)', borderRadius: 8, color: accent, padding: '0.5rem 0.7rem', fontSize: '0.8rem' }}
             >
               {STUDY_LEVEL_OPTIONS.map((l) => (
                 <option key={l.id} value={l.id}>{l.label}</option>
               ))}
             </select>
             {enriched?.levelGuidance && (
-              <p style={{ color: '#d8b565', fontSize: '0.74rem', margin: 0, maxWidth: 260, textAlign: 'right' }}>
+              <p style={{ color: accent, fontSize: '0.74rem', margin: 0, maxWidth: 260, textAlign: 'right' }}>
                 {t('viewer.studyingAt', { level: t(`studyLevels.${studyLevel}.label`, studyLevel), focus: t(`studyLevels.${studyLevel}.focus`, '') })}
               </p>
             )}
@@ -523,7 +529,7 @@ export default function ImmersiveLab() {
         <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', marginTop: '0.9rem', alignItems: 'flex-start' }}>
           {SUBJECT_GROUPS.map((group) => (
             <div key={group.id} style={{ display: 'grid', gap: '0.4rem' }}>
-              <span style={{ color: '#7b8ea3', fontSize: '0.68rem', letterSpacing: '0.14em', fontWeight: 700 }}>{group.label.toUpperCase()}</span>
+              <span style={{ color: faintInk, fontSize: '0.68rem', letterSpacing: '0.14em', fontWeight: 700 }}>{group.label.toUpperCase()}</span>
               <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                 {group.subjects.map((id) => (
                   <button key={id} role="tab" aria-selected={activeSubjectId === id} onClick={() => selectSubject(id)} style={chip(activeSubjectId === id)}>
@@ -536,10 +542,10 @@ export default function ImmersiveLab() {
         </div>
 
         {/* The bench: model + inspector, one framed studio. */}
-        <div className={lightStudio ? 'immersive-lab-grid studio-light' : 'immersive-lab-grid'} style={{ marginTop: '1rem', alignItems: 'start' }}>
+        <div className="immersive-lab-grid" style={{ marginTop: '1rem', alignItems: 'start' }}>
           <div style={{ display: 'grid', gap: '0.6rem', alignContent: 'start' }}>
             {/* Toolbar: a single restrained row of view tools. */}
-            <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap', background: '#0d2136', border: '1px solid rgba(120,150,185,0.28)', borderRadius: 10, padding: '0.5rem 0.65rem' }}>
+            <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexWrap: 'wrap', background: panelBg, border: panelBorder, borderRadius: 12, padding: '0.5rem 0.65rem' }}>
               <button style={toolBtn(!selectedPart)} disabled={!selectedPart} onClick={() => { if (!selectedPart) return; setIsolated((v) => !v); setExplode(0) }} title={selectedPart ? t('viewer.isolateHint') : t('viewer.isolateNeedsSelection')}>
                 {isolated ? t('viewer.showAll') : t('viewer.isolate')}
               </button>
@@ -560,7 +566,7 @@ export default function ImmersiveLab() {
                     onChange={(e) => { setScienceTier(e.target.value); setTierId(e.target.value) }}
                     title="Teaching tier - the study kit adapts to this"
                     aria-label="Science teaching tier"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(120,150,185,0.28)', borderRadius: 8, color: '#cfe0f2', padding: '0.42rem 0.6rem', fontSize: '0.78rem' }}
+                    style={{ background: '#ffffff', border: '1px solid rgba(24,37,54,0.16)', borderRadius: 8, color: ink, padding: '0.42rem 0.6rem', fontSize: '0.78rem' }}
                   >
                     {SCIENCE_TIERS.map((tier) => (
                       <option key={tier.id} value={tier.id}>{tier.label}</option>
@@ -580,7 +586,7 @@ export default function ImmersiveLab() {
                   onChange={(e) => { setSearch(e.target.value); setExternalResults(null) }}
                   placeholder={(subject.conceptSearch || subject.pieceSearch)?.placeholder || t('viewer.searchStructures', { label: t(`subjects.${activeSubjectId}.label`, subject.label), terms: subject.keyTerms.slice(0, 3).join(', ') })}
                   aria-label={t('viewer.searchStructures', { label: t(`subjects.${activeSubjectId}.label`, subject.label), terms: '' })}
-                  style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(120,150,185,0.28)', borderRadius: 8, color: '#f8fafc', padding: '0.45rem 0.7rem', fontSize: '0.82rem' }}
+                  style={{ flex: 1, background: '#f7f9fa', border: '1px solid rgba(24,37,54,0.14)', borderRadius: 8, color: ink, padding: '0.45rem 0.7rem', fontSize: '0.82rem' }}
                 />
                 {((subject.conceptSearch || subject.pieceSearch) && (
                   <button style={chip(Boolean(search.trim()))} type="submit" disabled={externalLoading || !search.trim()}>
@@ -596,9 +602,9 @@ export default function ImmersiveLab() {
               className="studio-host"
               role="img"
               aria-label={`Interactive 3D ${t(`subjects.${activeSubjectId}.label`, subject.label)} model`}
-              style={{ minHeight: 600, border: '1px solid rgba(120,150,185,0.28)', borderRadius: 12, overflow: 'hidden', touchAction: 'none', position: 'relative', boxShadow: '0 24px 60px rgba(2,6,23,0.4)' }}
+              style={{ minHeight: 600, border: '1px solid rgba(24,37,54,0.12)', borderRadius: 12, overflow: 'hidden', touchAction: 'none', position: 'relative', boxShadow: '0 16px 48px rgba(36,51,68,0.08)' }}
             >
-              {!webglReady && <p style={{ padding: '2rem', color: '#fbbf24' }}>{t('viewer.webglError')}</p>}
+              {!webglReady && <p style={{ padding: '2rem', color: '#b45309' }}>{t('viewer.webglError')}</p>}
               {loadingAtlas && (
                 <div className="studio-loading">
                   <span className="spinner" aria-hidden="true" />
@@ -621,7 +627,7 @@ export default function ImmersiveLab() {
                 </div>
               )}
               {activeSubjectId === 'anatomy' && atlas.fallback && atlas.error && (
-                <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 22, background: 'rgba(13,33,54,0.92)', border: '1px solid rgba(120,150,185,0.35)', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.72rem', color: '#d8b565' }}>
+                <div style={{ position: 'absolute', left: 8, right: 8, bottom: 8, zIndex: 22, background: 'rgba(255,255,255,0.94)', border: '1px solid rgba(24,37,54,0.16)', borderRadius: 8, padding: '0.5rem 0.75rem', fontSize: '0.72rem', color: '#8a6d1f' }}>
                   Streaming the full atlas failed ({atlas.error}) - showing the representative teaching model instead. All 15 systems and structures still work.
                 </div>
               )}
@@ -629,7 +635,7 @@ export default function ImmersiveLab() {
 
             {/* Search results, when present, sit under the model. */}
             {(localHits.length > 0 || externalResults) && (
-              <div style={{ background: '#0d2136', border: '1px solid rgba(120,150,185,0.28)', borderRadius: 10, padding: '0.65rem', display: 'grid', gap: '0.35rem', maxHeight: 220, overflowY: 'auto' }} aria-live="polite">
+              <div style={{ background: panelBg, border: panelBorder, borderRadius: 12, padding: '0.65rem', display: 'grid', gap: '0.35rem', maxHeight: 220, overflowY: 'auto' }} aria-live="polite">
                 {localHits.map((hit) => (
                   <button
                     key={`${hit.systemId}:${hit.partId || hit.name}`}
@@ -645,15 +651,15 @@ export default function ImmersiveLab() {
                       }
                     }}
                   >
-                    {hit.name} <span style={{ color: '#7b8ea3' }}>· {hit.systemId}</span>
+                    {hit.name} <span style={{ color: faintInk }}>· {hit.systemId}</span>
                   </button>
                 ))}
                 {externalResults && externalResults.length === 0 && localHits.length === 0 && (
-                  <p style={{ color: '#9db2c8', fontSize: '0.85rem', margin: 0 }}>{t('viewer.noMatches')}</p>
+                  <p style={{ color: subInk, fontSize: '0.85rem', margin: 0 }}>{t('viewer.noMatches')}</p>
                 )}
                 {externalResults && externalResults.map((hit) => (
                   <button key={hit.id} style={ghostBtn(true)} onClick={() => applyExternalHit(hit)}>
-                    {hit.name} <span style={{ color: '#ffd9a0' }}>· {hit.detail}</span>
+                    {hit.name} <span style={{ color: accent }}>· {hit.detail}</span>
                   </button>
                 ))}
               </div>
@@ -661,10 +667,10 @@ export default function ImmersiveLab() {
           </div>
 
           {/* Inspector: systems + explode + the selected structure. */}
-          <aside style={{ display: 'grid', alignContent: 'start', gap: '0.9rem', background: '#0d2136', border: '1px solid rgba(120,150,185,0.28)', borderRadius: 12, padding: '0.95rem' }}>
+          <aside style={{ display: 'grid', alignContent: 'start', gap: '0.9rem', background: panelBg, border: panelBorder, borderRadius: 12, padding: '0.95rem' }}>
             <div>
-              <p style={{ color: '#f0b35b', fontSize: '0.68rem', letterSpacing: '0.14em', margin: 0, fontWeight: 700 }}>{subject.eyebrow}</p>
-              <h2 style={{ fontSize: '0.95rem', margin: '0.3rem 0 0', fontFamily: "'Fraunces', Georgia, serif" }}>{t('viewer.systems')}</h2>
+              <p style={{ color: '#737d89', fontSize: '0.68rem', letterSpacing: '0.14em', margin: 0, fontWeight: 600 }}>{subject.eyebrow}</p>
+              <h2 style={{ fontSize: '0.95rem', margin: '0.3rem 0 0', fontFamily: "'Fraunces', Georgia, serif", color: ink }}>{t('viewer.systems')}</h2>
               {activeSubjectId === 'anatomy' && !atlas.fallback && (
                 <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.55rem', flexWrap: 'wrap' }}>
                   <button style={ghostBtn(false)} onClick={() => setAnatomyVisible(ATLAS_DEFAULT_VISIBLE)}>All systems</button>
@@ -680,7 +686,7 @@ export default function ImmersiveLab() {
                   <button key={system.id} style={{ ...ghostBtn(activeSystem === system.id), textAlign: 'left', borderLeft: `3px solid ${activeSystem === system.id ? system.color : 'transparent'}` }} onClick={() => clickSystem(system.id)}>
                     {t(`systems.${system.id}`, system.label)}
                     {activeSubjectId === 'anatomy' && atlas.atlas && (
-                      <span style={{ float: 'right', color: '#7b8ea3', fontSize: '0.72rem' }}>
+                      <span style={{ float: 'right', color: faintInk, fontSize: '0.72rem' }}>
                         {atlas.atlas.parts.filter((p) => p.system === system.id).length}
                       </span>
                     )}
@@ -688,18 +694,18 @@ export default function ImmersiveLab() {
                 ))}
               </div>
               {activeSubjectId === 'anatomy' && !atlas.fallback && (
-                <p style={{ color: '#7b8ea3', fontSize: '0.7rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
+                <p style={{ color: faintInk, fontSize: '0.7rem', marginTop: '0.5rem', lineHeight: 1.5 }}>
                   Tap a system to show it alone; “All systems” restores the full body. Explode fans the systems apart, then packs all {atlas.atlas ? atlas.atlas.parts.length.toLocaleString() : '2,234'} structures into an inventory grid.
                 </p>
               )}
             </div>
             <label htmlFor="explode-subject" style={{ display: 'grid', gap: '0.5rem' }}>
-              <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{t('viewer.explodeModel')} <strong style={{ color: '#f0b35b' }}>{explode}%</strong> <span style={{ color: '#7b8ea3', fontWeight: 400 }}>· {t('viewer.pieces', { count: activeCount })}</span></span>
-              <input id="explode-subject" type="range" min="0" max="100" value={explode} onChange={(event) => setExplode(Number(event.target.value))} style={{ accentColor: '#f0b35b' }} />
+              <span style={{ fontWeight: 600, fontSize: '0.85rem', color: ink }}>{t('viewer.explodeModel')} <strong style={{ color: accent }}>{explode}%</strong> <span style={{ color: faintInk, fontWeight: 400 }}>· {t('viewer.pieces', { count: activeCount })}</span></span>
+              <input id="explode-subject" type="range" min="0" max="100" value={explode} onChange={(event) => setExplode(Number(event.target.value))} style={{ accentColor: accent }} />
             </label>
             {activeSubjectId === 'vehicle' && (
               <div style={{ display: 'grid', gap: '0.3rem' }}>
-                <p style={{ color: '#f0b35b', fontSize: '0.68rem', letterSpacing: '0.14em', margin: 0, fontWeight: 700 }}>STRUCTURES</p>
+                <p style={{ color: '#737d89', fontSize: '0.68rem', letterSpacing: '0.14em', margin: 0, fontWeight: 600 }}>STRUCTURES</p>
                 {Object.entries(VEHICLE_SYSTEM_GROUPS).flatMap(([sysId]) =>
                   (subject.parts[sysId] || []).map((p) => (
                     <button key={p[0]} style={{ ...ghostBtn(selectedPart?.name === p[0]), textAlign: 'left', fontSize: '0.78rem' }} onClick={() => selectLocalPart(sysId, p[0], p[3], p[4], p[5])}>
@@ -709,19 +715,19 @@ export default function ImmersiveLab() {
                 )}
               </div>
             )}
-            <div aria-live="polite" style={{ borderTop: '1px solid rgba(120,150,185,0.22)', paddingTop: '0.9rem', display: 'grid', gap: '0.45rem' }}>
-              <h2 style={{ fontSize: '1rem', margin: 0, fontFamily: "'Fraunces', Georgia, serif", color: '#f8fafc' }}>{selectedPart?.name || t('viewer.selectStructure')}</h2>
-              <p style={{ color: '#9db2c8', lineHeight: 1.55, fontSize: '0.88rem', margin: 0 }}>{selectedPart?.description || t('viewer.tapHint')}</p>
+            <div aria-live="polite" style={{ borderTop: '1px solid rgba(24,37,54,0.12)', paddingTop: '0.9rem', display: 'grid', gap: '0.45rem' }}>
+              <h2 style={{ fontSize: '1rem', margin: 0, fontFamily: "'Fraunces', Georgia, serif", color: ink }}>{selectedPart?.name || t('viewer.selectStructure')}</h2>
+              <p style={{ color: subInk, lineHeight: 1.55, fontSize: '0.88rem', margin: 0 }}>{selectedPart?.description || t('viewer.tapHint')}</p>
               {selectedPart?.multi > 1 && (
-                <p style={{ color: '#7b8ea3', fontSize: '0.76rem', margin: 0 }}>{selectedPart.multi} modeled pieces selected - isolate to study them alone.</p>
+                <p style={{ color: faintInk, fontSize: '0.76rem', margin: 0 }}>{selectedPart.multi} modeled pieces selected - isolate to study them alone.</p>
               )}
               {selectedPart?.source && (
-                <a href={selectedPart.source} target="_blank" rel="noopener noreferrer" style={{ color: '#f0b35b', fontSize: '0.82rem' }}>
+                <a href={selectedPart.source} target="_blank" rel="noopener noreferrer" style={{ color: accent, fontSize: '0.82rem' }}>
                   {t('viewer.openReference')}
                 </a>
               )}
               {selectedPart && (
-                <a href="/xr-academy" style={{ color: '#f0b35b', fontSize: '0.82rem' }}>
+                <a href="/xr-academy" style={{ color: accent, fontSize: '0.82rem' }}>
                   {t('viewer.practiceInLab', { lab: subject.labId === 'biology' ? 'Biology' : subject.labId === 'astrophysics' ? 'Astrophysics' : subject.labId === 'chemistry' ? 'Chemistry' : subject.labId === 'physics' ? 'Physics Playground' : 'Optics', floor: subject.floor })}
                 </a>
               )}
@@ -741,10 +747,10 @@ export default function ImmersiveLab() {
         </div>
 
         {subject.attribution && (
-          <p style={{ color: '#7b8ea3', fontSize: '0.74rem', marginTop: '0.9rem' }}>{subject.attribution}</p>
+          <p style={{ color: faintInk, fontSize: '0.74rem', marginTop: '0.9rem' }}>{subject.attribution}</p>
         )}
         {activeSubjectId === 'vehicle' && (
-          <p style={{ color: '#5b7089', fontSize: '0.7rem', marginTop: '0.35rem' }}>
+          <p style={{ color: faintInk, fontSize: '0.7rem', marginTop: '0.35rem' }}>
             Pre-refresh Model X by cgi Moon (BlendKit, Royalty Free). The 334 mesh pieces are modeled geometry, not a
             complete Tesla parts catalog; battery, drive units and suspension are illustrative teaching geometry.
             Not affiliated with Tesla. Embedded for study - no downloads offered.
