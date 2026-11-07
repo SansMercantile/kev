@@ -19,6 +19,25 @@
   cursor: grabbing;
 }
 
+/* On light studio scenes (the atlas gallery, the EV bay) the dark-chip label
+   chrome inverts: a soft light pill that reads on a light ground. */
+.studio-light .scene-label {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(15, 23, 42, 0.16);
+  color: #0f172a;
+}
+
+.studio-light .scene-label:hover {
+  border-color: rgba(240, 179, 91, 0.8);
+  color: #0b1830;
+}
+
+.studio-light .scene-label.chosen {
+  background: rgba(255, 246, 224, 0.94);
+  border-color: #f0b35b;
+  color: #7a4a08;
+}
+
 /* Numbered component/part labels projected from 3D anchors. */
 .scene-label {
   position: absolute;
