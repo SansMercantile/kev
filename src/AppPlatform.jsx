@@ -235,11 +235,11 @@ const AppPlatform = () => {
 
         <footer className="kev-footer">
           <div className="kev-footer-inner">
-            <p style={{ fontWeight: 700, color: 'var(--foreground)' }}>KEV Platform</p>
-            <p style={{ maxWidth: '740px', color: 'var(--muted-foreground)' }}>
+            <p style={{ fontWeight: 700, color: '#0f172a' }}>KEV Platform</p>
+            <p style={{ maxWidth: '740px', color: '#475569' }}>
               {t('nav.platformFooterTagline')}
             </p>
-            <p style={{ color: 'var(--muted-foreground)', fontSize: '0.95rem' }}>
+            <p style={{ color: '#68778c', fontSize: '0.95rem' }}>
               {liveCounts ? t('nav.platformFooterRights', liveCounts) : t('nav.platformFooterRightsPlain')}
             </p>
           </div>

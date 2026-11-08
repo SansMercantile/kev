@@ -66,7 +66,7 @@ export class VehicleViewer {
 
     try {
       this.studio = createStudio(host, {
-        theme: 'light',
+        theme: 'dark',
         stage: 'plinth',
         stageRadius: 3.55,
         grid: true,

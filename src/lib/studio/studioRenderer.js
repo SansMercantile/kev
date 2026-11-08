@@ -55,10 +55,9 @@ export const STUDIO_THEMES = {
     ring: null,
     grid: null,
   },
-  // Light gallery, code-for-code from the human-atlas tool (globals.css
-  // --background #f3f4f4): bright anatomical + vehicle study.
+  // Light gallery (the human-atlas tool look) for bright anatomical study.
   light: {
-    background: '#f3f4f4',
+    background: '#f2f3f3',
     fog: null,
     exposure: 1.12,
     hemi: { sky: 0xffffff, ground: 0xa7acb2, intensity: 1.05 },

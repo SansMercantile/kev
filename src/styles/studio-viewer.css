@@ -129,11 +129,11 @@
   pointer-events: none;
   z-index: 45;
   max-width: 250px;
-  background: #202e3bf5;
+  background: rgba(32, 46, 59, 0.96);
   color: #ffffff;
-  padding: 9px 12px;
-  border-radius: 5px;
-  box-shadow: 0 5px 18px rgba(24, 37, 54, 0.2);
+  padding: 8px 12px;
+  border-radius: 8px;
+  box-shadow: 0 5px 18px rgba(24, 37, 54, 0.35);
   font-size: 12px;
   line-height: 1.45;
   text-transform: capitalize;
@@ -143,8 +143,7 @@
   display: none;
 }
 
-/* Loading + error overlays (light atlas base; stays readable on light and
-   dark scenes since it sits on a translucent light scrim). */
+/* Loading + error overlays. */
 .studio-loading {
   position: absolute;
   inset: 0;
@@ -153,8 +152,8 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: rgba(243, 244, 244, 0.82);
-  color: #68727d;
+  background: rgba(7, 17, 31, 0.72);
+  color: #b9c8d9;
   font-size: 12px;
   letter-spacing: 0.06em;
   z-index: 20;
@@ -165,8 +164,8 @@
   width: 26px;
   height: 26px;
   border-radius: 999px;
-  border: 2px solid rgba(38, 59, 72, 0.18);
-  border-top-color: #263b48;
+  border: 2px solid rgba(240, 179, 91, 0.25);
+  border-top-color: #f0b35b;
   animation: studio-spin 0.9s linear infinite;
 }
 
@@ -174,14 +173,14 @@
   width: min(240px, 60%);
   height: 4px;
   border-radius: 2px;
-  background: rgba(24, 37, 54, 0.12);
+  background: rgba(120, 150, 185, 0.25);
   overflow: hidden;
 }
 
 .studio-loading .bar > i {
   display: block;
   height: 100%;
-  background: #263b48;
+  background: #f0b35b;
   border-radius: 2px;
   transition: width 0.25s ease;
 }
@@ -202,8 +201,8 @@
   gap: 8px;
   padding: 24px;
   text-align: center;
-  background: rgba(243, 244, 244, 0.9);
-  color: #a8574a;
+  background: rgba(7, 17, 31, 0.82);
+  color: #fbbf24;
   font-size: 13px;
   z-index: 21;
 }
