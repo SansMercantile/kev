@@ -4,8 +4,11 @@
 .env.*.local
 .env.development
 .env.test
-.env.production
 .azure-deployment.env
+# .env.production is committed: it carries only PUBLIC PKCE config (Auth0
+# domain + SPA client ID, safe for a browser bundle) so the Vercel build inlines
+# it. Secrets never go here.
+!.env.production
 
 # Python artifacts
 __pycache__/
@@ -35,4 +38,3 @@ dist/
 *.sw?
 
 .vercel
-.env*
