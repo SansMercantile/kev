@@ -154,13 +154,13 @@ export default function LanguageSwitcher({ compact }) {
             borderRadius: 6,
             border: '1px solid #e2d8bd',
             background: 'transparent',
-            color: 'inherit',
+            color: '#ffffff',
             cursor: 'pointer',
             maxWidth: compact ? 110 : undefined,
           }}
         >
           {SUPPORTED_LANGUAGES.map((l) => (
-            <option key={l.code} value={l.code}>
+            <option key={l.code} value={l.code} style={{ color: '#20242b' }}>
               {compact ? l.code.toUpperCase() : l.label}
             </option>
           ))}
@@ -170,10 +170,16 @@ export default function LanguageSwitcher({ compact }) {
         type="button"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
-        title="198 countries · tutor answers in your home language"
-        style={{ font: 'inherit', fontSize: '0.8rem', background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.3rem 0.5rem', cursor: 'pointer', color: 'inherit' }}
+        title={
+          countryCode && COUNTRY_NAMES[countryCode]
+            ? `${COUNTRY_NAMES[countryCode]} · 198 countries · tutor answers in your home language`
+            : '198 countries · tutor answers in your home language'
+        }
+        style={{ font: 'inherit', fontSize: '1rem', lineHeight: 1, background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.25rem 0.5rem', cursor: 'pointer', color: 'inherit' }}
       >
-        198 🌍
+        <span role="img" aria-label={countryCode && COUNTRY_NAMES[countryCode] ? COUNTRY_NAMES[countryCode] : 'World'}>
+          {flagEmoji(countryCode)}
+        </span>
       </button>
       {expanded && (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
