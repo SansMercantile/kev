@@ -13,7 +13,7 @@ import Platform from './pages/Platform'
 import Integration from './pages/Integration'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
-const ImmersiveLab = lazy(() => import('./pages/ImmersiveLab'))
+const ImmersiveLab = lazy(() => import('./pages/AtlasExact'))
 const XRAcademy = lazy(() => import('./pages/XRAcademy'))
 const TeacherStudio = lazy(() => import('./pages/TeacherStudio'))
 const Agents = lazy(() => import('./pages/Agents'))

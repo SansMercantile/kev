@@ -1,0 +1,409 @@
+/**
+ * Human Atlas — code-for-code port of the reference tool
+ * (tools/human-atlas/app/page.tsx + scene.tsx, MIT, (c) ashemag;
+ * see docs/ATTRIBUTION-human-atlas.md). Anatomy data: BodyParts3D 4.0,
+ * CC BY 4.0, DBCLS. Educational explorer, not a diagnostic tool.
+ *
+ * This is the tool's own page: the identity header, the Find/About actions,
+ * the layers panel (system toggles + presets), the search panel, the view
+ * controls, the bottom explode dock, the caption/footer, and the detail +
+ * about sheets — driving the exact scene port (atlasSceneExact.js).
+ */
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
+import {
+  Activity, ArrowUpRight, ChevronRight, Focus, Info, Layers3,
+  Pause, RotateCcw, RotateCw, Search, X,
+} from 'lucide-react'
+import { createAtlasScene } from '../lib/studio/atlasSceneExact'
+import { ANATOMY_SYSTEMS as SYSTEMS, anatomyExplanation as explanation } from '../lib/anatomySystems'
+import '../styles/atlas-exact.css'
+
+const DEFAULT_VISIBLE = [
+  'cardiac', 'sensory', 'skeletal', 'muscular', 'arterial', 'venous', 'nervous',
+  'respiratory', 'digestive', 'urinary', 'lymphatic', 'endocrine', 'reproductive', 'connective',
+]
+const EXPLANATIONS = {
+  heart: 1, liver: 1, brain: 1, stomach: 1, spleen: 1, pancreas: 1, 'urinary bladder': 1, trachea: 1, diaphragm: 1,
+}
+const ORGAN_PRESET = ['cardiac', 'respiratory', 'digestive', 'urinary', 'endocrine', 'reproductive']
+const VIEWS = ['three-quarter', 'front', 'side', 'back']
+const VIEW_LABELS = ['¾', 'F', 'S', 'B']
+
+const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
+
+export default function AtlasExact() {
+  const detailTitle = useRef(null)
+  const hostRef = useRef(null)
+  const sceneRef = useRef(null)
+  const [atlas, setAtlas] = useState(null)
+  const [state, setState] = useState(initial)
+  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState('')
+  const [panel, setPanel] = useState(null) // 'layers' | 'search' | null
+  const [details, setDetails] = useState(false)
+  const [about, setAbout] = useState(false)
+  const [query, setQuery] = useState('')
+  const [chosen, setChosen] = useState(null)
+
+  // Fetch the catalogue (the tool fetches it on mount, then the scene streams
+  // the geometry chunks itself).
+  useEffect(() => {
+    const abort = new AbortController()
+    setProgress(0)
+    setError('')
+    setAtlas(null)
+    setChosen(null)
+    setDetails(false)
+    setState({ ...initial, visible: DEFAULT_VISIBLE })
+    fetch('/models/atlas.json', { signal: abort.signal })
+      .then((r) => {
+        if (!r.ok) throw new Error('The anatomy catalogue could not be loaded.')
+        return r.json()
+      })
+      .then((data) => setAtlas(data))
+      .catch((e) => {
+        if (e.name !== 'AbortError') setError(e.message)
+      })
+    return () => abort.abort()
+  }, [])
+
+  // "/" opens search (the tool's keyboard shortcut).
+  useEffect(() => {
+    const key = (e) => {
+      if (e.key === '/' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault()
+        setPanel('search')
+        setDetails(false)
+      }
+    }
+    window.addEventListener('keydown', key)
+    return () => window.removeEventListener('keydown', key)
+  }, [])
+
+  const parts = useMemo(() => new Map(atlas?.parts.map((p) => [p.id, p])), [atlas])
+  const counts = useMemo(
+    () => Object.fromEntries(SYSTEMS.map((s) => [s.id, atlas?.parts.filter((p) => p.system === s.id).length ?? 0])),
+    [atlas]
+  )
+  const activeSystems = SYSTEMS.filter((s) => counts[s.id] > 0)
+  const selectedParts = state.selected.map((id) => parts.get(id)).filter((p) => !!p)
+  const selected = selectedParts[0]
+  const system = SYSTEMS.find((s) => s.id === selected?.system)
+  const visibleCount =
+    atlas?.parts.filter((p) =>
+      state.isolate ? state.selected.includes(p.id) : state.visible.includes(p.system) || state.selected.includes(p.id)
+    ).length ?? 0
+
+  const results = useMemo(() => {
+    if (!atlas) return []
+    const term = query.toLowerCase().trim()
+    if (!term)
+      return ['heart', 'brain', 'liver', 'stomach', 'spleen', 'pancreas', 'urinary bladder', 'trachea']
+        .map((name) => atlas.concepts.find((c) => c.name.toLowerCase() === name))
+        .filter((x) => !!x)
+    return atlas.concepts
+      .filter((c) => c.name.toLowerCase().includes(term) || c.id.toLowerCase().includes(term))
+      .sort((a, b) => a.name.length - b.name.length)
+      .slice(0, 80)
+  }, [atlas, query])
+
+  const choose = (c) => {
+    setChosen(c)
+    setState((s) => ({ ...s, selected: c.elements, isolate: false, rotate: false }))
+    setDetails(true)
+    setPanel(null)
+  }
+  const choosePart = (id) => {
+    const p = parts.get(id)
+    if (!p) return
+    setChosen({ id: p.conceptId, name: p.name, elements: [id] })
+    setState((s) => ({ ...s, selected: [id], isolate: false, rotate: false }))
+    setDetails(true)
+    setPanel(null)
+  }
+  const toggle = (id) => {
+    setDetails(false)
+    setState((s) => ({
+      ...s,
+      selected: [],
+      isolate: false,
+      visible: s.visible.includes(id) ? s.visible.filter((x) => x !== id) : [...s.visible, id],
+    }))
+  }
+  const reset = () => {
+    setState((s) => ({ ...initial, visible: DEFAULT_VISIBLE, reset: s.reset + 1 }))
+    setChosen(null)
+    setDetails(false)
+    setPanel(null)
+  }
+  const openPanel = (next) => {
+    setDetails(false)
+    setPanel((p) => (p === next ? null : next))
+  }
+
+  // Mount the exact scene once the catalogue is here; stream progress + errors.
+  useEffect(() => {
+    if (!atlas || !hostRef.current) return undefined
+    const scene = createAtlasScene(hostRef.current, {
+      atlas,
+      state: { ...state, inspectorOpen: details && selectedParts.length > 0 },
+      onSelect: choosePart,
+      onProgress: (n) => {
+        setProgress(n)
+        if (n === 100) setError('')
+      },
+      onError: setError,
+    })
+    sceneRef.current = scene
+    return () => {
+      sceneRef.current = null
+      scene.dispose()
+    }
+    // The scene is created once per catalogue; state flows in via setState.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atlas])
+
+  // Push React state into the scene (code-for-code: the tool re-renders the
+  // scene component with the new state; here we forward it imperatively).
+  useEffect(() => {
+    sceneRef.current?.setState({ ...state, inspectorOpen: details && selectedParts.length > 0 })
+  }, [state, details, selectedParts.length])
+
+  return (
+    <main className="atlas-studio">
+      <div className="atlas-scene" ref={hostRef} />
+      <div className="vignette" />
+
+      <header className="identity">
+        <div className="eyebrow">
+          <span className="status-dot" /> INTERACTIVE ANATOMY
+        </div>
+        <h1>
+          Human Atlas: KEV<span className="edition">3D</span>
+        </h1>
+        <div className="identity-meta">
+          {atlas ? atlas.parts.length.toLocaleString() : '2,234'} modeled pieces <span>·</span> BodyParts3D
+        </div>
+      </header>
+
+      <nav className="top-actions" aria-label="Explorer panels">
+        <button type="button" className={panel === 'search' ? 'active' : ''} onClick={() => openPanel('search')} aria-label="Search anatomy">
+          <Search size={18} />
+          <span>Find a structure</span>
+          <kbd>/</kbd>
+        </button>
+        <button type="button" className="icon-button" aria-label="About this atlas" onClick={() => { setDetails(false); setPanel(null); setAbout(true) }}>
+          <Info size={18} />
+        </button>
+      </nav>
+
+      <section className={`layers-panel glass ${panel === 'layers' ? 'mobile-open' : ''}`} aria-label="Anatomical layers">
+        <div className="panel-heading">
+          <span>Systems</span>
+          <button type="button" className="mobile-only icon-button" onClick={() => setPanel(null)} aria-label="Close systems">
+            <X size={18} />
+          </button>
+          <span className="desktop-only small-number badge">{activeSystems.length}</span>
+        </div>
+        <div className="layer-presets">
+          <button type="button" aria-pressed={activeSystems.every((x) => state.visible.includes(x.id))} onClick={() => setState((s) => ({ ...s, selected: [], isolate: false, visible: activeSystems.map((x) => x.id) }))}>All</button>
+          <button type="button" aria-pressed={state.visible.length === 1 && state.visible[0] === 'skeletal'} onClick={() => setState((s) => ({ ...s, selected: [], isolate: false, visible: ['skeletal'] }))}>Skeleton</button>
+          <button type="button" aria-pressed={state.visible.length === 6 && ORGAN_PRESET.every((id) => state.visible.includes(id))} onClick={() => setState((s) => ({ ...s, selected: [], isolate: false, visible: ORGAN_PRESET }))}>Organs</button>
+        </div>
+        <div className="system-list">
+          {activeSystems.map((s) => (
+            <div className={`system-row ${state.visible.includes(s.id) ? 'enabled' : ''}`} key={s.id}>
+              <button type="button" className="system-name" title={`Show only ${s.name.toLowerCase()}`} onClick={() => setState((v) => ({ ...v, visible: [s.id], isolate: false, selected: [] }))}>
+                <span className="system-dot" style={{ background: s.color }} />
+                {s.name}
+                <span className="system-count">{counts[s.id]}</span>
+              </button>
+              <label className="switch">
+                <input type="checkbox" checked={state.visible.includes(s.id)} onChange={() => toggle(s.id)} aria-label={`Show ${s.name.toLowerCase()}`} />
+                <span className="track"><span className="thumb" /></span>
+              </label>
+            </div>
+          ))}
+        </div>
+        <div className="panel-foot">
+          <span>{visibleCount.toLocaleString()} pieces visible</span>
+          <button type="button" onClick={() => setState((s) => ({ ...s, visible: [], selected: [], isolate: false }))}>Hide all</button>
+        </div>
+      </section>
+
+      {panel === 'search' && (
+        <section className="search-panel glass" aria-label="Find anatomy">
+          <div className="panel-heading">
+            <span>Find a structure</span>
+            <button type="button" className="icon-button" onClick={() => setPanel(null)} aria-label="Close search">
+              <X size={18} />
+            </button>
+          </div>
+          <input
+            autoFocus
+            className="search-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Heart, femur, cranial nerve…"
+            aria-label="Search named anatomical structures"
+          />
+          <div className="anatomy-search-results">
+            {results.length === 0 && <p className="search-empty">No structures match your search.</p>}
+            {results.map((c) => (
+              <button type="button" key={c.id} className="search-result" onClick={() => flushSync(() => choose(c))}>
+                <span className="search-result-name">{c.name}</span>
+                <span className="small-number">{c.elements.length} {c.elements.length === 1 ? 'piece' : 'pieces'}</span>
+              </button>
+            ))}
+          </div>
+          <p className="search-note">{query ? 'Showing up to 80 matches. Refine your search to find smaller structures.' : 'Start with a major organ, or search every named structure.'}</p>
+        </section>
+      )}
+
+      <nav className="view-controls glass" aria-label="Camera controls">
+        {VIEWS.map((v, i) => (
+          <button type="button" key={v} className={state.view === v ? 'active' : ''} aria-pressed={state.view === v} disabled={state.explode > 0.8 && v !== 'front'} onClick={() => setState((s) => ({ ...s, view: v, reset: s.reset + 1, rotate: false }))} title={`${v} view`} aria-label={`${v} view`}>
+            <span>{VIEW_LABELS[i]}</span>
+          </button>
+        ))}
+        <i />
+        <button type="button" disabled={state.explode >= 0.4} aria-label={state.rotate ? 'Pause rotation' : 'Rotate body'} title="Auto rotate" className={state.rotate ? 'active' : ''} onClick={() => setState((s) => ({ ...s, rotate: !s.rotate }))}>
+          {state.rotate ? <Pause size={17} /> : <RotateCw size={18} />}
+        </button>
+        <button type="button" aria-label="Reset view and layers" title="Reset" onClick={reset}>
+          <RotateCcw size={17} />
+        </button>
+      </nav>
+
+      <div className="scene-caption">
+        <span className="caption-line" />
+        <span>{state.isolate ? (chosen?.name ?? 'SELECTED STRUCTURE') : state.explode > 0.95 ? 'ANATOMICAL INVENTORY' : state.explode > 0.05 ? 'SEPARATED STRUCTURES' : 'ADULT HUMAN · MALE'}</span>
+        <span className="caption-line" />
+      </div>
+
+      <div className="bottom-dock glass">
+        <button type="button" className="mobile-only dock-layers" onClick={() => openPanel('layers')} aria-label="Open system layers">
+          <Layers3 size={20} />
+          <span>Systems</span>
+        </button>
+        <div className="explode-control">
+          <div className="explode-label">
+            <label id="explode-label">Explode anatomy</label>
+            <output>{Math.round(state.explode * 100)}<span>%</span></output>
+          </div>
+          <input
+            type="range"
+            aria-labelledby="explode-label"
+            min={0}
+            max={100}
+            step={1}
+            value={Math.round(state.explode * 100)}
+            onChange={(e) => {
+              const v = Number(e.target.value)
+              setState((s) => ({ ...s, explode: v / 100, view: v > 80 ? 'front' : s.view, rotate: false }))
+            }}
+          />
+          <div className="slider-endpoints"><span>Assembled</span><span>Every piece</span></div>
+        </div>
+        <button type="button" className="dock-reset" onClick={reset} aria-label="Assemble and reset">
+          <RotateCcw size={18} />
+          <span>Reset</span>
+        </button>
+      </div>
+
+      <footer className="studio-footer">
+        <span>{state.explode > 0.8 ? 'Drag to pan' : 'Drag to orbit'} <b>·</b> Pinch to zoom <b>·</b> Tap to inspect</span>
+        <button type="button" onClick={() => { setDetails(false); setPanel(null); setAbout(true) }}>
+          Source &amp; credits <ArrowUpRight size={12} />
+        </button>
+      </footer>
+
+      {progress < 100 && !error && (
+        <div className="loading glass" role="status">
+          <Activity size={18} />
+          <div>
+            <strong>Preparing the anatomy</strong>
+            <span>{progress}% · Loading {atlas?.parts.length.toLocaleString() ?? '2,234'} pieces</span>
+            <div className="loading-track"><i style={{ width: `${progress}%` }} /></div>
+          </div>
+        </div>
+      )}
+      {error && (
+        <div className="loading glass error" role="alert">
+          <p>{error}</p>
+          <button type="button" onClick={() => window.location.reload()}>Reload viewer</button>
+        </div>
+      )}
+
+      {details && selectedParts.length > 0 && (
+        <aside className={`detail-sheet glass ${state.isolate ? 'is-isolated' : ''}`}>
+          <button type="button" className="sheet-close icon-button" onClick={() => setDetails(false)} aria-label="Close detail">
+            <X size={18} />
+          </button>
+          <div className="detail-header">
+            <div className="detail-accent" style={{ background: system?.color }} />
+            <div className="eyebrow">{system?.name ?? 'ANATOMY'}</div>
+            <h2 ref={detailTitle} tabIndex={-1} className="structure-title">{chosen?.name}</h2>
+          </div>
+          <div className="detail-scroll" key={`${chosen?.id}-${state.isolate}`}>
+            <p className="structure-description">{chosen && selected ? explanation(chosen.name, selected.system) : ''}</p>
+            {chosen && !EXPLANATIONS[chosen.name.toLowerCase()] && (
+              <span className="context-note">System overview · structure identified from source anatomy</span>
+            )}
+            <div className="structure-meta">
+              <span>Atlas reference<strong>{chosen?.id}</strong></span>
+              <span>Selected pieces<strong>{state.selected.length.toLocaleString()}</strong></span>
+            </div>
+            {selectedParts.length > 1 && (
+              <div className="member-list">
+                <h3>Included structures</h3>
+                {selectedParts.slice(0, 50).map((p) => (
+                  <button type="button" key={p.id} onClick={() => choosePart(p.id)}>
+                    <span>{p.name}</span>
+                    <ChevronRight size={14} />
+                  </button>
+                ))}
+                {selectedParts.length > 50 && <p>And {selectedParts.length - 50} more modeled pieces.</p>}
+              </div>
+            )}
+            <a className="source-link" href="https://lifesciencedb.jp/bp3d/" target="_blank" rel="noreferrer">
+              View anatomical source <ArrowUpRight size={14} />
+            </a>
+          </div>
+          <div className="detail-actions">
+            <button type="button" className={`primary-action ${state.isolate ? 'active' : ''}`} onClick={() => setState((s) => ({ ...s, isolate: !s.isolate, explode: 0 }))}>
+              <Focus size={18} />
+              {state.isolate ? 'Show surrounding anatomy' : 'Isolate structure'}
+              <ChevronRight size={16} />
+            </button>
+            <button type="button" className="secondary-action" onClick={() => { setState((s) => ({ ...s, selected: [], isolate: false })); setDetails(false) }}>
+              Clear selection
+            </button>
+          </div>
+        </aside>
+      )}
+
+      {about && (
+        <aside className="about-sheet glass">
+          <button type="button" className="sheet-close icon-button" onClick={() => setAbout(false)} aria-label="Close about">
+            <X size={18} />
+          </button>
+          <div className="eyebrow">SOURCE &amp; SCOPE</div>
+          <h2 className="structure-title">A body, revealed.</h2>
+          <p className="structure-description">Explore the adult male reference anatomy from BodyParts3D.</p>
+          <div className="about-copy">
+            <p><strong>Male · BodyParts3D</strong><br />2,234 individual meshes and 3,432 named concepts from an adult male reference anatomy.</p>
+            <p>This reference does not contain every human structure or variation. Named concepts can contain multiple pieces; each source mesh is rendered once.</p>
+            <p>Colors and system groupings are designed for exploration. The geometry is simplified for the web, and short explanations provide general educational context. This is an anatomical reference, not a diagnostic or surgical tool.</p>
+            <h3>Source</h3>
+            <p>BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International.</p>
+            <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Dataset license <ArrowUpRight size={14} /></a>
+            <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Original geometry &amp; metadata <ArrowUpRight size={14} /></a>
+            <a href="https://academic.oup.com/nar/article/37/suppl_1/D782/1000752" target="_blank" rel="noreferrer">Read the source publication <ArrowUpRight size={14} /></a>
+          </div>
+        </aside>
+      )}
+    </main>
+  )
+}

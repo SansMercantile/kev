@@ -15,7 +15,7 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
-const ImmersiveLab = lazy(() => import('./pages/ImmersiveLab'))
+const ImmersiveLab = lazy(() => import('./pages/AtlasExact'))
 const XRAcademy = lazy(() => import('./pages/XRAcademy'))
 
 import { ChevronRightIcon, MenuIcon, XIcon } from './lib/icons.jsx'
