@@ -39,16 +39,26 @@ const COUNTRY_NAMES = {
   EG: 'Egypt', SA: 'Saudi Arabia', ET: 'Ethiopia', TZ: 'Tanzania',
 }
 
-/** ISO 3166-1 alpha-2 -> regional-indicator flag emoji (e.g. ZA -> the ZA flag).
- * Returns '' when the code is unknown so the caller can fall back to the
- * country code text (never a globe). */
-function flagEmoji(code) {
-  if (!code || code.length !== 2) return ''
-  const A = 0x1f1e6
-  const first = code.charCodeAt(0) - 65
-  const second = code.charCodeAt(1) - 65
-  if (first < 0 || first > 25 || second < 0 || second > 25) return ''
-  return String.fromCodePoint(A + first, A + second)
+/** Countries we ship an SVG flag for (public/flags/<code>.svg, from the
+ * flag-icons set). The flag chip shows the real SVG image so it renders on
+ * every OS (Windows doesn't render regional-indicator flag emoji). */
+const FLAG_CODES = new Set([
+  'ZA', 'US', 'GB', 'CA', 'AU', 'NZ', 'IE', 'NG', 'KE', 'GH', 'ZW', 'BW',
+  'NA', 'ZM', 'IN', 'FR', 'ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'BR', 'PT',
+  'DE', 'IT', 'NL', 'BE', 'CH', 'SN', 'CI', 'EG', 'SA', 'ET', 'TZ',
+])
+
+function CountryFlag({ code, size = 18 }) {
+  if (!code || !FLAG_CODES.has(code)) return null
+  return (
+    <img
+      src={`/flags/${code.toLowerCase()}.svg`}
+      alt={COUNTRY_NAMES[code] || code}
+      width={size}
+      height={Math.round(size * 0.75)}
+      style={{ display: 'block', borderRadius: 2, boxShadow: '0 0 0 1px rgba(0,0,0,0.15)' }}
+    />
+  )
 }
 
 function detectCountry() {
@@ -179,11 +189,9 @@ export default function LanguageSwitcher({ compact }) {
             ? `${COUNTRY_NAMES[countryCode]} · 198 countries · tutor answers in your home language`
             : '198 countries · tutor answers in your home language'
         }
-        style={{ font: 'inherit', fontSize: flagEmoji(countryCode) ? '1.05rem' : '0.75rem', lineHeight: 1, background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#ffffff', fontWeight: 600, letterSpacing: '0.02em' }}
+        style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 30, minHeight: 26, font: 'inherit', fontSize: '0.75rem', lineHeight: 1, background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.25rem 0.4rem', cursor: 'pointer', color: '#ffffff', fontWeight: 600 }}
       >
-        <span role="img" aria-label={countryCode && COUNTRY_NAMES[countryCode] ? COUNTRY_NAMES[countryCode] : 'World'}>
-          {flagEmoji(countryCode) || countryCode || '🌍'}
-        </span>
+        {FLAG_CODES.has(countryCode) ? <CountryFlag code={countryCode} /> : (countryCode || '198')}
       </button>
       {expanded && (
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
