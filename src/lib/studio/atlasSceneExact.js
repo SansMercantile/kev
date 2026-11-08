@@ -209,7 +209,8 @@ export function createAtlasScene(el, { atlas, state, onSelect, onProgress, onErr
       )
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <color_fragment>',
-        '#include <color_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.85, 0.78), partSelected * 0.75);'
+        // KEV house-gold selection highlight (was the tool's mint).
+        '#include <color_fragment>\ndiffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.79, 0.64, 0.15), partSelected * 0.75);'
       )
     }
     materials.push(m)
