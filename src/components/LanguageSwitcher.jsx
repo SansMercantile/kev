@@ -3,6 +3,68 @@ import { useTranslation } from 'react-i18next'
 import { SUPPORTED_LANGUAGES, setLanguage, getAnswerLanguage, setAnswerLanguage } from '../i18n/index.js'
 import { xrClient } from '../lib/xrClient'
 
+// ---------------------------------------------------------------- geo detect
+// Best-effort, privacy-light country detection for the flag chip: the
+// browser's own region (Intl locale, then navigator.languages, then timezone)
+// mapped to an ISO country code. No IP geolocation call, nothing leaves the
+// device. Falls back to '' (globe) when it can't tell.
+const LOCALE_COUNTRY = {
+  'en-US': 'US', 'en-GB': 'GB', 'en-ZA': 'ZA', 'en-AU': 'AU', 'en-CA': 'CA',
+  'en-IE': 'IE', 'en-NG': 'NG', 'en-KE': 'KE', 'en-IN': 'IN', 'en-NZ': 'NZ',
+  'en-GH': 'GH', 'en-ZW': 'ZW', 'en-BW': 'BW', 'en-NA': 'NA', 'en-ZM': 'ZM',
+  'af-ZA': 'ZA', 'zu-ZA': 'ZA', 'xh-ZA': 'ZA', 'st-ZA': 'ZA', 'tn-ZA': 'ZA', 'tn-BW': 'BW',
+  'fr-FR': 'FR', 'fr-CA': 'CA', 'fr-BE': 'BE', 'fr-CH': 'CH', 'fr-SN': 'SN', 'fr-CI': 'CI',
+  'es-ES': 'ES', 'es-MX': 'MX', 'es-AR': 'AR', 'es-CO': 'CO', 'es-CL': 'CL', 'es-PE': 'PE',
+  'pt-BR': 'BR', 'pt-PT': 'PT', 'de-DE': 'DE', 'it-IT': 'IT', 'nl-NL': 'NL',
+  'sw-KE': 'KE', 'sw-TZ': 'TZ', 'am-ET': 'ET', 'ar-EG': 'EG', 'ar-SA': 'SA',
+}
+const TIMEZONE_COUNTRY = {
+  'Africa/Johannesburg': 'ZA', 'Africa/Lagos': 'NG', 'Africa/Nairobi': 'KE',
+  'Africa/Accra': 'GH', 'Africa/Harare': 'ZW', 'Africa/Gaborone': 'BW',
+  'Africa/Windhoek': 'NA', 'Africa/Lusaka': 'ZM', 'Africa/Cairo': 'EG',
+  'America/New_York': 'US', 'America/Chicago': 'US', 'America/Denver': 'US', 'America/Los_Angeles': 'US',
+  'America/Toronto': 'CA', 'America/Vancouver': 'CA', 'America/Mexico_City': 'MX',
+  'America/Sao_Paulo': 'BR', 'America/Argentina/Buenos_Aires': 'AR', 'America/Bogota': 'CO', 'America/Santiago': 'CL', 'America/Lima': 'PE',
+  'Europe/London': 'GB', 'Europe/Dublin': 'IE', 'Europe/Paris': 'FR', 'Europe/Berlin': 'DE',
+  'Europe/Madrid': 'ES', 'Europe/Rome': 'IT', 'Europe/Amsterdam': 'NL', 'Europe/Brussels': 'BE', 'Europe/Zurich': 'CH',
+  'Australia/Sydney': 'AU', 'Australia/Melbourne': 'AU', 'Australia/Perth': 'AU', 'Pacific/Auckland': 'NZ', 'Asia/Kolkata': 'IN',
+}
+const COUNTRY_NAMES = {
+  ZA: 'South Africa', US: 'United States', GB: 'United Kingdom', CA: 'Canada',
+  AU: 'Australia', NZ: 'New Zealand', IE: 'Ireland', NG: 'Nigeria', KE: 'Kenya',
+  GH: 'Ghana', ZW: 'Zimbabwe', BW: 'Botswana', NA: 'Namibia', ZM: 'Zambia',
+  IN: 'India', FR: 'France', ES: 'Spain', MX: 'Mexico', AR: 'Argentina', CO: 'Colombia',
+  CL: 'Chile', PE: 'Peru', BR: 'Brazil', PT: 'Portugal', DE: 'Germany', IT: 'Italy',
+  NL: 'Netherlands', BE: 'Belgium', CH: 'Switzerland', SN: 'Senegal', CI: "Côte d'Ivoire",
+  EG: 'Egypt', SA: 'Saudi Arabia', ET: 'Ethiopia', TZ: 'Tanzania',
+}
+
+/** ISO 3166-1 alpha-2 -> regional-indicator flag emoji (e.g. ZA -> 🇿🇦). */
+function flagEmoji(code) {
+  if (!code || code.length !== 2) return '🌍'
+  const A = 0x1f1e6
+  return String.fromCodePoint(A + code.charCodeAt(0) - 65, A + code.charCodeAt(1) - 65)
+}
+
+function detectCountry() {
+  try {
+    const candidates = []
+    const loc = Intl.DateTimeFormat().resolvedOptions().locale
+    if (loc) candidates.push(loc)
+    if (Array.isArray(navigator.languages)) candidates.push(...navigator.languages)
+    else if (navigator.language) candidates.push(navigator.language)
+    for (const c of candidates) {
+      if (!c) continue
+      if (LOCALE_COUNTRY[c]) return LOCALE_COUNTRY[c]
+      const region = c.split('-')[1]
+      if (region && /^[A-Z]{2}$/.test(region)) return region
+    }
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (tz && TIMEZONE_COUNTRY[tz]) return TIMEZONE_COUNTRY[tz]
+  } catch { /* detection is best-effort */ }
+  return ''
+}
+
 // UI language picker (6 full bundles) + world browser (198 countries).
 // Students whose home language has no UI bundle keep translated-tutor
 // answers in it: chrome follows the UI language, answers follow the answer
@@ -11,7 +73,7 @@ export default function LanguageSwitcher({ compact }) {
   const { t, i18n } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const [countries, setCountries] = useState([])
-  const [countryCode, setCountryCode] = useState('')
+  const [countryCode, setCountryCode] = useState(() => detectCountry())
   const [countryLangs, setCountryLangs] = useState([])
   const [answerLang, setAnswerLang] = useState(() => getAnswerLanguage())
   const [worldError, setWorldError] = useState(false)

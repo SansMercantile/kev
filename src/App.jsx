@@ -192,17 +192,15 @@ const App = () => {
     // what the token already proves.
   }, [isAuthenticated, getAccessTokenSilently])
 
+  // The public marketing surfaces are the only links on the navbar. The
+  // gated school surfaces (campus map, VR campus, immersive lab, XR academy)
+  // and the internal Docs/Tech pages are reachable in-app once signed in, not
+  // advertised to the public.
   const navLinks = [
     { label: t('nav.explore'), to: '/explore' },
     { label: t('nav.platform'), to: '/platform' },
-    { label: t('nav.campusMap'), to: '/campus-map' },
-    { label: t('nav.vrCampus'), to: '/vr' },
-    { label: t('nav.immersiveLab'), to: '/anatomy' },
-    { label: t('nav.xrAcademy'), to: '/xr-academy' },
     { label: t('nav.pricing'), to: '/pricing' },
     { label: t('nav.onboarding'), to: '/onboarding' },
-    { label: t('nav.docs'), to: '/docs' },
-    { label: t('nav.tech'), to: '/tech' },
   ]
 
   return (
@@ -257,14 +255,14 @@ const App = () => {
             <Route path="/" element={<Landing />} />
             <Route path="/explore" element={<Landing />} />
             <Route path="/platform" element={<Platform />} />
-            <Route path="/docs" element={<Docs />} />
-            <Route path="/tech" element={<Technical />} />
-            <Route path="/technical" element={<Technical />} />
+            <Route path="/docs" element={<RequireAuth><Docs /></RequireAuth>} />
+            <Route path="/tech" element={<RequireAuth><Technical /></RequireAuth>} />
+            <Route path="/technical" element={<RequireAuth><Technical /></RequireAuth>} />
             <Route path="/integration" element={<Integration />} />
             <Route path="/categories" element={<Categories />} />
             <Route path="/campus-map" element={<RequireAuth><VirtualSchoolMap /></RequireAuth>} />
             <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />
-            <Route path="/anatomy" element={<Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense>} />
+            <Route path="/anatomy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense></RequireAuth>} />
             <Route path="/xr-academy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading XR Academy...</section>}><XRAcademy /></Suspense></RequireAuth>} />
             <Route path="/agents" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading tutors...</section>}><Agents /></Suspense></RequireAuth>} />
             <Route path="/curriculum" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading curriculum...</section>}><Curriculum /></Suspense></RequireAuth>} />
