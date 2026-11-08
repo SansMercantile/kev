@@ -39,11 +39,16 @@ const COUNTRY_NAMES = {
   EG: 'Egypt', SA: 'Saudi Arabia', ET: 'Ethiopia', TZ: 'Tanzania',
 }
 
-/** ISO 3166-1 alpha-2 -> regional-indicator flag emoji (e.g. ZA -> 🇿🇦). */
+/** ISO 3166-1 alpha-2 -> regional-indicator flag emoji (e.g. ZA -> the ZA flag).
+ * Returns '' when the code is unknown so the caller can fall back to the
+ * country code text (never a globe). */
 function flagEmoji(code) {
-  if (!code || code.length !== 2) return '🌍'
+  if (!code || code.length !== 2) return ''
   const A = 0x1f1e6
-  return String.fromCodePoint(A + code.charCodeAt(0) - 65, A + code.charCodeAt(1) - 65)
+  const first = code.charCodeAt(0) - 65
+  const second = code.charCodeAt(1) - 65
+  if (first < 0 || first > 25 || second < 0 || second > 25) return ''
+  return String.fromCodePoint(A + first, A + second)
 }
 
 function detectCountry() {
@@ -135,7 +140,6 @@ export default function LanguageSwitcher({ compact }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
       <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }} title={t('nav.language')}>
-        <span aria-hidden="true">🌍</span>
         <span className="sr-only" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
           {t('nav.language')}
         </span>
@@ -175,10 +179,10 @@ export default function LanguageSwitcher({ compact }) {
             ? `${COUNTRY_NAMES[countryCode]} · 198 countries · tutor answers in your home language`
             : '198 countries · tutor answers in your home language'
         }
-        style={{ font: 'inherit', fontSize: '1rem', lineHeight: 1, background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.25rem 0.5rem', cursor: 'pointer', color: 'inherit' }}
+        style={{ font: 'inherit', fontSize: flagEmoji(countryCode) ? '1.05rem' : '0.75rem', lineHeight: 1, background: 'transparent', border: '1px solid #e2d8bd', borderRadius: 6, padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#ffffff', fontWeight: 600, letterSpacing: '0.02em' }}
       >
         <span role="img" aria-label={countryCode && COUNTRY_NAMES[countryCode] ? COUNTRY_NAMES[countryCode] : 'World'}>
-          {flagEmoji(countryCode)}
+          {flagEmoji(countryCode) || countryCode || '🌍'}
         </span>
       </button>
       {expanded && (
