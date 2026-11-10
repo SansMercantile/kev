@@ -30,12 +30,19 @@ const ORGAN_PRESET = ['cardiac', 'respiratory', 'digestive', 'urinary', 'endocri
 const VIEWS = ['three-quarter', 'front', 'side', 'back']
 const VIEW_LABELS = ['¾', 'F', 'S', 'B']
 
+const SPECIES = [
+  { id: 'human-male', label: 'Human (Male)', manifest: '/models/atlas.json' },
+  { id: 'human-female', label: 'Human (Female)', manifest: '/models/atlas-female.json' },
+  { id: 'pig', label: 'Pig (Sus domestica)', manifest: '/models/atlas-pig.json' },
+]
+
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
 
 export default function AtlasExact() {
   const detailTitle = useRef(null)
   const hostRef = useRef(null)
   const sceneRef = useRef(null)
+  const [species, setSpecies] = useState('human-male')
   const [atlas, setAtlas] = useState(null)
   const [state, setState] = useState(initial)
   const [progress, setProgress] = useState(0)
@@ -46,8 +53,9 @@ export default function AtlasExact() {
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null)
 
-  // Fetch the catalogue (the tool fetches it on mount, then the scene streams
-  // the geometry chunks itself).
+  const manifestUrl = SPECIES.find((s) => s.id === species)?.manifest ?? '/models/atlas.json'
+
+  // Fetch the catalogue — re-run when species changes.
   useEffect(() => {
     const abort = new AbortController()
     setProgress(0)
@@ -56,7 +64,7 @@ export default function AtlasExact() {
     setChosen(null)
     setDetails(false)
     setState({ ...initial, visible: DEFAULT_VISIBLE })
-    fetch('/models/atlas.json', { signal: abort.signal })
+    fetch(manifestUrl, { signal: abort.signal })
       .then((r) => {
         if (!r.ok) throw new Error('The anatomy catalogue could not be loaded.')
         return r.json()
@@ -66,7 +74,7 @@ export default function AtlasExact() {
         if (e.name !== 'AbortError') setError(e.message)
       })
     return () => abort.abort()
-  }, [])
+  }, [manifestUrl])
 
   // "/" opens search (the tool's keyboard shortcut).
   useEffect(() => {
@@ -180,10 +188,22 @@ export default function AtlasExact() {
           <span className="status-dot" /> INTERACTIVE ANATOMY
         </div>
         <h1>
-          Human Atlas: KEV<span className="edition">3D</span>
+          {species.startsWith('human') ? 'Human' : SPECIES.find((s) => s.id === species)?.label?.split('(')[0]?.trim() ?? ''} Atlas: KEV<span className="edition">3D</span>
         </h1>
         <div className="identity-meta">
-          {atlas ? atlas.parts.length.toLocaleString() : '2,234'} modeled pieces <span>·</span> BodyParts3D
+          {atlas ? atlas.parts.length.toLocaleString() : '—'} modeled pieces <span>·</span> {atlas?.source ?? ''}
+        </div>
+        <div className="species-selector">
+          {SPECIES.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className={species === s.id ? 'species-btn active' : 'species-btn'}
+              onClick={() => { if (species !== s.id) { setSpecies(s.id); sceneRef.current?.dispose(); sceneRef.current = null } }}
+            >
+              {s.label}
+            </button>
+          ))}
         </div>
       </header>
 
@@ -390,17 +410,38 @@ export default function AtlasExact() {
             <X size={18} />
           </button>
           <div className="eyebrow">SOURCE &amp; SCOPE</div>
-          <h2 className="structure-title">A body, revealed.</h2>
-          <p className="structure-description">Explore the adult male reference anatomy from BodyParts3D.</p>
+          <h2 className="structure-title">{species === 'pig' ? 'Veterinary anatomy, explored.' : 'A body, revealed.'}</h2>
+          <p className="structure-description">
+            {species === 'pig'
+              ? 'Explore the domestic pig (Sus domestica) skeletal anatomy from Z-Anatomy.'
+              : species === 'human-female'
+              ? 'Explore the adult female reference anatomy from the HuBMAP Human Reference Atlas.'
+              : 'Explore the adult male reference anatomy from BodyParts3D.'}
+          </p>
           <div className="about-copy">
-            <p><strong>Male · BodyParts3D</strong><br />2,234 individual meshes and 3,432 named concepts from an adult male reference anatomy.</p>
-            <p>This reference does not contain every human structure or variation. Named concepts can contain multiple pieces; each source mesh is rendered once.</p>
-            <p>Colors and system groupings are designed for exploration. The geometry is simplified for the web, and short explanations provide general educational context. This is an anatomical reference, not a diagnostic or surgical tool.</p>
-            <h3>Source</h3>
-            <p>BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International.</p>
-            <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Dataset license <ArrowUpRight size={14} /></a>
-            <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Original geometry &amp; metadata <ArrowUpRight size={14} /></a>
-            <a href="https://academic.oup.com/nar/article/37/suppl_1/D782/1000752" target="_blank" rel="noreferrer">Read the source publication <ArrowUpRight size={14} /></a>
+            {species === 'pig' ? (<>
+              <p><strong>Pig · Z-Anatomy</strong><br />{atlas?.parts.length ?? 119} individual skeletal meshes from the Z-PIG veterinary anatomy atlas.</p>
+              <p>This model focuses on the skeletal system of Sus domestica. Future versions will add muscular, circulatory, and organ systems as source data becomes available.</p>
+              <h3>Source</h3>
+              <p>Z-Anatomy — The libre 3D atlas of anatomy, licensed under CC Attribution-ShareAlike 4.0 International.</p>
+              <a href="https://github.com/Z-Anatomy/Models-of-veterinary-anatomy" target="_blank" rel="noreferrer">Z-Anatomy veterinary models <ArrowUpRight size={14} /></a>
+              <a href="https://z-anatomy.com" target="_blank" rel="noreferrer">Z-Anatomy project <ArrowUpRight size={14} /></a>
+            </>) : species === 'human-female' ? (<>
+              <p><strong>Female · HuBMAP HRA</strong><br />{atlas?.parts.length ?? 888} individual meshes from the HuBMAP Human Reference Atlas.</p>
+              <p>This reference represents an adult female anatomy. Named concepts follow the HRA ontology.</p>
+              <h3>Source</h3>
+              <p>HuBMAP Human Reference Atlas v1.5, licensed under CC Attribution 4.0 International.</p>
+              <a href="https://hubmapconsortium.github.io/ccf-releases/v1.5/docs/ref-organs.html" target="_blank" rel="noreferrer">HuBMAP HRA reference organs <ArrowUpRight size={14} /></a>
+            </>) : (<>
+              <p><strong>Male · BodyParts3D</strong><br />2,234 individual meshes and 3,432 named concepts from an adult male reference anatomy.</p>
+              <p>This reference does not contain every human structure or variation. Named concepts can contain multiple pieces; each source mesh is rendered once.</p>
+              <p>Colors and system groupings are designed for exploration. The geometry is simplified for the web, and short explanations provide general educational context. This is an anatomical reference, not a diagnostic or surgical tool.</p>
+              <h3>Source</h3>
+              <p>BodyParts3D, &copy; The Database Center for Life Science licensed under CC Attribution 4.0 International.</p>
+              <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Dataset license <ArrowUpRight size={14} /></a>
+              <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Original geometry &amp; metadata <ArrowUpRight size={14} /></a>
+              <a href="https://academic.oup.com/nar/article/37/suppl_1/D782/1000752" target="_blank" rel="noreferrer">Read the source publication <ArrowUpRight size={14} /></a>
+            </>)}
           </div>
         </aside>
       )}
