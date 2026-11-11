@@ -34,6 +34,7 @@ const SPECIES = [
   { id: 'human-male', label: 'Human (Male)', manifest: '/models/atlas.json' },
   { id: 'human-female', label: 'Human (Female)', manifest: '/models/atlas-female.json' },
   { id: 'pig', label: 'Pig (Sus domestica)', manifest: '/models/atlas-pig.json' },
+  { id: 'chicken', label: 'Chicken (Gallus gallus)', manifest: '/models/atlas-chicken.json' },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
