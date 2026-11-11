@@ -35,5 +35,7 @@ for(const p of manifest.parts){
 flush();manifest.sourceTriangles=manifest.triangles;manifest.triangles=triangles;manifest.chunks=chunks;manifest.optimized={method:'meshoptimizer quadric simplification',maximumRelativeError:.002,preservedMeshes:manifest.parts.length};
 fs.writeFileSync(new URL(name,dir),JSON.stringify(manifest));
 // Remove only converter outputs superseded by the optimized chunks.
-for(const name of originals)fs.unlinkSync(new URL(name,dir));
+// Only delete originals that don't collide with new output filenames.
+const newNames=new Set(chunks.map(c=>c.url.split('/').pop()));
+for(const name of originals)if(!newNames.has(name))fs.unlinkSync(new URL(name,dir));
 console.log(JSON.stringify({parts:manifest.parts.length,triangles,bytes:chunks.reduce((n,c)=>n+c.bytes,0),chunks:chunks.length,maxError}));
