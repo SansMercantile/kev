@@ -22,6 +22,22 @@ License, (c) ashemag).
   `tools/human-atlas/public/ATTRIBUTION.md`.
 - This is an educational explorer, not a diagnostic or surgical tool.
 
+## Female anatomy
+
+- **Source**: HuBMAP Human Reference Atlas Female v1.5, licensed **CC BY 4.0**
+  (Kristen Browne & Heidi Schlehlein).
+- `public/models/atlas-female.json` (888 parts, 10 optimized chunks, ~24MB
+  gzipped). Same viewer, same streaming pipeline as the male atlas.
+
+## Animal anatomy (pig)
+
+- **Source**: Z-Anatomy "Models of veterinary anatomy", Z-PIG (Sus domestica),
+  licensed **CC BY-SA 4.0** (Gauthier Kervyn, Marcin Zielinski, Lluis Vinent).
+- Converted from Blender 4.x `.blend` via `tools/human-atlas/scripts/convert-zpig.py`
+  (pure Python blendfile parser, no Blender install required).
+- `public/models/atlas-pig.json` (119 skeletal parts, 9 chunks, ~23MB gzipped).
+- French NAV nomenclature translated to English anatomical terms.
+
 ## Adapted MIT code
 
 - `src/lib/studio/atlasScene.js` - chunk streaming, GPU part-state
