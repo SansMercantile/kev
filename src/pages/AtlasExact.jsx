@@ -35,6 +35,10 @@ const SPECIES = [
   { id: 'human-female', label: 'Human (Female)', manifest: '/models/atlas-female.json' },
   { id: 'pig', label: 'Pig (Sus domestica)', manifest: '/models/atlas-pig.json' },
   { id: 'chicken', label: 'Chicken (Gallus gallus)', manifest: '/models/atlas-chicken.json' },
+  { id: 'lion', label: 'Lion (Panthera leo)', manifest: '/models/atlas-lion.json' },
+  { id: 'mouse', label: 'Mouse (Mus musculus)', manifest: '/models/atlas-mouse.json' },
+  { id: 'bear', label: 'Black Bear (Ursus americanus)', manifest: '/models/atlas-bear.json' },
+  { id: 'penguin', label: 'Emperor Penguin (Aptenodytes forsteri)', manifest: '/models/atlas-penguin.json' },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
