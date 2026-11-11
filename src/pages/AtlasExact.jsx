@@ -31,14 +31,70 @@ const VIEWS = ['three-quarter', 'front', 'side', 'back']
 const VIEW_LABELS = ['¾', 'F', 'S', 'B']
 
 const SPECIES = [
-  { id: 'human-male', label: 'Human (Male)', manifest: '/models/atlas.json' },
-  { id: 'human-female', label: 'Human (Female)', manifest: '/models/atlas-female.json' },
-  { id: 'pig', label: 'Pig (Sus domestica)', manifest: '/models/atlas-pig.json' },
-  { id: 'chicken', label: 'Chicken (Gallus gallus)', manifest: '/models/atlas-chicken.json' },
-  { id: 'lion', label: 'Lion (Panthera leo)', manifest: '/models/atlas-lion.json' },
-  { id: 'mouse', label: 'Mouse (Mus musculus)', manifest: '/models/atlas-mouse.json' },
-  { id: 'bear', label: 'Black Bear (Ursus americanus)', manifest: '/models/atlas-bear.json' },
-  { id: 'penguin', label: 'Emperor Penguin (Aptenodytes forsteri)', manifest: '/models/atlas-penguin.json' },
+  {
+    id: 'human',
+    label: 'Human',
+    sexes: [
+      { id: 'human-male', label: 'Male', manifest: '/models/atlas.json' },
+      { id: 'human-female', label: 'Female', manifest: '/models/atlas-female.json' },
+    ],
+  },
+  {
+    id: 'pig',
+    label: 'Pig (Sus domestica)',
+    sexes: [
+      { id: 'pig-male', label: 'Male', manifest: '/models/atlas-pig.json' },
+      { id: 'pig-female', label: 'Female', manifest: '/models/atlas-pig-female.json' },
+    ],
+  },
+  {
+    id: 'chicken',
+    label: 'Chicken (Gallus gallus)',
+    sexes: [
+      { id: 'chicken-male', label: 'Male', manifest: '/models/atlas-chicken.json' },
+      { id: 'chicken-female', label: 'Female', manifest: '/models/atlas-chicken-female.json' },
+    ],
+  },
+  {
+    id: 'lion',
+    label: 'Lion (Panthera leo)',
+    sexes: [
+      { id: 'lion-male', label: 'Male', manifest: '/models/atlas-lion.json' },
+      { id: 'lion-female', label: 'Female', manifest: '/models/atlas-lion-female.json' },
+    ],
+  },
+  {
+    id: 'mouse',
+    label: 'Mouse (Mus musculus)',
+    sexes: [
+      { id: 'mouse-male', label: 'Male', manifest: '/models/atlas-mouse.json' },
+      { id: 'mouse-female', label: 'Female', manifest: '/models/atlas-mouse-female.json' },
+    ],
+  },
+  {
+    id: 'bear',
+    label: 'Black Bear (Ursus americanus)',
+    sexes: [
+      { id: 'bear-male', label: 'Male', manifest: '/models/atlas-bear.json' },
+      { id: 'bear-female', label: 'Female', manifest: '/models/atlas-bear-female.json' },
+    ],
+  },
+  {
+    id: 'penguin',
+    label: 'Emperor Penguin (Aptenodytes forsteri)',
+    sexes: [
+      { id: 'penguin-male', label: 'Male', manifest: '/models/atlas-penguin.json' },
+      { id: 'penguin-female', label: 'Female', manifest: '/models/atlas-penguin-female.json' },
+    ],
+  },
+  {
+    id: 'fox',
+    label: 'Bat-eared Fox (Otocyon megalotis)',
+    sexes: [
+      { id: 'fox-male', label: 'Male', manifest: '/models/atlas-fox-male.json' },
+      { id: 'fox-female', label: 'Female', manifest: '/models/atlas-fox-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
@@ -47,7 +103,8 @@ export default function AtlasExact() {
   const detailTitle = useRef(null)
   const hostRef = useRef(null)
   const sceneRef = useRef(null)
-  const [species, setSpecies] = useState('human-male')
+  const [speciesId, setSpeciesId] = useState('human')
+  const [sexId, setSexId] = useState('male')
   const [atlas, setAtlas] = useState(null)
   const [state, setState] = useState(initial)
   const [progress, setProgress] = useState(0)
@@ -58,9 +115,11 @@ export default function AtlasExact() {
   const [query, setQuery] = useState('')
   const [chosen, setChosen] = useState(null)
 
-  const manifestUrl = SPECIES.find((s) => s.id === species)?.manifest ?? '/models/atlas.json'
+  const currentSpecies = SPECIES.find((s) => s.id === speciesId)
+  const currentSex = currentSpecies?.sexes.find((s) => s.label.toLowerCase() === sexId)
+  const manifestUrl = currentSex?.manifest ?? '/models/atlas.json'
 
-  // Fetch the catalogue — re-run when species changes.
+  // Fetch the catalogue — re-run when species/sex changes.
   useEffect(() => {
     const abort = new AbortController()
     setProgress(0)
@@ -193,20 +252,33 @@ export default function AtlasExact() {
           <span className="status-dot" /> INTERACTIVE ANATOMY
         </div>
         <h1>
-          {species.startsWith('human') ? 'Human' : SPECIES.find((s) => s.id === species)?.label?.split('(')[0]?.trim() ?? ''} Atlas: KEV<span className="edition">3D</span>
+          {currentSpecies?.label?.split('(')[0]?.trim() ?? ''} Atlas: KEV<span className="edition">3D</span>
+          <span className="sex-badge">{sexId === 'female' ? '♀' : '♂'}</span>
         </h1>
         <div className="identity-meta">
           {atlas ? atlas.parts.length.toLocaleString() : '—'} modeled pieces <span>·</span> {atlas?.source ?? ''}
         </div>
         <div className="species-selector">
-          {SPECIES.map((s) => (
+          {SPECIES.map((sp) => (
             <button
-              key={s.id}
+              key={sp.id}
               type="button"
-              className={species === s.id ? 'species-btn active' : 'species-btn'}
-              onClick={() => { if (species !== s.id) { setSpecies(s.id); sceneRef.current?.dispose(); sceneRef.current = null } }}
+              className={speciesId === sp.id ? 'species-btn active' : 'species-btn'}
+              onClick={() => { if (speciesId !== sp.id) { setSpeciesId(sp.id); setSexId('male'); sceneRef.current?.dispose(); sceneRef.current = null } }}
             >
-              {s.label}
+              {sp.label.split('(')[0].trim()}
+            </button>
+          ))}
+        </div>
+        <div className="sex-selector">
+          {currentSpecies?.sexes.map((sx) => (
+            <button
+              key={sx.id}
+              type="button"
+              className={sexId === sx.label.toLowerCase() ? 'sex-btn active' : 'sex-btn'}
+              onClick={() => { if (sexId !== sx.label.toLowerCase()) { setSexId(sx.label.toLowerCase()); sceneRef.current?.dispose(); sceneRef.current = null } }}
+            >
+              {sx.label}
             </button>
           ))}
         </div>
@@ -415,29 +487,31 @@ export default function AtlasExact() {
             <X size={18} />
           </button>
           <div className="eyebrow">SOURCE &amp; SCOPE</div>
-          <h2 className="structure-title">{species === 'pig' ? 'Veterinary anatomy, explored.' : 'A body, revealed.'}</h2>
+          <h2 className="structure-title">{speciesId === 'pig' || speciesId !== 'human' ? 'Veterinary anatomy, explored.' : 'A body, revealed.'}</h2>
           <p className="structure-description">
-            {species === 'pig'
-              ? 'Explore the domestic pig (Sus domestica) skeletal anatomy from Z-Anatomy.'
-              : species === 'human-female'
+            {speciesId === 'pig'
+              ? `Explore the domestic pig (Sus domestica) skeletal anatomy from Z-Anatomy (${sexId} variant).`
+              : speciesId === 'human' && sexId === 'female'
               ? 'Explore the adult female reference anatomy from the HuBMAP Human Reference Atlas.'
-              : 'Explore the adult male reference anatomy from BodyParts3D.'}
+              : speciesId === 'human'
+              ? 'Explore the adult male reference anatomy from BodyParts3D.'
+              : `Explore the ${currentSpecies?.label ?? ''} skeletal anatomy (${sexId} variant).`}
           </p>
           <div className="about-copy">
-            {species === 'pig' ? (<>
-              <p><strong>Pig · Z-Anatomy</strong><br />{atlas?.parts.length ?? 119} individual skeletal meshes from the Z-PIG veterinary anatomy atlas.</p>
-              <p>This model focuses on the skeletal system of Sus domestica. Future versions will add muscular, circulatory, and organ systems as source data becomes available.</p>
+            {speciesId === 'pig' ? (<>
+              <p><strong>Pig · Z-Anatomy ({sexId})</strong><br />{atlas?.parts.length ?? 119} individual skeletal meshes from the Z-PIG veterinary anatomy atlas.</p>
+              <p>This model focuses on the skeletal system of Sus domestica. {sexId === 'female' ? 'The female variant is derived from the male baseline using documented sexual dimorphism parameters (pelvic width ratio 1.20, overall scale 0.88).' : 'The male variant is the Z-PIG baseline model.'}</p>
               <h3>Source</h3>
               <p>Z-Anatomy — The libre 3D atlas of anatomy, licensed under CC Attribution-ShareAlike 4.0 International.</p>
               <a href="https://github.com/Z-Anatomy/Models-of-veterinary-anatomy" target="_blank" rel="noreferrer">Z-Anatomy veterinary models <ArrowUpRight size={14} /></a>
               <a href="https://z-anatomy.com" target="_blank" rel="noreferrer">Z-Anatomy project <ArrowUpRight size={14} /></a>
-            </>) : species === 'human-female' ? (<>
+            </>) : speciesId === 'human' && sexId === 'female' ? (<>
               <p><strong>Female · HuBMAP HRA</strong><br />{atlas?.parts.length ?? 888} individual meshes from the HuBMAP Human Reference Atlas.</p>
               <p>This reference represents an adult female anatomy. Named concepts follow the HRA ontology.</p>
               <h3>Source</h3>
               <p>HuBMAP Human Reference Atlas v1.5, licensed under CC Attribution 4.0 International.</p>
               <a href="https://hubmapconsortium.github.io/ccf-releases/v1.5/docs/ref-organs.html" target="_blank" rel="noreferrer">HuBMAP HRA reference organs <ArrowUpRight size={14} /></a>
-            </>) : (<>
+            </>) : speciesId === 'human' ? (<>
               <p><strong>Male · BodyParts3D</strong><br />2,234 individual meshes and 3,432 named concepts from an adult male reference anatomy.</p>
               <p>This reference does not contain every human structure or variation. Named concepts can contain multiple pieces; each source mesh is rendered once.</p>
               <p>Colors and system groupings are designed for exploration. The geometry is simplified for the web, and short explanations provide general educational context. This is an anatomical reference, not a diagnostic or surgical tool.</p>
@@ -446,6 +520,12 @@ export default function AtlasExact() {
               <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Dataset license <ArrowUpRight size={14} /></a>
               <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Original geometry &amp; metadata <ArrowUpRight size={14} /></a>
               <a href="https://academic.oup.com/nar/article/37/suppl_1/D782/1000752" target="_blank" rel="noreferrer">Read the source publication <ArrowUpRight size={14} /></a>
+            </>) : (<>
+              <p><strong>{currentSpecies?.label} · DigiMorph ({sexId})</strong><br />{atlas?.parts.length ?? 1} mesh(es) from DigiMorph.org CT scan data.</p>
+              <p>{sexId === 'female' ? 'The female variant is derived from the male/unknown baseline using documented sexual dimorphism parameters from published morphometric studies.' : 'This is the baseline specimen from DigiMorph CT scan data.'} Colors and system groupings are designed for exploration. This is an anatomical reference, not a diagnostic tool.</p>
+              <h3>Source</h3>
+              <p>DigiMorph.org — Digital Morphology at The University of Texas at Austin.</p>
+              <a href="https://digimorph.org" target="_blank" rel="noreferrer">DigiMorph.org <ArrowUpRight size={14} /></a>
             </>)}
           </div>
         </aside>

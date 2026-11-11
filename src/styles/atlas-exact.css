@@ -82,6 +82,11 @@
   font-family: inherit; font-weight: 600; font-size: 32px; letter-spacing: -1.3px;
   line-height: 1.1; margin: 10px 0 8px; color: var(--foreground);
 }
+.sex-badge {
+  font-size: 14px; margin-left: 4px; color: #697782;
+  border: 1px solid var(--border); padding: 1px 6px; border-radius: 6px;
+  font-weight: 400;
+}
 .identity h1 .edition {
   font-family: inherit; font-weight: 500; font-size: 10px; letter-spacing: 0.03em;
   margin: 0; color: #697782; border: 1px solid var(--border); padding: 2px 6px; border-radius: 6px;
@@ -101,6 +106,20 @@
 .species-btn.active {
   background: #c9a227; color: #fff; border-color: #c9a227;
   box-shadow: 0 1px 4px rgba(201,162,39,0.35);
+}
+.sex-selector {
+  display: flex; gap: 6px; margin-top: 6px; pointer-events: auto;
+}
+.sex-btn {
+  font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 5px;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.45);
+  color: #666; cursor: pointer; transition: all 0.15s;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+}
+.sex-btn:hover { background: rgba(255,255,255,0.75); color: #333; }
+.sex-btn.active {
+  background: #458a85; color: #fff; border-color: #458a85;
+  box-shadow: 0 1px 4px rgba(69,138,133,0.35);
 }
 
 /* ------------------------------------------------------------- top actions */
