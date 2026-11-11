@@ -17,3 +17,12 @@ conftest.py
 kev_test_results.json
 organizational_structure.md
 KEV_*.md
+# Exclude raw binary chunks - the app loads .gz versions + JSON manifests
+public/models/*.bin
+!public/models/*.bin.gz
+!public/models/*.json
+# Exclude source data and tools
+tools/human-atlas/scripts/_female_src/
+tools/human-atlas/scripts/_animal_src/
+tools/human-atlas/public/models/*.bin
+tools/human-atlas/public/models/*.bin.gz
