@@ -311,6 +311,54 @@ const SPECIES = [
       { id: 'badger-female', label: 'Female', manifest: '/models/atlas-badger.json' },
     ],
   },
+  {
+    id: 'butterfly',
+    label: 'Butterfly (Danaus plexippus)',
+    sexes: [
+      { id: 'butterfly-male', label: 'Male', manifest: '/models/atlas-butterfly.json' },
+      { id: 'butterfly-female', label: 'Female', manifest: '/models/atlas-butterfly-female.json' },
+    ],
+  },
+  {
+    id: 'honeybee',
+    label: 'Honeybee (Apis mellifera)',
+    sexes: [
+      { id: 'honeybee-male', label: 'Male', manifest: '/models/atlas-honeybee.json' },
+      { id: 'honeybee-female', label: 'Female', manifest: '/models/atlas-honeybee-female.json' },
+    ],
+  },
+  {
+    id: 'ant',
+    label: 'Ant (Camponotus pennsylvanicus)',
+    sexes: [
+      { id: 'ant-male', label: 'Male', manifest: '/models/atlas-ant.json' },
+      { id: 'ant-female', label: 'Female', manifest: '/models/atlas-ant-female.json' },
+    ],
+  },
+  {
+    id: 'beetle',
+    label: 'Beetle (Lucanus cervus)',
+    sexes: [
+      { id: 'beetle-male', label: 'Male', manifest: '/models/atlas-beetle.json' },
+      { id: 'beetle-female', label: 'Female', manifest: '/models/atlas-beetle-female.json' },
+    ],
+  },
+  {
+    id: 'dragonfly',
+    label: 'Dragonfly (Anax junius)',
+    sexes: [
+      { id: 'dragonfly-male', label: 'Male', manifest: '/models/atlas-dragonfly.json' },
+      { id: 'dragonfly-female', label: 'Female', manifest: '/models/atlas-dragonfly-female.json' },
+    ],
+  },
+  {
+    id: 'grasshopper',
+    label: 'Grasshopper (Melanoplus differentialis)',
+    sexes: [
+      { id: 'grasshopper-male', label: 'Male', manifest: '/models/atlas-grasshopper.json' },
+      { id: 'grasshopper-female', label: 'Female', manifest: '/models/atlas-grasshopper-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
