@@ -471,6 +471,30 @@ const SPECIES = [
       { id: 'giantsloth-female', label: 'Female', manifest: '/models/atlas-giantsloth-female.json' },
     ],
   },
+  {
+    id: 'brownhyena',
+    label: 'Brown Hyena (Parahyaena brunnea)',
+    sexes: [
+      { id: 'brownhyena-male', label: 'Male', manifest: '/models/atlas-brownhyena.json' },
+      { id: 'brownhyena-female', label: 'Female', manifest: '/models/atlas-brownhyena-female.json' },
+    ],
+  },
+  {
+    id: 'elephantbird',
+    label: 'Elephant Bird (Aepyornis maximus)',
+    sexes: [
+      { id: 'elephantbird-male', label: 'Male', manifest: '/models/atlas-elephantbird.json' },
+      { id: 'elephantbird-female', label: 'Female', manifest: '/models/atlas-elephantbird-female.json' },
+    ],
+  },
+  {
+    id: 'monkseal',
+    label: 'Caribbean Monk Seal (Monachus tropicalis)',
+    sexes: [
+      { id: 'monkseal-male', label: 'Male', manifest: '/models/atlas-monkseal.json' },
+      { id: 'monkseal-female', label: 'Female', manifest: '/models/atlas-monkseal-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
