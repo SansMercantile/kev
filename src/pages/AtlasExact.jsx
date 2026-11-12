@@ -495,6 +495,38 @@ const SPECIES = [
       { id: 'monkseal-female', label: 'Female', manifest: '/models/atlas-monkseal-female.json' },
     ],
   },
+  {
+    id: 'asiantapir',
+    label: 'Asian Tapir (Tapirus indicus)',
+    sexes: [
+      { id: 'asiantapir-male', label: 'Male', manifest: '/models/atlas-asiantapir.json' },
+      { id: 'asiantapir-female', label: 'Female', manifest: '/models/atlas-asiantapir-female.json' },
+    ],
+  },
+  {
+    id: 'bairdstapir',
+    label: "Baird's Tapir (Tapirus bairdii)",
+    sexes: [
+      { id: 'bairdstapir-male', label: 'Male', manifest: '/models/atlas-bairdstapir.json' },
+      { id: 'bairdstapir-female', label: 'Female', manifest: '/models/atlas-bairdstapir-female.json' },
+    ],
+  },
+  {
+    id: 'mexicanhornedlizard',
+    label: 'Mexican Horned Lizard (Phrynosoma taurus)',
+    sexes: [
+      { id: 'mexicanhornedlizard-male', label: 'Male', manifest: '/models/atlas-mexicanhornedlizard.json' },
+      { id: 'mexicanhornedlizard-female', label: 'Female', manifest: '/models/atlas-mexicanhornedlizard-female.json' },
+    ],
+  },
+  {
+    id: 'gilamonsterjuvenile',
+    label: 'Gila Monster Juvenile (Heloderma suspectum)',
+    sexes: [
+      { id: 'gilamonsterjuvenile-male', label: 'Male', manifest: '/models/atlas-gilamonsterjuvenile.json' },
+      { id: 'gilamonsterjuvenile-female', label: 'Female', manifest: '/models/atlas-gilamonsterjuvenile-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
