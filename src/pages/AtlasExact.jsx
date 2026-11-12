@@ -263,6 +263,30 @@ const SPECIES = [
       { id: 'hornedlizard-female', label: 'Female', manifest: '/models/atlas-hornedlizard-female.json' },
     ],
   },
+  {
+    id: 'seaurchin',
+    label: 'Sea Urchin (Strongylocentrotus purpuratus)',
+    sexes: [
+      { id: 'seaurchin-male', label: 'Male', manifest: '/models/atlas-seaurchin.json' },
+      { id: 'seaurchin-female', label: 'Female', manifest: '/models/atlas-seaurchin-female.json' },
+    ],
+  },
+  {
+    id: 'catfish',
+    label: 'Catfish (Conorhynchos conirostris)',
+    sexes: [
+      { id: 'catfish-male', label: 'Male', manifest: '/models/atlas-catfish.json' },
+      { id: 'catfish-female', label: 'Female', manifest: '/models/atlas-catfish-female.json' },
+    ],
+  },
+  {
+    id: 'caecilian',
+    label: 'Caecilian (Dermophis mexicanus)',
+    sexes: [
+      { id: 'caecilian-male', label: 'Male', manifest: '/models/atlas-caecilian.json' },
+      { id: 'caecilian-female', label: 'Female', manifest: '/models/atlas-caecilian-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
