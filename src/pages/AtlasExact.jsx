@@ -183,6 +183,86 @@ const SPECIES = [
       { id: 'crocodile-female', label: 'Female', manifest: '/models/atlas-crocodile-female.json' },
     ],
   },
+  {
+    id: 'chameleon',
+    label: 'Chameleon (Chamaeleo calyptratus)',
+    sexes: [
+      { id: 'chameleon-male', label: 'Male', manifest: '/models/atlas-chameleon.json' },
+      { id: 'chameleon-female', label: 'Female', manifest: '/models/atlas-chameleon-female.json' },
+    ],
+  },
+  {
+    id: 'gilamonster',
+    label: 'Gila Monster (Heloderma suspectum)',
+    sexes: [
+      { id: 'gilamonster-male', label: 'Male', manifest: '/models/atlas-gilamonster.json' },
+      { id: 'gilamonster-female', label: 'Female', manifest: '/models/atlas-gilamonster-female.json' },
+    ],
+  },
+  {
+    id: 'thornydevil',
+    label: 'Thorny Devil (Moloch horridus)',
+    sexes: [
+      { id: 'thornydevil-male', label: 'Male', manifest: '/models/atlas-thornydevil.json' },
+      { id: 'thornydevil-female', label: 'Female', manifest: '/models/atlas-thornydevil-female.json' },
+    ],
+  },
+  {
+    id: 'vulture',
+    label: 'Black Vulture (Coragyps atratus)',
+    sexes: [
+      { id: 'vulture-male', label: 'Male', manifest: '/models/atlas-vulture.json' },
+      { id: 'vulture-female', label: 'Female', manifest: '/models/atlas-vulture-female.json' },
+    ],
+  },
+  {
+    id: 'moose',
+    label: 'Moose (Alces alces)',
+    sexes: [
+      { id: 'moose-male', label: 'Male', manifest: '/models/atlas-moose.json' },
+      { id: 'moose-female', label: 'Female', manifest: '/models/atlas-moose-female.json' },
+    ],
+  },
+  {
+    id: 'llama',
+    label: 'Llama (Lama glama)',
+    sexes: [
+      { id: 'llama-male', label: 'Male', manifest: '/models/atlas-llama.json' },
+      { id: 'llama-female', label: 'Female', manifest: '/models/atlas-llama-female.json' },
+    ],
+  },
+  {
+    id: 'platypus',
+    label: 'Platypus (Ornithorhynchus anatinus)',
+    sexes: [
+      { id: 'platypus-male', label: 'Male', manifest: '/models/atlas-platypus.json' },
+      { id: 'platypus-female', label: 'Female', manifest: '/models/atlas-platypus-female.json' },
+    ],
+  },
+  {
+    id: 'hyrax',
+    label: 'Rock Hyrax (Procavia capensis)',
+    sexes: [
+      { id: 'hyrax-male', label: 'Male', manifest: '/models/atlas-hyrax.json' },
+      { id: 'hyrax-female', label: 'Female', manifest: '/models/atlas-hyrax-female.json' },
+    ],
+  },
+  {
+    id: 'beardeddragon',
+    label: 'Bearded Dragon (Pogona vitticeps)',
+    sexes: [
+      { id: 'beardeddragon-male', label: 'Male', manifest: '/models/atlas-beardeddragon.json' },
+      { id: 'beardeddragon-female', label: 'Female', manifest: '/models/atlas-beardeddragon-female.json' },
+    ],
+  },
+  {
+    id: 'hornedlizard',
+    label: 'Horned Lizard (Phrynosoma cornutum)',
+    sexes: [
+      { id: 'hornedlizard-male', label: 'Male', manifest: '/models/atlas-hornedlizard.json' },
+      { id: 'hornedlizard-female', label: 'Female', manifest: '/models/atlas-hornedlizard-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
