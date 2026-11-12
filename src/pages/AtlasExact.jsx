@@ -423,6 +423,54 @@ const SPECIES = [
       { id: 'salmon-female', label: 'Female', manifest: '/models/atlas-salmon-female.json' },
     ],
   },
+  {
+    id: 'smilodon',
+    label: 'Saber-toothed Cat (Smilodon fatalis)',
+    sexes: [
+      { id: 'smilodon-male', label: 'Male', manifest: '/models/atlas-smilodon.json' },
+      { id: 'smilodon-female', label: 'Female', manifest: '/models/atlas-smilodon-female.json' },
+    ],
+  },
+  {
+    id: 'dodo',
+    label: 'Dodo (Raphus cucullatus)',
+    sexes: [
+      { id: 'dodo-male', label: 'Male', manifest: '/models/atlas-dodo.json' },
+      { id: 'dodo-female', label: 'Female', manifest: '/models/atlas-dodo-female.json' },
+    ],
+  },
+  {
+    id: 'velociraptor',
+    label: 'Velociraptor (Velociraptor mongoliensis)',
+    sexes: [
+      { id: 'velociraptor-male', label: 'Male', manifest: '/models/atlas-velociraptor.json' },
+      { id: 'velociraptor-female', label: 'Female', manifest: '/models/atlas-velociraptor-female.json' },
+    ],
+  },
+  {
+    id: 'pterodactyl',
+    label: 'Pterodactyl (Pterodactylus antiquus)',
+    sexes: [
+      { id: 'pterodactyl-male', label: 'Male', manifest: '/models/atlas-pterodactyl.json' },
+      { id: 'pterodactyl-female', label: 'Female', manifest: '/models/atlas-pterodactyl-female.json' },
+    ],
+  },
+  {
+    id: 'woollyrhino',
+    label: 'Woolly Rhinoceros (Coelodonta antiquitatis)',
+    sexes: [
+      { id: 'woollyrhino-male', label: 'Male', manifest: '/models/atlas-woollyrhino.json' },
+      { id: 'woollyrhino-female', label: 'Female', manifest: '/models/atlas-woollyrhino-female.json' },
+    ],
+  },
+  {
+    id: 'giantsloth',
+    label: 'Giant Ground Sloth (Megatherium americanum)',
+    sexes: [
+      { id: 'giantsloth-male', label: 'Male', manifest: '/models/atlas-giantsloth.json' },
+      { id: 'giantsloth-female', label: 'Female', manifest: '/models/atlas-giantsloth-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
