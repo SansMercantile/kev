@@ -359,6 +359,14 @@ const SPECIES = [
       { id: 'grasshopper-female', label: 'Female', manifest: '/models/atlas-grasshopper-female.json' },
     ],
   },
+  {
+    id: 'mammoth',
+    label: 'Woolly Mammoth (Mammuthus primigenius)',
+    sexes: [
+      { id: 'mammoth-male', label: 'Male', manifest: '/models/atlas-mammoth.json' },
+      { id: 'mammoth-female', label: 'Female', manifest: '/models/atlas-mammoth-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
