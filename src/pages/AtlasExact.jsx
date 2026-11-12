@@ -95,6 +95,94 @@ const SPECIES = [
       { id: 'fox-female', label: 'Female', manifest: '/models/atlas-fox-female.json' },
     ],
   },
+  {
+    id: 'trex',
+    label: 'Tyrannosaurus Rex',
+    sexes: [
+      { id: 'trex-male', label: 'Male', manifest: '/models/atlas-trex.json' },
+      { id: 'trex-female', label: 'Female', manifest: '/models/atlas-trex-female.json' },
+    ],
+  },
+  {
+    id: 'elephant',
+    label: 'Elephant (Elephas maximus)',
+    sexes: [
+      { id: 'elephant-male', label: 'Male', manifest: '/models/atlas-elephant.json' },
+      { id: 'elephant-female', label: 'Female', manifest: '/models/atlas-elephant-female.json' },
+    ],
+  },
+  {
+    id: 'giraffe',
+    label: 'Giraffe (Giraffa camelopardalis)',
+    sexes: [
+      { id: 'giraffe-male', label: 'Male', manifest: '/models/atlas-giraffe.json' },
+      { id: 'giraffe-female', label: 'Female', manifest: '/models/atlas-giraffe-female.json' },
+    ],
+  },
+  {
+    id: 'dolphin',
+    label: 'Dolphin (Tursiops truncatus)',
+    sexes: [
+      { id: 'dolphin-male', label: 'Male', manifest: '/models/atlas-dolphin.json' },
+      { id: 'dolphin-female', label: 'Female', manifest: '/models/atlas-dolphin-female.json' },
+    ],
+  },
+  {
+    id: 'hyena',
+    label: 'Hyena (Hyaena hyaena)',
+    sexes: [
+      { id: 'hyena-male', label: 'Male', manifest: '/models/atlas-hyena.json' },
+      { id: 'hyena-female', label: 'Female', manifest: '/models/atlas-hyena-female.json' },
+    ],
+  },
+  {
+    id: 'opossum',
+    label: 'Opossum (Didelphis virginiana)',
+    sexes: [
+      { id: 'opossum-male', label: 'Male', manifest: '/models/atlas-opossum.json' },
+      { id: 'opossum-female', label: 'Female', manifest: '/models/atlas-opossum-female.json' },
+    ],
+  },
+  {
+    id: 'polarbear',
+    label: 'Polar Bear (Ursus maritimus)',
+    sexes: [
+      { id: 'polarbear-male', label: 'Male', manifest: '/models/atlas-polarbear.json' },
+      { id: 'polarbear-female', label: 'Female', manifest: '/models/atlas-polarbear-female.json' },
+    ],
+  },
+  {
+    id: 'tapir',
+    label: 'Tapir (Tapirus terrestris)',
+    sexes: [
+      { id: 'tapir-male', label: 'Male', manifest: '/models/atlas-tapir.json' },
+      { id: 'tapir-female', label: 'Female', manifest: '/models/atlas-tapir-female.json' },
+    ],
+  },
+  {
+    id: 'python',
+    label: 'Python (Python molurus)',
+    sexes: [
+      { id: 'python-male', label: 'Male', manifest: '/models/atlas-python.json' },
+      { id: 'python-female', label: 'Female', manifest: '/models/atlas-python-female.json' },
+    ],
+  },
+  {
+    id: 'tuatara',
+    label: 'Tuatara (Sphenodon punctatus)',
+    sexes: [
+      { id: 'tuatara-male', label: 'Male', manifest: '/models/atlas-tuatara.json' },
+      { id: 'tuatara-female', label: 'Female', manifest: '/models/atlas-tuatara-female.json' },
+    ],
+  },
+  {
+    id: 'crocodile',
+    label: 'Crocodile (Crocodylus moreletii)',
+    sexes: [
+      { id: 'crocodile-male', label: 'Male', manifest: '/models/atlas-crocodile.json' },
+      { id: 'crocodile-female', label: 'Female', manifest: '/models/atlas-crocodile-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
