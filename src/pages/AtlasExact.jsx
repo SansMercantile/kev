@@ -367,6 +367,62 @@ const SPECIES = [
       { id: 'mammoth-female', label: 'Female', manifest: '/models/atlas-mammoth-female.json' },
     ],
   },
+  {
+    id: 'dog',
+    label: 'Dog (Canis lupus familiaris)',
+    sexes: [
+      { id: 'dog-male', label: 'Male', manifest: '/models/atlas-dog.json' },
+      { id: 'dog-female', label: 'Female', manifest: '/models/atlas-dog-female.json' },
+    ],
+  },
+  {
+    id: 'cat',
+    label: 'Cat (Felis catus)',
+    sexes: [
+      { id: 'cat-male', label: 'Male', manifest: '/models/atlas-cat.json' },
+      { id: 'cat-female', label: 'Female', manifest: '/models/atlas-cat-female.json' },
+    ],
+  },
+  {
+    id: 'horse',
+    label: 'Horse (Equus ferus caballus)',
+    sexes: [
+      { id: 'horse-male', label: 'Male', manifest: '/models/atlas-horse.json' },
+      { id: 'horse-female', label: 'Female', manifest: '/models/atlas-horse-female.json' },
+    ],
+  },
+  {
+    id: 'cow',
+    label: 'Cow (Bos taurus)',
+    sexes: [
+      { id: 'cow-male', label: 'Male', manifest: '/models/atlas-cow.json' },
+      { id: 'cow-female', label: 'Female', manifest: '/models/atlas-cow-female.json' },
+    ],
+  },
+  {
+    id: 'frog',
+    label: 'Frog (Rana temporaria)',
+    sexes: [
+      { id: 'frog-male', label: 'Male', manifest: '/models/atlas-frog.json' },
+      { id: 'frog-female', label: 'Female', manifest: '/models/atlas-frog-female.json' },
+    ],
+  },
+  {
+    id: 'shark',
+    label: 'Shark (Carcharodon carcharias)',
+    sexes: [
+      { id: 'shark-male', label: 'Male', manifest: '/models/atlas-shark.json' },
+      { id: 'shark-female', label: 'Female', manifest: '/models/atlas-shark-female.json' },
+    ],
+  },
+  {
+    id: 'salmon',
+    label: 'Salmon (Salmo salar)',
+    sexes: [
+      { id: 'salmon-male', label: 'Male', manifest: '/models/atlas-salmon.json' },
+      { id: 'salmon-female', label: 'Female', manifest: '/models/atlas-salmon-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
