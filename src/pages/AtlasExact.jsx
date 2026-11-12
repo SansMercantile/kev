@@ -287,6 +287,30 @@ const SPECIES = [
       { id: 'caecilian-female', label: 'Female', manifest: '/models/atlas-caecilian-female.json' },
     ],
   },
+  {
+    id: 'mongoose',
+    label: 'Mongoose (Galerella sanguinea)',
+    sexes: [
+      { id: 'mongoose-male', label: 'Male', manifest: '/models/atlas-mongoose.json' },
+      { id: 'mongoose-female', label: 'Female', manifest: '/models/atlas-mongoose-female.json' },
+    ],
+  },
+  {
+    id: 'leopardseal',
+    label: 'Leopard Seal (Hydrurga leptonyx)',
+    sexes: [
+      { id: 'leopardseal-male', label: 'Male', manifest: '/models/atlas-leopardseal.json' },
+      { id: 'leopardseal-female', label: 'Female', manifest: '/models/atlas-leopardseal-female.json' },
+    ],
+  },
+  {
+    id: 'badger',
+    label: 'Badger (Taxidea taxus)',
+    sexes: [
+      { id: 'badger-male', label: 'Male', manifest: '/models/atlas-badger-male.json' },
+      { id: 'badger-female', label: 'Female', manifest: '/models/atlas-badger.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
