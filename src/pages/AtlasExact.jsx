@@ -32,6 +32,86 @@ const VIEW_LABELS = ['¾', 'F', 'S', 'B']
 
 const SPECIES = [
   {
+    id: 'catfish2',
+    label: 'Steindachneridion Catfish (Steindachneridion scriptum)',
+    sexes: [
+      { id: 'catfish2-male', label: 'Male', manifest: '/models/atlas-catfish2.json' },
+      { id: 'catfish2-female', label: 'Female', manifest: '/models/atlas-catfish2-female.json' },
+      { id: 'catfish2-parts', label: 'Parts', manifest: '/models/atlas-catfish2-parts.json' },
+      { id: 'catfish2-organs', label: 'Organs', manifest: '/models/atlas-catfish2-organs.json' },
+    ],
+  },
+  {
+    id: 'earlessmonitor',
+    label: 'Earless Monitor (Lanthanotus borneensis)',
+    sexes: [
+      { id: 'earlessmonitor-male', label: 'Male', manifest: '/models/atlas-earlessmonitor.json' },
+      { id: 'earlessmonitor-female', label: 'Female', manifest: '/models/atlas-earlessmonitor-female.json' },
+      { id: 'earlessmonitor-parts', label: 'Parts', manifest: '/models/atlas-earlessmonitor-parts.json' },
+      { id: 'earlessmonitor-organs', label: 'Organs', manifest: '/models/atlas-earlessmonitor-organs.json' },
+    ],
+  },
+  {
+    id: 'falsegharial',
+    label: 'False Gharial (Tomistoma schlegelii)',
+    sexes: [
+      { id: 'falsegharial-male', label: 'Male', manifest: '/models/atlas-falsegharial.json' },
+      { id: 'falsegharial-female', label: 'Female', manifest: '/models/atlas-falsegharial-female.json' },
+      { id: 'falsegharial-parts', label: 'Parts', manifest: '/models/atlas-falsegharial-parts.json' },
+      { id: 'falsegharial-organs', label: 'Organs', manifest: '/models/atlas-falsegharial-organs.json' },
+    ],
+  },
+  {
+    id: 'fossilplatypus',
+    label: 'Fossil Platypus (Obdurodon dicksoni)',
+    sexes: [
+      { id: 'fossilplatypus-male', label: 'Male', manifest: '/models/atlas-fossilplatypus.json' },
+      { id: 'fossilplatypus-female', label: 'Female', manifest: '/models/atlas-fossilplatypus-female.json' },
+      { id: 'fossilplatypus-parts', label: 'Parts', manifest: '/models/atlas-fossilplatypus-parts.json' },
+      { id: 'fossilplatypus-organs', label: 'Organs', manifest: '/models/atlas-fossilplatypus-organs.json' },
+    ],
+  },
+  {
+    id: 'oreodont',
+    label: 'Oreodont (Bathygenys reevesi)',
+    sexes: [
+      { id: 'oreodont-male', label: 'Male', manifest: '/models/atlas-oreodont.json' },
+      { id: 'oreodont-female', label: 'Female', manifest: '/models/atlas-oreodont-female.json' },
+      { id: 'oreodont-parts', label: 'Parts', manifest: '/models/atlas-oreodont-parts.json' },
+      { id: 'oreodont-organs', label: 'Organs', manifest: '/models/atlas-oreodont-organs.json' },
+    ],
+  },
+  {
+    id: 'fossilcroc',
+    label: 'Fossil Croc (Calsoyasuchus valliceps)',
+    sexes: [
+      { id: 'fossilcroc-male', label: 'Male', manifest: '/models/atlas-fossilcroc.json' },
+      { id: 'fossilcroc-female', label: 'Female', manifest: '/models/atlas-fossilcroc-female.json' },
+      { id: 'fossilcroc-parts', label: 'Parts', manifest: '/models/atlas-fossilcroc-parts.json' },
+      { id: 'fossilcroc-organs', label: 'Organs', manifest: '/models/atlas-fossilcroc-organs.json' },
+    ],
+  },
+  {
+    id: 'lionjuvenile',
+    label: 'Lion Juvenile (Panthera leo)',
+    sexes: [
+      { id: 'lionjuvenile-male', label: 'Male', manifest: '/models/atlas-lionjuvenile.json' },
+      { id: 'lionjuvenile-female', label: 'Female', manifest: '/models/atlas-lionjuvenile-female.json' },
+      { id: 'lionjuvenile-parts', label: 'Parts', manifest: '/models/atlas-lionjuvenile-parts.json' },
+      { id: 'lionjuvenile-organs', label: 'Organs', manifest: '/models/atlas-lionjuvenile-organs.json' },
+    ],
+  },
+  {
+    id: 'penguinjuvenile',
+    label: 'Penguin Juvenile (Aptenodytes forsteri)',
+    sexes: [
+      { id: 'penguinjuvenile-male', label: 'Male', manifest: '/models/atlas-penguinjuvenile.json' },
+      { id: 'penguinjuvenile-female', label: 'Female', manifest: '/models/atlas-penguinjuvenile-female.json' },
+      { id: 'penguinjuvenile-parts', label: 'Parts', manifest: '/models/atlas-penguinjuvenile-parts.json' },
+      { id: 'penguinjuvenile-organs', label: 'Organs', manifest: '/models/atlas-penguinjuvenile-organs.json' },
+    ],
+  },
+  {
     id: 'human',
     label: 'Human',
     sexes: [
