@@ -45,6 +45,7 @@ const SPECIES = [
     sexes: [
       { id: 'pig-male', label: 'Male', manifest: '/models/atlas-pig.json' },
       { id: 'pig-female', label: 'Female', manifest: '/models/atlas-pig-female.json' },
+      { id: 'pig-organs', label: 'Organs', manifest: '/models/atlas-pig-organs.json' },
     ],
   },
   {
@@ -53,6 +54,7 @@ const SPECIES = [
     sexes: [
       { id: 'chicken-male', label: 'Male', manifest: '/models/atlas-chicken.json' },
       { id: 'chicken-female', label: 'Female', manifest: '/models/atlas-chicken-female.json' },
+      { id: 'chicken-organs', label: 'Organs', manifest: '/models/atlas-chicken-organs.json' },
     ],
   },
   {
@@ -61,6 +63,8 @@ const SPECIES = [
     sexes: [
       { id: 'lion-male', label: 'Male', manifest: '/models/atlas-lion.json' },
       { id: 'lion-female', label: 'Female', manifest: '/models/atlas-lion-female.json' },
+      { id: 'lion-parts', label: 'Parts', manifest: '/models/atlas-lion-parts.json' },
+      { id: 'lion-organs', label: 'Organs', manifest: '/models/atlas-lion-organs.json' },
     ],
   },
   {
@@ -69,6 +73,8 @@ const SPECIES = [
     sexes: [
       { id: 'mouse-male', label: 'Male', manifest: '/models/atlas-mouse.json' },
       { id: 'mouse-female', label: 'Female', manifest: '/models/atlas-mouse-female.json' },
+      { id: 'mouse-parts', label: 'Parts', manifest: '/models/atlas-mouse-parts.json' },
+      { id: 'mouse-organs', label: 'Organs', manifest: '/models/atlas-mouse-organs.json' },
     ],
   },
   {
@@ -77,6 +83,8 @@ const SPECIES = [
     sexes: [
       { id: 'bear-male', label: 'Male', manifest: '/models/atlas-bear.json' },
       { id: 'bear-female', label: 'Female', manifest: '/models/atlas-bear-female.json' },
+      { id: 'bear-parts', label: 'Parts', manifest: '/models/atlas-bear-parts.json' },
+      { id: 'bear-organs', label: 'Organs', manifest: '/models/atlas-bear-organs.json' },
     ],
   },
   {
@@ -85,6 +93,8 @@ const SPECIES = [
     sexes: [
       { id: 'penguin-male', label: 'Male', manifest: '/models/atlas-penguin.json' },
       { id: 'penguin-female', label: 'Female', manifest: '/models/atlas-penguin-female.json' },
+      { id: 'penguin-parts', label: 'Parts', manifest: '/models/atlas-penguin-parts.json' },
+      { id: 'penguin-organs', label: 'Organs', manifest: '/models/atlas-penguin-organs.json' },
     ],
   },
   {
@@ -93,6 +103,8 @@ const SPECIES = [
     sexes: [
       { id: 'fox-male', label: 'Male', manifest: '/models/atlas-fox-male.json' },
       { id: 'fox-female', label: 'Female', manifest: '/models/atlas-fox-female.json' },
+      { id: 'fox-parts', label: 'Parts', manifest: '/models/atlas-fox-parts.json' },
+      { id: 'fox-organs', label: 'Organs', manifest: '/models/atlas-fox-organs.json' },
     ],
   },
   {
@@ -101,6 +113,7 @@ const SPECIES = [
     sexes: [
       { id: 'trex-male', label: 'Male', manifest: '/models/atlas-trex.json' },
       { id: 'trex-female', label: 'Female', manifest: '/models/atlas-trex-female.json' },
+      { id: 'trex-organs', label: 'Organs', manifest: '/models/atlas-trex-organs.json' },
     ],
   },
   {
@@ -109,6 +122,8 @@ const SPECIES = [
     sexes: [
       { id: 'elephant-male', label: 'Male', manifest: '/models/atlas-elephant.json' },
       { id: 'elephant-female', label: 'Female', manifest: '/models/atlas-elephant-female.json' },
+      { id: 'elephant-parts', label: 'Parts', manifest: '/models/atlas-elephant-parts.json' },
+      { id: 'elephant-organs', label: 'Organs', manifest: '/models/atlas-elephant-organs.json' },
     ],
   },
   {
@@ -117,6 +132,8 @@ const SPECIES = [
     sexes: [
       { id: 'giraffe-male', label: 'Male', manifest: '/models/atlas-giraffe.json' },
       { id: 'giraffe-female', label: 'Female', manifest: '/models/atlas-giraffe-female.json' },
+      { id: 'giraffe-parts', label: 'Parts', manifest: '/models/atlas-giraffe-parts.json' },
+      { id: 'giraffe-organs', label: 'Organs', manifest: '/models/atlas-giraffe-organs.json' },
     ],
   },
   {
@@ -125,6 +142,8 @@ const SPECIES = [
     sexes: [
       { id: 'dolphin-male', label: 'Male', manifest: '/models/atlas-dolphin.json' },
       { id: 'dolphin-female', label: 'Female', manifest: '/models/atlas-dolphin-female.json' },
+      { id: 'dolphin-parts', label: 'Parts', manifest: '/models/atlas-dolphin-parts.json' },
+      { id: 'dolphin-organs', label: 'Organs', manifest: '/models/atlas-dolphin-organs.json' },
     ],
   },
   {
@@ -133,6 +152,8 @@ const SPECIES = [
     sexes: [
       { id: 'hyena-male', label: 'Male', manifest: '/models/atlas-hyena.json' },
       { id: 'hyena-female', label: 'Female', manifest: '/models/atlas-hyena-female.json' },
+      { id: 'hyena-parts', label: 'Parts', manifest: '/models/atlas-hyena-parts.json' },
+      { id: 'hyena-organs', label: 'Organs', manifest: '/models/atlas-hyena-organs.json' },
     ],
   },
   {
@@ -141,6 +162,8 @@ const SPECIES = [
     sexes: [
       { id: 'opossum-male', label: 'Male', manifest: '/models/atlas-opossum.json' },
       { id: 'opossum-female', label: 'Female', manifest: '/models/atlas-opossum-female.json' },
+      { id: 'opossum-parts', label: 'Parts', manifest: '/models/atlas-opossum-parts.json' },
+      { id: 'opossum-organs', label: 'Organs', manifest: '/models/atlas-opossum-organs.json' },
     ],
   },
   {
@@ -149,6 +172,8 @@ const SPECIES = [
     sexes: [
       { id: 'polarbear-male', label: 'Male', manifest: '/models/atlas-polarbear.json' },
       { id: 'polarbear-female', label: 'Female', manifest: '/models/atlas-polarbear-female.json' },
+      { id: 'polarbear-parts', label: 'Parts', manifest: '/models/atlas-polarbear-parts.json' },
+      { id: 'polarbear-organs', label: 'Organs', manifest: '/models/atlas-polarbear-organs.json' },
     ],
   },
   {
@@ -157,6 +182,8 @@ const SPECIES = [
     sexes: [
       { id: 'tapir-male', label: 'Male', manifest: '/models/atlas-tapir.json' },
       { id: 'tapir-female', label: 'Female', manifest: '/models/atlas-tapir-female.json' },
+      { id: 'tapir-parts', label: 'Parts', manifest: '/models/atlas-tapir-parts.json' },
+      { id: 'tapir-organs', label: 'Organs', manifest: '/models/atlas-tapir-organs.json' },
     ],
   },
   {
@@ -165,6 +192,8 @@ const SPECIES = [
     sexes: [
       { id: 'python-male', label: 'Male', manifest: '/models/atlas-python.json' },
       { id: 'python-female', label: 'Female', manifest: '/models/atlas-python-female.json' },
+      { id: 'python-parts', label: 'Parts', manifest: '/models/atlas-python-parts.json' },
+      { id: 'python-organs', label: 'Organs', manifest: '/models/atlas-python-organs.json' },
     ],
   },
   {
@@ -173,6 +202,8 @@ const SPECIES = [
     sexes: [
       { id: 'tuatara-male', label: 'Male', manifest: '/models/atlas-tuatara.json' },
       { id: 'tuatara-female', label: 'Female', manifest: '/models/atlas-tuatara-female.json' },
+      { id: 'tuatara-parts', label: 'Parts', manifest: '/models/atlas-tuatara-parts.json' },
+      { id: 'tuatara-organs', label: 'Organs', manifest: '/models/atlas-tuatara-organs.json' },
     ],
   },
   {
@@ -181,6 +212,8 @@ const SPECIES = [
     sexes: [
       { id: 'crocodile-male', label: 'Male', manifest: '/models/atlas-crocodile.json' },
       { id: 'crocodile-female', label: 'Female', manifest: '/models/atlas-crocodile-female.json' },
+      { id: 'crocodile-parts', label: 'Parts', manifest: '/models/atlas-crocodile-parts.json' },
+      { id: 'crocodile-organs', label: 'Organs', manifest: '/models/atlas-crocodile-organs.json' },
     ],
   },
   {
@@ -189,6 +222,8 @@ const SPECIES = [
     sexes: [
       { id: 'chameleon-male', label: 'Male', manifest: '/models/atlas-chameleon.json' },
       { id: 'chameleon-female', label: 'Female', manifest: '/models/atlas-chameleon-female.json' },
+      { id: 'chameleon-parts', label: 'Parts', manifest: '/models/atlas-chameleon-parts.json' },
+      { id: 'chameleon-organs', label: 'Organs', manifest: '/models/atlas-chameleon-organs.json' },
     ],
   },
   {
@@ -197,6 +232,8 @@ const SPECIES = [
     sexes: [
       { id: 'gilamonster-male', label: 'Male', manifest: '/models/atlas-gilamonster.json' },
       { id: 'gilamonster-female', label: 'Female', manifest: '/models/atlas-gilamonster-female.json' },
+      { id: 'gilamonster-parts', label: 'Parts', manifest: '/models/atlas-gilamonster-parts.json' },
+      { id: 'gilamonster-organs', label: 'Organs', manifest: '/models/atlas-gilamonster-organs.json' },
     ],
   },
   {
@@ -205,6 +242,8 @@ const SPECIES = [
     sexes: [
       { id: 'thornydevil-male', label: 'Male', manifest: '/models/atlas-thornydevil.json' },
       { id: 'thornydevil-female', label: 'Female', manifest: '/models/atlas-thornydevil-female.json' },
+      { id: 'thornydevil-parts', label: 'Parts', manifest: '/models/atlas-thornydevil-parts.json' },
+      { id: 'thornydevil-organs', label: 'Organs', manifest: '/models/atlas-thornydevil-organs.json' },
     ],
   },
   {
@@ -213,6 +252,8 @@ const SPECIES = [
     sexes: [
       { id: 'vulture-male', label: 'Male', manifest: '/models/atlas-vulture.json' },
       { id: 'vulture-female', label: 'Female', manifest: '/models/atlas-vulture-female.json' },
+      { id: 'vulture-parts', label: 'Parts', manifest: '/models/atlas-vulture-parts.json' },
+      { id: 'vulture-organs', label: 'Organs', manifest: '/models/atlas-vulture-organs.json' },
     ],
   },
   {
@@ -221,6 +262,8 @@ const SPECIES = [
     sexes: [
       { id: 'moose-male', label: 'Male', manifest: '/models/atlas-moose.json' },
       { id: 'moose-female', label: 'Female', manifest: '/models/atlas-moose-female.json' },
+      { id: 'moose-parts', label: 'Parts', manifest: '/models/atlas-moose-parts.json' },
+      { id: 'moose-organs', label: 'Organs', manifest: '/models/atlas-moose-organs.json' },
     ],
   },
   {
@@ -229,6 +272,8 @@ const SPECIES = [
     sexes: [
       { id: 'llama-male', label: 'Male', manifest: '/models/atlas-llama.json' },
       { id: 'llama-female', label: 'Female', manifest: '/models/atlas-llama-female.json' },
+      { id: 'llama-parts', label: 'Parts', manifest: '/models/atlas-llama-parts.json' },
+      { id: 'llama-organs', label: 'Organs', manifest: '/models/atlas-llama-organs.json' },
     ],
   },
   {
@@ -237,6 +282,8 @@ const SPECIES = [
     sexes: [
       { id: 'platypus-male', label: 'Male', manifest: '/models/atlas-platypus.json' },
       { id: 'platypus-female', label: 'Female', manifest: '/models/atlas-platypus-female.json' },
+      { id: 'platypus-parts', label: 'Parts', manifest: '/models/atlas-platypus-parts.json' },
+      { id: 'platypus-organs', label: 'Organs', manifest: '/models/atlas-platypus-organs.json' },
     ],
   },
   {
@@ -245,6 +292,8 @@ const SPECIES = [
     sexes: [
       { id: 'hyrax-male', label: 'Male', manifest: '/models/atlas-hyrax.json' },
       { id: 'hyrax-female', label: 'Female', manifest: '/models/atlas-hyrax-female.json' },
+      { id: 'hyrax-parts', label: 'Parts', manifest: '/models/atlas-hyrax-parts.json' },
+      { id: 'hyrax-organs', label: 'Organs', manifest: '/models/atlas-hyrax-organs.json' },
     ],
   },
   {
@@ -253,6 +302,8 @@ const SPECIES = [
     sexes: [
       { id: 'beardeddragon-male', label: 'Male', manifest: '/models/atlas-beardeddragon.json' },
       { id: 'beardeddragon-female', label: 'Female', manifest: '/models/atlas-beardeddragon-female.json' },
+      { id: 'beardeddragon-parts', label: 'Parts', manifest: '/models/atlas-beardeddragon-parts.json' },
+      { id: 'beardeddragon-organs', label: 'Organs', manifest: '/models/atlas-beardeddragon-organs.json' },
     ],
   },
   {
@@ -261,6 +312,8 @@ const SPECIES = [
     sexes: [
       { id: 'hornedlizard-male', label: 'Male', manifest: '/models/atlas-hornedlizard.json' },
       { id: 'hornedlizard-female', label: 'Female', manifest: '/models/atlas-hornedlizard-female.json' },
+      { id: 'hornedlizard-parts', label: 'Parts', manifest: '/models/atlas-hornedlizard-parts.json' },
+      { id: 'hornedlizard-organs', label: 'Organs', manifest: '/models/atlas-hornedlizard-organs.json' },
     ],
   },
   {
@@ -277,6 +330,7 @@ const SPECIES = [
     sexes: [
       { id: 'catfish-male', label: 'Male', manifest: '/models/atlas-catfish.json' },
       { id: 'catfish-female', label: 'Female', manifest: '/models/atlas-catfish-female.json' },
+      { id: 'catfish-organs', label: 'Organs', manifest: '/models/atlas-catfish-organs.json' },
     ],
   },
   {
@@ -285,6 +339,8 @@ const SPECIES = [
     sexes: [
       { id: 'caecilian-male', label: 'Male', manifest: '/models/atlas-caecilian.json' },
       { id: 'caecilian-female', label: 'Female', manifest: '/models/atlas-caecilian-female.json' },
+      { id: 'caecilian-parts', label: 'Parts', manifest: '/models/atlas-caecilian-parts.json' },
+      { id: 'caecilian-organs', label: 'Organs', manifest: '/models/atlas-caecilian-organs.json' },
     ],
   },
   {
@@ -293,6 +349,8 @@ const SPECIES = [
     sexes: [
       { id: 'mongoose-male', label: 'Male', manifest: '/models/atlas-mongoose.json' },
       { id: 'mongoose-female', label: 'Female', manifest: '/models/atlas-mongoose-female.json' },
+      { id: 'mongoose-parts', label: 'Parts', manifest: '/models/atlas-mongoose-parts.json' },
+      { id: 'mongoose-organs', label: 'Organs', manifest: '/models/atlas-mongoose-organs.json' },
     ],
   },
   {
@@ -301,6 +359,8 @@ const SPECIES = [
     sexes: [
       { id: 'leopardseal-male', label: 'Male', manifest: '/models/atlas-leopardseal.json' },
       { id: 'leopardseal-female', label: 'Female', manifest: '/models/atlas-leopardseal-female.json' },
+      { id: 'leopardseal-parts', label: 'Parts', manifest: '/models/atlas-leopardseal-parts.json' },
+      { id: 'leopardseal-organs', label: 'Organs', manifest: '/models/atlas-leopardseal-organs.json' },
     ],
   },
   {
@@ -309,6 +369,8 @@ const SPECIES = [
     sexes: [
       { id: 'badger-male', label: 'Male', manifest: '/models/atlas-badger-male.json' },
       { id: 'badger-female', label: 'Female', manifest: '/models/atlas-badger.json' },
+      { id: 'badger-parts', label: 'Parts', manifest: '/models/atlas-badger-parts.json' },
+      { id: 'badger-organs', label: 'Organs', manifest: '/models/atlas-badger-organs.json' },
     ],
   },
   {
@@ -365,6 +427,7 @@ const SPECIES = [
     sexes: [
       { id: 'mammoth-male', label: 'Male', manifest: '/models/atlas-mammoth.json' },
       { id: 'mammoth-female', label: 'Female', manifest: '/models/atlas-mammoth-female.json' },
+      { id: 'mammoth-organs', label: 'Organs', manifest: '/models/atlas-mammoth-organs.json' },
     ],
   },
   {
@@ -373,6 +436,7 @@ const SPECIES = [
     sexes: [
       { id: 'dog-male', label: 'Male', manifest: '/models/atlas-dog.json' },
       { id: 'dog-female', label: 'Female', manifest: '/models/atlas-dog-female.json' },
+      { id: 'dog-organs', label: 'Organs', manifest: '/models/atlas-dog-organs.json' },
     ],
   },
   {
@@ -381,6 +445,7 @@ const SPECIES = [
     sexes: [
       { id: 'cat-male', label: 'Male', manifest: '/models/atlas-cat.json' },
       { id: 'cat-female', label: 'Female', manifest: '/models/atlas-cat-female.json' },
+      { id: 'cat-organs', label: 'Organs', manifest: '/models/atlas-cat-organs.json' },
     ],
   },
   {
@@ -389,6 +454,7 @@ const SPECIES = [
     sexes: [
       { id: 'horse-male', label: 'Male', manifest: '/models/atlas-horse.json' },
       { id: 'horse-female', label: 'Female', manifest: '/models/atlas-horse-female.json' },
+      { id: 'horse-organs', label: 'Organs', manifest: '/models/atlas-horse-organs.json' },
     ],
   },
   {
@@ -397,6 +463,7 @@ const SPECIES = [
     sexes: [
       { id: 'cow-male', label: 'Male', manifest: '/models/atlas-cow.json' },
       { id: 'cow-female', label: 'Female', manifest: '/models/atlas-cow-female.json' },
+      { id: 'cow-organs', label: 'Organs', manifest: '/models/atlas-cow-organs.json' },
     ],
   },
   {
@@ -405,6 +472,7 @@ const SPECIES = [
     sexes: [
       { id: 'frog-male', label: 'Male', manifest: '/models/atlas-frog.json' },
       { id: 'frog-female', label: 'Female', manifest: '/models/atlas-frog-female.json' },
+      { id: 'frog-organs', label: 'Organs', manifest: '/models/atlas-frog-organs.json' },
     ],
   },
   {
@@ -413,6 +481,7 @@ const SPECIES = [
     sexes: [
       { id: 'shark-male', label: 'Male', manifest: '/models/atlas-shark.json' },
       { id: 'shark-female', label: 'Female', manifest: '/models/atlas-shark-female.json' },
+      { id: 'shark-organs', label: 'Organs', manifest: '/models/atlas-shark-organs.json' },
     ],
   },
   {
@@ -421,6 +490,7 @@ const SPECIES = [
     sexes: [
       { id: 'salmon-male', label: 'Male', manifest: '/models/atlas-salmon.json' },
       { id: 'salmon-female', label: 'Female', manifest: '/models/atlas-salmon-female.json' },
+      { id: 'salmon-organs', label: 'Organs', manifest: '/models/atlas-salmon-organs.json' },
     ],
   },
   {
@@ -429,6 +499,7 @@ const SPECIES = [
     sexes: [
       { id: 'smilodon-male', label: 'Male', manifest: '/models/atlas-smilodon.json' },
       { id: 'smilodon-female', label: 'Female', manifest: '/models/atlas-smilodon-female.json' },
+      { id: 'smilodon-organs', label: 'Organs', manifest: '/models/atlas-smilodon-organs.json' },
     ],
   },
   {
@@ -437,6 +508,7 @@ const SPECIES = [
     sexes: [
       { id: 'dodo-male', label: 'Male', manifest: '/models/atlas-dodo.json' },
       { id: 'dodo-female', label: 'Female', manifest: '/models/atlas-dodo-female.json' },
+      { id: 'dodo-organs', label: 'Organs', manifest: '/models/atlas-dodo-organs.json' },
     ],
   },
   {
@@ -445,6 +517,7 @@ const SPECIES = [
     sexes: [
       { id: 'velociraptor-male', label: 'Male', manifest: '/models/atlas-velociraptor.json' },
       { id: 'velociraptor-female', label: 'Female', manifest: '/models/atlas-velociraptor-female.json' },
+      { id: 'velociraptor-organs', label: 'Organs', manifest: '/models/atlas-velociraptor-organs.json' },
     ],
   },
   {
@@ -461,6 +534,7 @@ const SPECIES = [
     sexes: [
       { id: 'woollyrhino-male', label: 'Male', manifest: '/models/atlas-woollyrhino.json' },
       { id: 'woollyrhino-female', label: 'Female', manifest: '/models/atlas-woollyrhino-female.json' },
+      { id: 'woollyrhino-organs', label: 'Organs', manifest: '/models/atlas-woollyrhino-organs.json' },
     ],
   },
   {
@@ -477,6 +551,8 @@ const SPECIES = [
     sexes: [
       { id: 'brownhyena-male', label: 'Male', manifest: '/models/atlas-brownhyena.json' },
       { id: 'brownhyena-female', label: 'Female', manifest: '/models/atlas-brownhyena-female.json' },
+      { id: 'brownhyena-parts', label: 'Parts', manifest: '/models/atlas-brownhyena-parts.json' },
+      { id: 'brownhyena-organs', label: 'Organs', manifest: '/models/atlas-brownhyena-organs.json' },
     ],
   },
   {
@@ -485,6 +561,8 @@ const SPECIES = [
     sexes: [
       { id: 'elephantbird-male', label: 'Male', manifest: '/models/atlas-elephantbird.json' },
       { id: 'elephantbird-female', label: 'Female', manifest: '/models/atlas-elephantbird-female.json' },
+      { id: 'elephantbird-parts', label: 'Parts', manifest: '/models/atlas-elephantbird-parts.json' },
+      { id: 'elephantbird-organs', label: 'Organs', manifest: '/models/atlas-elephantbird-organs.json' },
     ],
   },
   {
@@ -493,6 +571,8 @@ const SPECIES = [
     sexes: [
       { id: 'monkseal-male', label: 'Male', manifest: '/models/atlas-monkseal.json' },
       { id: 'monkseal-female', label: 'Female', manifest: '/models/atlas-monkseal-female.json' },
+      { id: 'monkseal-parts', label: 'Parts', manifest: '/models/atlas-monkseal-parts.json' },
+      { id: 'monkseal-organs', label: 'Organs', manifest: '/models/atlas-monkseal-organs.json' },
     ],
   },
   {
@@ -501,6 +581,8 @@ const SPECIES = [
     sexes: [
       { id: 'asiantapir-male', label: 'Male', manifest: '/models/atlas-asiantapir.json' },
       { id: 'asiantapir-female', label: 'Female', manifest: '/models/atlas-asiantapir-female.json' },
+      { id: 'asiantapir-parts', label: 'Parts', manifest: '/models/atlas-asiantapir-parts.json' },
+      { id: 'asiantapir-organs', label: 'Organs', manifest: '/models/atlas-asiantapir-organs.json' },
     ],
   },
   {
@@ -509,6 +591,8 @@ const SPECIES = [
     sexes: [
       { id: 'bairdstapir-male', label: 'Male', manifest: '/models/atlas-bairdstapir.json' },
       { id: 'bairdstapir-female', label: 'Female', manifest: '/models/atlas-bairdstapir-female.json' },
+      { id: 'bairdstapir-parts', label: 'Parts', manifest: '/models/atlas-bairdstapir-parts.json' },
+      { id: 'bairdstapir-organs', label: 'Organs', manifest: '/models/atlas-bairdstapir-organs.json' },
     ],
   },
   {
@@ -517,6 +601,7 @@ const SPECIES = [
     sexes: [
       { id: 'mexicanhornedlizard-male', label: 'Male', manifest: '/models/atlas-mexicanhornedlizard.json' },
       { id: 'mexicanhornedlizard-female', label: 'Female', manifest: '/models/atlas-mexicanhornedlizard-female.json' },
+      { id: 'mexicanhornedlizard-parts', label: 'Parts', manifest: '/models/atlas-mexicanhornedlizard-parts.json' },
     ],
   },
   {
@@ -525,6 +610,7 @@ const SPECIES = [
     sexes: [
       { id: 'gilamonsterjuvenile-male', label: 'Male', manifest: '/models/atlas-gilamonsterjuvenile.json' },
       { id: 'gilamonsterjuvenile-female', label: 'Female', manifest: '/models/atlas-gilamonsterjuvenile-female.json' },
+      { id: 'gilamonsterjuvenile-parts', label: 'Parts', manifest: '/models/atlas-gilamonsterjuvenile-parts.json' },
     ],
   },
   {
@@ -533,6 +619,7 @@ const SPECIES = [
     sexes: [
       { id: 'cubancrocodile-male', label: 'Male', manifest: '/models/atlas-cubancrocodile.json' },
       { id: 'cubancrocodile-female', label: 'Female', manifest: '/models/atlas-cubancrocodile-female.json' },
+      { id: 'cubancrocodile-parts', label: 'Parts', manifest: '/models/atlas-cubancrocodile-parts.json' },
     ],
   },
   {
@@ -541,6 +628,8 @@ const SPECIES = [
     sexes: [
       { id: 'alligator-male', label: 'Male', manifest: '/models/atlas-alligator.json' },
       { id: 'alligator-female', label: 'Female', manifest: '/models/atlas-alligator-female.json' },
+      { id: 'alligator-parts', label: 'Parts', manifest: '/models/atlas-alligator-parts.json' },
+      { id: 'alligator-organs', label: 'Organs', manifest: '/models/atlas-alligator-organs.json' },
     ],
   },
 ]
