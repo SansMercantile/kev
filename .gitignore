@@ -38,3 +38,7 @@ dist/
 *.sw?
 
 .vercel
+.env*
+
+# Raw open-source scan downloads (2.9 GB) - derived models live in public/models/
+tools/human-atlas/scripts/_animal_src/

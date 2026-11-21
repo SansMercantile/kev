@@ -527,6 +527,22 @@ const SPECIES = [
       { id: 'gilamonsterjuvenile-female', label: 'Female', manifest: '/models/atlas-gilamonsterjuvenile-female.json' },
     ],
   },
+  {
+    id: 'cubancrocodile',
+    label: 'Cuban Crocodile (Crocodylus rhombifer)',
+    sexes: [
+      { id: 'cubancrocodile-male', label: 'Male', manifest: '/models/atlas-cubancrocodile.json' },
+      { id: 'cubancrocodile-female', label: 'Female', manifest: '/models/atlas-cubancrocodile-female.json' },
+    ],
+  },
+  {
+    id: 'alligator',
+    label: 'American Alligator (Alligator mississippiensis)',
+    sexes: [
+      { id: 'alligator-male', label: 'Male', manifest: '/models/atlas-alligator.json' },
+      { id: 'alligator-female', label: 'Female', manifest: '/models/atlas-alligator-female.json' },
+    ],
+  },
 ]
 
 const initial = { explode: 0, visible: DEFAULT_VISIBLE, selected: [], isolate: false, view: 'three-quarter', rotate: false, reset: 0 }
