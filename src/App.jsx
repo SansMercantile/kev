@@ -15,6 +15,8 @@ import VirtualSchoolMap from './pages/VirtualSchoolMap'
 import VRCampus from './pages/VRCampus'
 const ImmersiveLab = lazy(() => import('./pages/AtlasExact'))
 const XRAcademy = lazy(() => import('./pages/XRAcademy'))
+const Planets = lazy(() => import('./pages/Planets'))
+const System = lazy(() => import('./pages/System'))
 const TeacherStudio = lazy(() => import('./pages/TeacherStudio'))
 const Agents = lazy(() => import('./pages/Agents'))
 const Curriculum = lazy(() => import('./pages/Curriculum'))
@@ -264,6 +266,8 @@ const App = () => {
             <Route path="/vr" element={<RequireAuth><VRCampus /></RequireAuth>} />
             <Route path="/anatomy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading Immersive Lab...</section>}><ImmersiveLab /></Suspense></RequireAuth>} />
             <Route path="/xr-academy" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading XR Academy...</section>}><XRAcademy /></Suspense></RequireAuth>} />
+            <Route path="/planets" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading planets...</section>}><Planets /></Suspense></RequireAuth>} />
+            <Route path="/system" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading solar system...</section>}><System /></Suspense></RequireAuth>} />
             <Route path="/agents" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading tutors...</section>}><Agents /></Suspense></RequireAuth>} />
             <Route path="/curriculum" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading curriculum...</section>}><Curriculum /></Suspense></RequireAuth>} />
             <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />
