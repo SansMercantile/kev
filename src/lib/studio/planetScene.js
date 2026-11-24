@@ -56,6 +56,7 @@ export function createPlanetScene(el, { atlas, body, state, onSelect, onProgress
   renderer.toneMappingExposure = 1.05
   el.appendChild(renderer.domElement)
 
+  const offset = body.viewOffset || 0
   const scene = new T.Scene()
   scene.background = new T.Color('#04060b')
   const camera = new T.PerspectiveCamera(42, 1, 0.01, 500)
@@ -97,6 +98,7 @@ export function createPlanetScene(el, { atlas, body, state, onSelect, onProgress
   const tiltGroup = new T.Group()
   tiltGroup.rotation.z = T.MathUtils.degToRad(body.axial_tilt_deg || 0)
   tiltGroup.add(spinGroup)
+  tiltGroup.position.x = offset
   scene.add(tiltGroup)
 
   // rings (Saturn/Uranus/Neptune)

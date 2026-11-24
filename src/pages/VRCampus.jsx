@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { joinVrCampus, moveVrUser, leaveVrCampus, getVrScene, interactVrObject } from '../lib/api'
 import SurfaceLinks from '../components/SurfaceLinks'
@@ -340,6 +341,36 @@ export default function VRCampus() {
             { to: '/anatomy', label: t('nav.immersiveLab'), text: 'Anatomy, vehicle & earth systems in 3D.' },
           ]}
         />
+
+        <section className="kev-section" aria-label="Immersive exhibits">
+          <h3 className="kev-section-title" style={{ fontSize: '1.25rem' }}>Immersive exhibits</h3>
+          <p className="kev-section-copy">
+            Walk-in scale models built from the same engine as this campus - real
+            interior data, exploded for inspection.
+          </p>
+          <div className="exhibit-grid">
+            <Link to="/system" className="exhibit-card">
+              <span className="exhibit-kicker">Astronomy</span>
+              <span className="exhibit-title">Solar system</span>
+              <span className="exhibit-text">Sun, planets & moons orbiting at real relative periods.</span>
+            </Link>
+            <Link to="/planets" className="exhibit-card">
+              <span className="exhibit-kicker">Geology</span>
+              <span className="exhibit-title">Planetary interiors</span>
+              <span className="exhibit-text">16 bodies exploded into layers - cores, oceans, ores, magma.</span>
+            </Link>
+            <Link to="/civil" className="exhibit-card">
+              <span className="exhibit-kicker">Engineering</span>
+              <span className="exhibit-title">Civil structures</span>
+              <span className="exhibit-text">Houses, skyscrapers, roads & every bridge type, by system.</span>
+            </Link>
+            <Link to="/anatomy" className="exhibit-card">
+              <span className="exhibit-kicker">Biology</span>
+              <span className="exhibit-title">Anatomy atlas</span>
+              <span className="exhibit-text">72 species with real CT skeletons, organs & multi-part bones.</span>
+            </Link>
+          </div>
+        </section>
       </section>
     </main>
   )

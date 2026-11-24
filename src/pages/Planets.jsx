@@ -9,7 +9,7 @@
  */
 import React, { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Layers3, Pause, RotateCw, X } from 'lucide-react'
+import { Layers3, Pause, RotateCw, SplitSquareHorizontal, X } from 'lucide-react'
 import { createPlanetScene } from '../lib/studio/planetScene'
 import '../styles/planets.css'
 
@@ -44,12 +44,46 @@ const BODIES = [
 
 const initial = { explode: 0, spin: true, visible: null, selected: [] }
 
+// A single body viewer pane (used solo and in compare mode). Owns its own
+// atlas fetch + scene mount; shares explode/spin state via props.
+function BodyView({ bodyId, state, onProgress, onError, onSelect }) {
+  const hostRef = useRef(null)
+  const sceneRef = useRef(null)
+  const [atlas, setAtlas] = useState(null)
+  const body = BODIES.find((b) => b.id === bodyId)
+
+  useEffect(() => {
+    const abort = new AbortController()
+    setAtlas(null)
+    fetch(`/models/atlas-planet-${bodyId}.json`, { signal: abort.signal })
+      .then((r) => { if (!r.ok) throw new Error('Model not found.'); return r.json() })
+      .then((data) => setAtlas(data))
+      .catch((e) => { if (e.name !== 'AbortError') onError && onError(e.message) })
+    return () => abort.abort()
+  }, [bodyId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!atlas || !hostRef.current) return undefined
+    const scene = createPlanetScene(hostRef.current, {
+      atlas, body, state,
+      onSelect, onProgress, onError,
+    })
+    sceneRef.current = scene
+    return () => { scene.dispose(); sceneRef.current = null }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atlas])
+
+  useEffect(() => { sceneRef.current?.setState(state) }, [state])
+  return <div className="planet-pane" ref={hostRef} />
+}
+
 export default function Planets() {
   const hostRef = useRef(null)
   const sceneRef = useRef(null)
   const [searchParams] = useSearchParams()
   const initialBody = BODIES.some((b) => b.id === searchParams.get('body')) ? searchParams.get('body') : 'earth'
   const [bodyId, setBodyId] = useState(initialBody)
+  const [compareId, setCompareId] = useState(null)
   const [atlas, setAtlas] = useState(null)
   const [state, setState] = useState(initial)
   const [progress, setProgress] = useState(0)
@@ -58,9 +92,11 @@ export default function Planets() {
   const [chosen, setChosen] = useState(null)
 
   const body = BODIES.find((b) => b.id === bodyId)
+  const comparing = !!compareId
 
-  // Load atlas for the selected body
+  // Load atlas for the selected body (single mode only)
   useEffect(() => {
+    if (comparing) return undefined
     const abort = new AbortController()
     setProgress(0); setError(''); setAtlas(null); setChosen(null); setState(initial)
     fetch(`/models/atlas-planet-${bodyId}.json`, { signal: abort.signal })
@@ -68,11 +104,11 @@ export default function Planets() {
       .then((data) => setAtlas(data))
       .catch((e) => { if (e.name !== 'AbortError') setError(e.message) })
     return () => abort.abort()
-  }, [bodyId])
+  }, [bodyId, comparing])
 
-  // Mount scene
+  // Mount scene (single mode only)
   useEffect(() => {
-    if (!atlas || !hostRef.current) return undefined
+    if (comparing || !atlas || !hostRef.current) return undefined
     const scene = createPlanetScene(hostRef.current, {
       atlas, body, state,
       onSelect: (id) => { const p = atlas.parts.find((x) => x.id === id); setChosen(p || null) },
@@ -81,7 +117,7 @@ export default function Planets() {
     sceneRef.current = scene
     return () => { scene.dispose(); sceneRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atlas])
+  }, [atlas, comparing])
 
   useEffect(() => { sceneRef.current?.setState(state) }, [state])
 
@@ -95,6 +131,11 @@ export default function Planets() {
   }
 
   const substances = systems.filter((s) => s !== 'geologic')
+
+  const handleSelect = (id) => {
+    const p = (atlas && atlas.parts.find((x) => x.id === id)) || { id, name: id.replace(/_/g, ' '), system: 'geologic' }
+    setChosen(p)
+  }
 
   return (
     <div className="planet-page">
@@ -116,6 +157,9 @@ export default function Planets() {
       </header>
 
       <nav className="planet-actions">
+        <button type="button" className={comparing ? 'active' : ''} onClick={() => { setCompareId(comparing ? null : (bodyId === 'earth' ? 'mars' : 'earth')); setAtlas(null); setChosen(null); setState(initial) }} aria-pressed={comparing}>
+          <SplitSquareHorizontal size={17} /><span>{comparing ? 'Single view' : 'Compare'}</span>
+        </button>
         <button type="button" className={panel === 'layers' ? 'active' : ''} onClick={() => setPanel(panel === 'layers' ? null : 'layers')}>
           <Layers3 size={17} /><span>Layers & deposits</span>
         </button>
@@ -125,12 +169,35 @@ export default function Planets() {
         </button>
       </nav>
 
-      <div className="planet-stage" ref={hostRef}>
-        {progress < 100 && !error && (
-          <div className="planet-loading"><div className="planet-progress" style={{ width: `${progress}%` }} /><span>Loading {body.label}… {progress}%</span></div>
-        )}
-        {error && <div className="planet-error">{error}</div>}
-      </div>
+      {!comparing && (
+        <div className="planet-stage" ref={hostRef}>
+          {progress < 100 && !error && (
+            <div className="planet-loading"><div className="planet-progress" style={{ width: `${progress}%` }} /><span>Loading {body.label}… {progress}%</span></div>
+          )}
+          {error && <div className="planet-error">{error}</div>}
+        </div>
+      )}
+
+      {comparing && (
+        <div className="planet-compare">
+          <div className="compare-pane">
+            <div className="compare-label">
+              <select value={bodyId} onChange={(e) => setBodyId(e.target.value)}>
+                {BODIES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+              </select>
+            </div>
+            <BodyView bodyId={bodyId} state={state} onProgress={setProgress} onError={setError} onSelect={handleSelect} />
+          </div>
+          <div className="compare-pane">
+            <div className="compare-label">
+              <select value={compareId} onChange={(e) => setCompareId(e.target.value)}>
+                {BODIES.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+              </select>
+            </div>
+            <BodyView bodyId={compareId} state={state} onProgress={setProgress} onError={setError} onSelect={handleSelect} />
+          </div>
+        </div>
+      )}
 
       {panel === 'layers' && (
         <aside className="planet-panel glass">
