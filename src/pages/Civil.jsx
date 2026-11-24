@@ -22,12 +22,21 @@ const STRUCTURES = [
   { id: 'house', label: 'House (timber frame)', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'skyscraper', label: 'Skyscraper (steel frame)', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'road', label: 'Road cross-section', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'plumbing_detail', label: 'Plumbing system', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'wiring_detail', label: 'Electrical system', color: '#c8a020', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'beam_bridge', label: 'Beam bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'arch_bridge', label: 'Arch bridge', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'suspension_bridge', label: 'Suspension bridge', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'cable_stayed_bridge', label: 'Cable-stayed bridge', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'truss_bridge', label: 'Truss bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'cantilever_bridge', label: 'Cantilever bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'aqueduct', label: 'Roman aqueduct', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'dam', label: 'Gravity dam', color: '#9a9a92', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'tunnel', label: 'Bored tunnel', color: '#7a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'cathedral', label: 'Gothic cathedral', color: '#a85a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'pagoda', label: 'East Asian pagoda', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'stadium', label: 'Stadium', color: '#9a9288', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'runway', label: 'Airport runway', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
 ]
 
 const initial = { explode: 0, spin: false, visible: null, selected: [] }

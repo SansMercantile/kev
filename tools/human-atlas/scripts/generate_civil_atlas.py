@@ -229,9 +229,11 @@ def build_component(cat, builder, p):
             z = -p['w']/2 + (i + 0.5) * (p['w']/p['n'])
             out.append(box(0, -0.5, z, p['l'], p['h'], 0.2))
     elif builder in ('piers', 'abutments'):
-        for i in range(p['n']):
-            x = -p['l']/2 + (i + 0.5) * (p['l']/p['n'])
-            out.append(box(x, -p['h']/2, 0, 1.0, p['h'], p['w']))
+        n = p.get('arches', p.get('n', 2))
+        span = p.get('span', p.get('l', 24))
+        for i in range(n):
+            x = -span*n/2 + (i + 0.5) * span
+            out.append(box(x, -p['h']/2, 0, p.get('w', 1.0), p['h'], p.get('w', 1.0)))
     elif builder == 'towers':
         for x in (-p['l']/2, p['l']/2):
             out.append(box(x, p['h']/2, -p['w'], 0.5, p['h'], 0.5))
@@ -275,7 +277,168 @@ def build_component(cat, builder, p):
         out.append(box(0, p.get('y', 0) + p['t']/2, 0, p['l'], p['t'], p['w']))
     elif builder == 'drainage':
         out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['l'], axis='x'))
+    # --- deep MEP builders ---
+    elif builder == 'water_main':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'riser':
+        out.append(cylinder(p['x'], p['y'], 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'branches':
+        d = p['diameter']
+        out.append(cylinder(0, p['y'], -p['d']/2 + 0.1, d/2, p['w'], axis='x'))
+        out.append(cylinder(0, p['y'], p['d']/2 - 0.1, d/2, p['w'], axis='x'))
+        out.append(cylinder(0, p['y'] - 0.5, 0, d/2, p['d'], axis='z'))
+    elif builder == 'fixtures':
+        for (fx, fy, fz) in p['points']:
+            out.append(cylinder(fx, fy, fz, p['diameter'], 0.3, axis='y'))
+            out.append(box(fx, fy - 0.1, fz, 0.4, 0.2, 0.4))
+    elif builder == 'drain_stack':
+        out.append(cylinder(p['x'], p['y'], 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'drain_branches':
+        d = p['diameter']
+        out.append(cylinder(0, p['y'], -p['d']/2 + 0.15, d/2, p['w'], axis='x'))
+        out.append(cylinder(0, p['y'], p['d']/2 - 0.15, d/2, p['w'], axis='x'))
+    elif builder == 'vent':
+        out.append(cylinder(p['x'], p['y'], 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'service_drop':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'main_bus':
+        ax = p.get('axis', 'y')
+        out.append(cylinder(p['x'], p['y'], 0, p['diameter']/2, p['l'], axis=ax))
+    elif builder == 'outlets':
+        for (ox, oy, oz) in p['points']:
+            out.append(box(ox, oy, oz, p['w'], p['h'], p['d']))
+    elif builder == 'lighting':
+        for (lx, ly, lz) in p['points']:
+            out.append(cylinder(lx, ly, lz, p['diameter']/2, 0.5, axis='y'))
+    # --- historical structure builders ---
+    elif builder == 'arcade':
+        for i in range(p['arches']):
+            out.append(arch(-p['span']*p['arches']/2 + p['span']/2 + i*p['span'], 0, 0, p['span'], p['rise'], p['w'], p['t']))
+    elif builder == 'channel':
+        out.append(box(0, p['y'], 0, p['l'], p['t'], p['w']))
+    elif builder == 'specus':
+        out.append(box(0, p['y'], 0, p['l'], p['t'], p['w']))
+    elif builder == 'dam_body':
+        # triangular profile: crest at top, wide base
+        v, idx = [], []
+        for zi in (-p['length']/2, p['length']/2):
+            v.extend([0, 0, zi, -p['base_w']/2, 0, zi, p['base_w']/2, 0, zi,
+                      -p['crest_w']/2, p['h'], zi, p['crest_w']/2, p['h'], zi])
+        # faces
+        idx.extend([0,1,2, 0,2,3, 0,3,4, 0,4,5, 3,6,4, 3,7,6, 4,6,5, 4,7,5, 5,6,7, 5,7,8])
+        out.append((v, idx))
+    elif builder == 'spillway':
+        out.append(box(0, p['h']/2, p.get('x', 0), p['w'], p['h'], p['length']))
+    elif builder == 'foundation':
+        if 'r_out' in p:
+            out.append(ring(0, p['h']/2, 0, p['r_out'], p['r_in'], p['h'], p['segs']))
+        else:
+            out.append(box(0, p['h']/2, 0, p['w'], p['h'], p['length']))
+    elif builder == 'penstock':
+        out.append(cylinder(p['x'], p['h']/2, p['z'], p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'lining':
+        for i in range(p['segments']):
+            th = math.pi * i / p['segments']
+            r = p['diameter']/2
+            out.append(cylinder(math.cos(th)*r*0.9, math.sin(th)*r, 0, p['t']/2, p['l'], axis='z'))
+    elif builder == 'ground':
+        out.append(box(0, p['h']/2 - 4, 0, p['w'], p['h'], p['l']))
+    elif builder == 'road_deck':
+        out.append(box(0, p['y'], 0, p['l'], p['t'], p['w']))
+    elif builder == 'nave_walls':
+        out.append(box(0, p['h']/2, -p['w']/2, p['l'], p['h'], p['t']))
+        out.append(box(0, p['h']/2, p['w']/2, p['l'], p['h'], p['t']))
+    elif builder == 'nave_piers':
+        for i in range(p['n']):
+            x = -p['l']/2 + (i + 0.5) * (p['l']/p['n'])
+            out.append(box(x, p['h']/2, -p['w']/3, 1.0, p['h'], 1.0))
+            out.append(box(x, p['h']/2, p['w']/3, 1.0, p['h'], 1.0))
+    elif builder == 'rib_vault':
+        out.append(arch(0, p['y'], 0, p['w'], p['rise'], p['l'], 0.5, seg=16))
+    elif builder == 'flying_buttresses':
+        for i in range(p['n']):
+            x = -p['l']/2 + (i + 0.5) * (p['l']/p['n'])
+            for sign in (-1, 1):
+                out.append(arch(x, p['h'], sign*p['w']/2, 4.0, 2.0, 0.5, 0.3, seg=8))
+    elif builder == 'tower':
+        out.append(box(0, p['h']/2, 0, p['w'], p['h'], p['d']))
+    elif builder == 'roof':
+        run = p['w']/2; rise = p['rise']
+        length = math.hypot(run, rise); ang = math.atan2(rise, run)
+        for sign in (-1, 1):
+            vv, ii = box(0, 0, 0, p['l'], 0.05, length)
+            rot = []
+            for j in range(0, len(vv), 3):
+                vx, vy, vz = vv[j], vv[j+1], vv[j+2]
+                yy = vy*math.cos(-sign*ang) - vz*math.sin(-sign*ang)
+                zz = vy*math.sin(-sign*ang) + vz*math.cos(-sign*ang)
+                rot.extend([vx, p['y'] + rise/2 + yy, sign*run/2 + zz])
+            out.append((rot, ii))
+    elif builder == 'windows':
+        for i in range(p['n']):
+            x = -p['l']/2 + (i + 0.5) * (p['l']/p['n'])
+            out.append(box(x, p['h']/2, -p['w']/2, 1.5, p['h'], 0.1))
+    elif builder == 'base':
+        out.append(box(0, p['t']/2, 0, p['w'], p['t'], p['d']))
+    elif builder == 'columns':
+        n = p.get('n', 8)
+        s = CV.LUMBER[p['sec']]
+        for i in range(n):
+            th = 2 * math.pi * i / n
+            out.append(box(math.cos(th)*p['w']/2, p['h']/2, math.sin(th)*p['d']/2, s['w'], p['h'], s['h']))
+    elif builder == 'brackets':
+        s = CV.LUMBER[p['sec']]
+        out.append(box(0, p['y'], 0, p['w'], s['h'], p['d']))
+    elif builder == 'tiers':
+        s = CV.LUMBER[p['sec']]
+        for i in range(p['n']):
+            out.append(box(0, i*p['h'] + p['h']/2, 0, p['w'] - i*0.8, p['h'], p['d'] - i*0.8))
+    elif builder == 'eaves':
+        s = CV.LUMBER[p['sec']]
+        for i in range(p['n']):
+            out.append(box(0, p['y'] + i*3.5, 0, p['w'] - i*0.6, s['h'], p['d'] - i*0.6))
+    elif builder == 'finial':
+        out.append(box(0, p['h']/2, 0, p['w'], p['h'], p['w']))
+    elif builder == 'bowl':
+        out.append(ring(0, p['h']/2, 0, p['r_out'], p['r_in'], p['h'], p['segs']))
+    elif builder == 'roof_ring':
+        out.append(ring(0, p['y'], 0, p['r'], p['r'] - p['w'], 0.3, 24))
+    elif builder == 'pitch':
+        out.append(box(0, p['t']/2, 0, p['l'], p['t'], p['w']))
+    elif builder == 'facade':
+        out.append(ring(0, p['h']/2, 0, p['r_out'], p['r_in'], p['h'], p['segs']))
+    elif builder == 'runway_surface':
+        out.append(box(0, p['t']/2, 0, p['l'], p['t'], p['w']))
+    elif builder == 'pavement':
+        out.append(box(0, p['y'] - p['t']/2, 0, p['l'], p['t'], p['w']))
+    elif builder == 'taxiway':
+        out.append(box(p.get('x', 0), p['y'] + p['t']/2, p.get('z', 0), p['l'], p['t'], p['w']))
+    elif builder == 'lighting':
+        for (lx, ly, lz) in p['points']:
+            out.append(cylinder(lx, ly, lz, p['diameter']/2, 0.5, axis='y'))
+    elif builder == 'runway_lights':
+        for i in range(p['n']):
+            x = -p['l']/2 + i*(p['l']/p['n'])
+            out.append(box(x, p['y'], 0, 0.1, 0.2, 0.1))
     return out
+
+
+def ring(cx, cy, cz, r_out, r_in, h, segs=24):
+    """A hollow cylinder (annulus) extruded in y."""
+    v, idx = [], []
+    for i in range(segs + 1):
+        th = 2 * math.pi * i / segs
+        co, so = math.cos(th), math.sin(th)
+        for (r, y) in [(r_out, -h/2), (r_out, h/2), (r_in, -h/2), (r_in, h/2)]:
+            v.extend([cx + r*co, cy + y, cz + r*so])
+    for i in range(segs):
+        a = i * 4
+        b = a + 4
+        idx.extend([a, b, a+1, a+1, b, b+1])
+        idx.extend([a+2, a+3, b+2, a+3, b+3, b+2])
+        idx.extend([a, a+2, b, a+2, b+2, b])
+        idx.extend([a+1, b+1, a+3, a+3, b+1, b+3])
+    return v, idx
 
 
 def build_structure(key, struct):

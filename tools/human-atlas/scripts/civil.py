@@ -157,9 +157,132 @@ ROAD = {
     ],
 }
 
+# --- Deep MEP: detailed plumbing tree (mains -> branches -> fixtures) ---
+PLUMBING_DETAIL = {
+    'label': 'Plumbing system (house)',
+    'components': [
+        ('plumbing', 'water_main', {'l': 8.0, 'y': -0.5, 'diameter': 0.025}),
+        ('plumbing', 'riser', {'x': -2.0, 'y': 1.35, 'h': 2.7, 'diameter': 0.022}),
+        ('plumbing', 'branches', {'w': 8.0, 'd': 6.0, 'y': 1.5, 'diameter': 0.015}),
+        ('plumbing', 'fixtures', {'points': [(-2.0, 0.9, -2.0), (-2.0, 0.9, 2.0), (2.0, 0.9, -2.0), (2.0, 2.0, 2.0)], 'diameter': 0.05}),
+        ('plumbing', 'drain_stack', {'x': 2.0, 'y': 1.35, 'h': 3.4, 'diameter': 0.075}),
+        ('plumbing', 'drain_branches', {'w': 8.0, 'd': 6.0, 'y': 0.2, 'diameter': 0.05}),
+        ('plumbing', 'vent', {'x': 2.0, 'y': 3.0, 'h': 1.0, 'diameter': 0.04}),
+    ],
+}
+
+# --- Deep MEP: electrical tree (service -> panel -> circuits -> outlets) ---
+WIRING_DETAIL = {
+    'label': 'Electrical system (house)',
+    'components': [
+        ('wiring', 'service_drop', {'l': 8.0, 'y': 3.0, 'diameter': 0.012}),
+        ('wiring', 'panel', {'w': 0.3, 'h': 0.5, 'd': 0.1, 'x': 3.5, 'y': 1.4, 'z': -2.9}),
+        ('wiring', 'main_bus', {'x': 3.5, 'y': 1.4, 'l': 2.0, 'diameter': 0.01, 'axis': 'x'}),
+        ('wiring', 'circuits', {'w': 8.0, 'd': 6.0, 'h': 2.7}),
+        ('wiring', 'outlets', {'points': [(-3.0, 0.3, -2.0), (-1.0, 0.3, 2.0), (1.0, 0.3, -2.0), (3.0, 0.3, 2.0), (-2.0, 2.0, 0)], 'w': 0.12, 'h': 0.12, 'd': 0.06}),
+        ('wiring', 'lighting', {'points': [(-2.0, 2.6, -1.0), (0.0, 2.6, 1.0), (2.0, 2.6, -1.0)], 'diameter': 0.008}),
+    ],
+}
+
+# --- Roman aqueduct (arcade + channel, real ~1:200 gradient) ---
+AQUEDUCT = {
+    'label': 'Roman aqueduct',
+    'components': [
+        ('masonry', 'arcade', {'span': 5.0, 'rise': 2.5, 'w': 2.0, 't': 0.8, 'arches': 6}),
+        ('concrete', 'channel', {'l': 34.0, 'w': 1.0, 't': 0.4, 'y': 2.6}),
+        ('earthwork', 'piers', {'span': 5.0, 'w': 2.0, 'arches': 6, 'h': 3.0}),
+        ('masonry', 'specus', {'l': 34.0, 'w': 0.6, 't': 0.3, 'y': 3.1}),
+    ],
+}
+
+# --- Gravity dam (triangular profile, base ~2/3 height) ---
+DAM = {
+    'label': 'Gravity dam',
+    'components': [
+        ('concrete', 'dam_body', {'h': 20.0, 'crest_w': 4.0, 'base_w': 14.0, 'length': 30.0}),
+        ('concrete', 'spillway', {'h': 20.0, 'w': 6.0, 'length': 30.0}),
+        ('earthwork', 'foundation', {'h': 3.0, 'w': 16.0, 'length': 30.0}),
+        ('plumbing', 'penstock', {'diameter': 1.5, 'h': 18.0, 'x': 0, 'z': 0}),
+    ],
+}
+
+# --- Tunnel (bored, segmental lining) ---
+TUNNEL = {
+    'label': 'Bored tunnel',
+    'components': [
+        ('concrete', 'lining', {'l': 40.0, 'diameter': 6.0, 't': 0.3, 'segments': 12}),
+        ('earthwork', 'ground', {'l': 40.0, 'w': 12.0, 'h': 12.0}),
+        ('deck', 'road_deck', {'l': 40.0, 'w': 4.0, 't': 0.3, 'y': -1.5}),
+        ('plumbing', 'drainage', {'l': 40.0, 'y': -2.0, 'diameter': 0.3}),
+    ],
+}
+
+# --- Gothic cathedral (nave + rib vault + flying buttresses) ---
+CATHEDRAL = {
+    'label': 'Gothic cathedral',
+    'components': [
+        ('masonry', 'nave_walls', {'l': 40.0, 'w': 12.0, 'h': 15.0, 't': 1.0}),
+        ('masonry', 'nave_piers', {'l': 40.0, 'w': 12.0, 'n': 6, 'h': 18.0}),
+        ('arch', 'rib_vault', {'l': 40.0, 'w': 12.0, 'rise': 4.0, 'y': 15.0}),
+        ('masonry', 'flying_buttresses', {'l': 40.0, 'w': 12.0, 'h': 12.0, 'n': 6}),
+        ('masonry', 'tower', {'w': 6.0, 'd': 6.0, 'h': 30.0}),
+        ('roofing', 'roof', {'l': 40.0, 'w': 12.0, 'y': 19.0, 'rise': 3.0}),
+        ('finish', 'windows', {'l': 40.0, 'w': 12.0, 'h': 8.0, 'n': 6}),
+    ],
+}
+
+# --- East Asian pagoda (tiered, bracket sets) ---
+PAGODA = {
+    'label': 'East Asian pagoda',
+    'components': [
+        ('concrete', 'base', {'w': 12.0, 'd': 12.0, 't': 1.0}),
+        ('lumber', 'columns', {'w': 8.0, 'd': 8.0, 'h': 4.0, 'n': 8, 'sec': 'beam'}),
+        ('lumber', 'brackets', {'w': 9.0, 'd': 9.0, 'y': 4.0, 'sec': 'beam'}),
+        ('lumber', 'tiers', {'w': 8.0, 'd': 8.0, 'n': 5, 'h': 3.5, 'sec': 'beam'}),
+        ('roofing', 'eaves', {'w': 10.0, 'd': 10.0, 'n': 5, 'y': 4.0, 'sec': 'beam'}),
+        ('masonry', 'finial', {'w': 0.5, 'h': 3.0}),
+    ],
+}
+
+# --- Stadium (bowl + roof ring) ---
+STADIUM = {
+    'label': 'Stadium',
+    'components': [
+        ('concrete', 'bowl', {'r_out': 40.0, 'r_in': 25.0, 'h': 15.0, 'segs': 24}),
+        ('steel', 'roof_ring', {'r': 40.0, 'w': 3.0, 'y': 15.0}),
+        ('deck', 'pitch', {'l': 50.0, 'w': 30.0, 't': 0.2}),
+        ('concrete', 'foundation', {'r_out': 42.0, 'r_in': 23.0, 'h': 3.0, 'segs': 24}),
+        ('finish', 'facade', {'r_out': 41.0, 'r_in': 40.0, 'h': 15.0, 'segs': 24}),
+    ],
+}
+
+# --- Airport runway + taxiway ---
+RUNWAY = {
+    'label': 'Airport runway',
+    'components': [
+        ('deck', 'runway_surface', {'l': 100.0, 'w': 20.0, 't': 0.4}),
+        ('concrete', 'pavement', {'l': 100.0, 'w': 20.0, 't': 0.6, 'y': -0.4}),
+        ('earthwork', 'subgrade', {'l': 100.0, 'w': 22.0, 't': 1.0, 'y': -1.0}),
+        ('deck', 'taxiway', {'l': 60.0, 'w': 12.0, 't': 0.3, 'y': 0, 'x': 0, 'z': 20.0}),
+        ('wiring', 'runway_lights', {'l': 100.0, 'y': 0.1, 'n': 20}),
+    ],
+}
+
 STRUCTURES = {
     'house': HOUSE,
     'skyscraper': SKYSCRAPER,
     'road': ROAD,
+    'plumbing_detail': PLUMBING_DETAIL,
+    'wiring_detail': WIRING_DETAIL,
+    'aqueduct': AQUEDUCT,
+    'dam': DAM,
+    'tunnel': TUNNEL,
+    'cathedral': CATHEDRAL,
+    'pagoda': PAGODA,
+    'stadium': STADIUM,
+    'runway': RUNWAY,
     **BRIDGES,
 }
+
+# extra categories for the new structures
+CATEGORIES.setdefault('stone', {'color': '#a8a098', 'name': 'Stone'})
