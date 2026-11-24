@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { joinVrCampus, moveVrUser, leaveVrCampus, getVrScene, interactVrObject } from '../lib/api'
 import SurfaceLinks from '../components/SurfaceLinks'
@@ -35,8 +35,19 @@ const ROOM_COLOR_BY_TYPE = {
 
 const FLOORS = ['basement', 'ground', 'first', 'second', 'third', 'roof']
 
+// In-world exhibit portals (walk-in gates -> immersive explorers), arranged in
+// a ring around the player spawn so they read as a gallery you step through.
+const EXHIBITS = [
+  { id: 'system', title: 'Solar System', sub: 'Planets & orbits', to: '/system', color: '#ffb347', position: [0, 0, -8] },
+  { id: 'planets', title: 'Planetary Interiors', sub: 'Cores & deposits', to: '/planets', color: '#8ac8d8', position: [6, 0, -6] },
+  { id: 'civil', title: 'Civil Structures', sub: 'Houses & bridges', to: '/civil', color: '#c9a227', position: [8, 0, 0] },
+  { id: 'anatomy', title: 'Anatomy Atlas', sub: 'Skeletons & organs', to: '/anatomy', color: '#e2562a', position: [6, 0, 6] },
+  { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', position: [0, 0, 8] },
+]
+
 export default function VRCampus() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [session, setSession] = useState(null) // { user, scene }
   const [joinLesson, setJoinLesson] = useState(null)
@@ -326,6 +337,30 @@ export default function VRCampus() {
               </a-entity>
             ))}
 
+            {/* In-world exhibit portals: walk-in gates that route to the immersive
+                explorers. Positioned around the player spawn so they read as a gallery. */}
+            <a-entity id="exhibit-portals">
+              {EXHIBITS.map((ex) => {
+                const [px, py, pz] = ex.position
+                return (
+                  <a-entity key={ex.id} position={`${px} ${py} ${pz}`}>
+                    {/* portal frame */}
+                    <a-box width="1.8" height="2.6" depth="0.12" position="0 1.3 0" color="#0b1830" opacity="0.85"></a-box>
+                    {/* glowing portal surface */}
+                    <a-plane width="1.5" height="2.2" position="0 1.3 0.07" color={ex.color}
+                      material={`shader: flat; opacity: 0.85; emissive: ${ex.color}; emissiveIntensity: 0.6`}
+                      animation="property: material.emissiveIntensity; from: 0.4; to: 0.8; dir: alternate; dur: 1600; loop: true"
+                      onClick={() => navigate(ex.to)}></a-plane>
+                    {/* label */}
+                    <a-text value={ex.title} align="center" position="0 2.9 0.1" scale="0.8 0.8 0.8" color="#ffffff"></a-text>
+                    <a-text value={ex.sub} align="center" position="0 2.5 0.1" scale="0.45 0.45 0.45" color={ex.color}></a-text>
+                    {/* base pad */}
+                    <a-cylinder radius="1.1" height="0.06" position="0 0.03 0" color={ex.color} opacity="0.4"></a-cylinder>
+                  </a-entity>
+                )
+              })}
+            </a-entity>
+
             <a-entity id="player" position={user.position.join(' ')}>
               <a-sphere radius="0.3" color="#e63946"></a-sphere>
               <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
@@ -341,36 +376,6 @@ export default function VRCampus() {
             { to: '/anatomy', label: t('nav.immersiveLab'), text: 'Anatomy, vehicle & earth systems in 3D.' },
           ]}
         />
-
-        <section className="kev-section" aria-label="Immersive exhibits">
-          <h3 className="kev-section-title" style={{ fontSize: '1.25rem' }}>Immersive exhibits</h3>
-          <p className="kev-section-copy">
-            Walk-in scale models built from the same engine as this campus - real
-            interior data, exploded for inspection.
-          </p>
-          <div className="exhibit-grid">
-            <Link to="/system" className="exhibit-card">
-              <span className="exhibit-kicker">Astronomy</span>
-              <span className="exhibit-title">Solar system</span>
-              <span className="exhibit-text">Sun, planets & moons orbiting at real relative periods.</span>
-            </Link>
-            <Link to="/planets" className="exhibit-card">
-              <span className="exhibit-kicker">Geology</span>
-              <span className="exhibit-title">Planetary interiors</span>
-              <span className="exhibit-text">16 bodies exploded into layers - cores, oceans, ores, magma.</span>
-            </Link>
-            <Link to="/civil" className="exhibit-card">
-              <span className="exhibit-kicker">Engineering</span>
-              <span className="exhibit-title">Civil structures</span>
-              <span className="exhibit-text">Houses, skyscrapers, roads & every bridge type, by system.</span>
-            </Link>
-            <Link to="/anatomy" className="exhibit-card">
-              <span className="exhibit-kicker">Biology</span>
-              <span className="exhibit-title">Anatomy atlas</span>
-              <span className="exhibit-text">72 species with real CT skeletons, organs & multi-part bones.</span>
-            </Link>
-          </div>
-        </section>
       </section>
     </main>
   )
