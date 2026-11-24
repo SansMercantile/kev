@@ -7,6 +7,58 @@ import { loadAFrame, isAFrameReady } from '../utils/loadAFrame'
 import LiveLessonsStrip from '../components/LiveLessonsStrip'
 import LiveLessonModal from '../components/LiveLessonModal'
 import { getProfile, getRole } from '../lib/roleSession'
+import * as T from 'three'
+
+// Load an atlas model (same format as the planet/civil viewers) and attach it
+// to an A-Frame entity as real 3D geometry. Returns a promise for the group.
+async function loadAtlasModel(url) {
+  const manifest = await fetch(url).then((r) => { if (!r.ok) throw new Error('model not found'); return r.json() })
+  const chunk = manifest.chunks[0]
+  const compressed = !!chunk.gzip && typeof DecompressionStream !== 'undefined'
+  const response = await fetch(compressed ? chunk.gzip : chunk.url)
+  const payload = await response.arrayBuffer()
+  const sig = new Uint8Array(payload, 0, Math.min(2, payload.byteLength))
+  const buffer = compressed && sig[0] === 0x1f && sig[1] === 0x8b
+    ? await new Response(new Blob([payload]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+    : payload
+  const parts = []
+  manifest.parts.forEach((p) => {
+    const g = new T.BufferGeometry()
+    g.setAttribute('position', new T.BufferAttribute(new Float32Array(buffer, p.positions, p.vertexCount * 3), 3))
+    g.setAttribute('normal', new T.BufferAttribute(new Int16Array(buffer, p.normals, p.vertexCount * 3), 3, true))
+    g.setIndex(new T.BufferAttribute(new Uint32Array(buffer, p.indices, p.indexCount), 1))
+    parts.push({ geometry: g, system: p.system, name: p.name })
+  })
+  return { parts, label: manifest.species }
+}
+
+// Attach a loaded atlas to an A-Frame entity, centered + scaled to fit a
+// target size. Returns the entity's object3D.
+function attachAtlasToEntity(entity, atlas, { scale = 1, color = '#8a8a8a', substanceColors = {} } = {}) {
+  const obj = entity.object3D
+  // clear previous
+  while (obj.children.length) obj.remove(obj.children[0])
+  const group = new T.Group()
+  // compute overall bounds to center + scale
+  const box = new T.Box3()
+  atlas.parts.forEach((p) => box.union(p.geometry.boundingBox ?? p.geometry.boundingSphere ? new T.Box3().setFromBufferAttribute(p.geometry.attributes.position) : new T.Box3()))
+  if (box.isEmpty()) box.setFromBufferAttribute(atlas.parts[0]?.geometry.attributes.position || new T.BufferAttribute(new Float32Array(9), 3))
+  const size = box.getSize(new T.Vector3())
+  const maxDim = Math.max(size.x, size.y, size.z) || 1
+  const s = scale / maxDim
+  const center = box.getCenter(new T.Vector3())
+  atlas.parts.forEach((p) => {
+    const isGeologic = p.system === 'geologic'
+    const col = substanceColors[p.system] || (isGeologic ? color : '#888888')
+    const mat = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: 0.8, metalness: 0.05, side: T.DoubleSide })
+    const mesh = new T.Mesh(p.geometry, mat)
+    mesh.position.sub(center).multiplyScalar(s)
+    group.add(mesh)
+  })
+  group.position.y = maxDim * s / 2
+  obj.add(group)
+  return group
+}
 
 const OBJECT_SHAPE = {
   display_device: 'a-box',
@@ -35,14 +87,14 @@ const ROOM_COLOR_BY_TYPE = {
 
 const FLOORS = ['basement', 'ground', 'first', 'second', 'third', 'roof']
 
-// In-world exhibit portals (walk-in gates -> immersive explorers), arranged in
-// a ring around the player spawn so they read as a gallery you step through.
+// In-world exhibit portals (walk-in gates -> load real 3D atlas models in the
+// scene). Clicking a portal loads that exhibit's geometry at the portal.
 const EXHIBITS = [
-  { id: 'system', title: 'Solar System', sub: 'Planets & orbits', to: '/system', color: '#ffb347', position: [0, 0, -8] },
-  { id: 'planets', title: 'Planetary Interiors', sub: 'Cores & deposits', to: '/planets', color: '#8ac8d8', position: [6, 0, -6] },
-  { id: 'civil', title: 'Civil Structures', sub: 'Houses & bridges', to: '/civil', color: '#c9a227', position: [8, 0, 0] },
-  { id: 'anatomy', title: 'Anatomy Atlas', sub: 'Skeletons & organs', to: '/anatomy', color: '#e2562a', position: [6, 0, 6] },
-  { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', position: [0, 0, 8] },
+  { id: 'system', title: 'Solar System', sub: 'Planets & orbits', to: '/system', color: '#ffb347', position: [0, 0, -8], model: '/models/atlas-planet-earth.json' },
+  { id: 'planets', title: 'Planetary Interiors', sub: 'Cores & deposits', to: '/planets', color: '#8ac8d8', position: [6, 0, -6], model: '/models/atlas-planet-jupiter.json' },
+  { id: 'civil', title: 'Civil Structures', sub: 'Houses & bridges', to: '/civil', color: '#c9a227', position: [8, 0, 0], model: '/models/atlas-civil-house.json' },
+  { id: 'anatomy', title: 'Anatomy Atlas', sub: 'Skeletons & organs', to: '/anatomy', color: '#e2562a', position: [6, 0, 6], model: '/models/atlas-lion-parts.json' },
+  { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', position: [0, 0, 8], model: null },
 ]
 
 export default function VRCampus() {
@@ -58,7 +110,37 @@ export default function VRCampus() {
   // there: A-Frame is now fetched on demand, so on first mount it usually is not.
   const [xrAvailable, setXrAvailable] = useState(isAFrameReady)
   const [xrLoading, setXrLoading] = useState(() => !isAFrameReady())
+  const [activeExhibit, setActiveExhibit] = useState(null)
+  const [explode, setExplode] = useState(0)
   const sceneRef = useRef(null)
+  const loadedExhibits = useRef({})  // id -> {group, atlas}
+
+  const handlePortalClick = async (ex) => {
+    setActiveExhibit(ex.id)
+    if (loadedExhibits.current[ex.id]) return
+    try {
+      const atlas = await loadAtlasModel(ex.model)
+      const entity = document.getElementById(`exhibit-model-${ex.id}`)
+      if (entity) {
+        const group = attachAtlasToEntity(entity, atlas, { scale: 3, color: ex.color, substanceColors: EXHIBIT_COLORS })
+        loadedExhibits.current[ex.id] = { group, atlas }
+      }
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  // explode the active exhibit by offsetting parts along their bounding-box centers
+  useEffect(() => {
+    const entry = loadedExhibits.current[activeExhibit]
+    if (!entry) return
+    entry.group.children.forEach((mesh) => {
+      const c = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.center : new T.Vector3()
+      const dir = c.clone().sub(new T.Vector3())
+      if (dir.lengthSq() > 0.0001) dir.normalize()
+      mesh.position.copy(dir.multiplyScalar(c.length() * explode * 0.4))
+    })
+  }, [explode, activeExhibit])
 
   useEffect(() => {
     // Leave cleanly if the user navigates away mid-session.
@@ -337,25 +419,28 @@ export default function VRCampus() {
               </a-entity>
             ))}
 
-            {/* In-world exhibit portals: walk-in gates that route to the immersive
-                explorers. Positioned around the player spawn so they read as a gallery. */}
+            {/* In-world exhibit portals: click to load that exhibit's real 3D
+                geometry into the scene at the portal, exploded for inspection. */}
             <a-entity id="exhibit-portals">
               {EXHIBITS.map((ex) => {
                 const [px, py, pz] = ex.position
+                const active = activeExhibit === ex.id
                 return (
                   <a-entity key={ex.id} position={`${px} ${py} ${pz}`}>
                     {/* portal frame */}
                     <a-box width="1.8" height="2.6" depth="0.12" position="0 1.3 0" color="#0b1830" opacity="0.85"></a-box>
                     {/* glowing portal surface */}
-                    <a-plane width="1.5" height="2.2" position="0 1.3 0.07" color={ex.color}
-                      material={`shader: flat; opacity: 0.85; emissive: ${ex.color}; emissiveIntensity: 0.6`}
+                    <a-plane width="1.5" height="2.2" position="0 1.3 0.07" color={active ? '#ffffff' : ex.color}
+                      material={`shader: flat; opacity: 0.85; emissive: ${active ? '#ffffff' : ex.color}; emissiveIntensity: 0.6`}
                       animation="property: material.emissiveIntensity; from: 0.4; to: 0.8; dir: alternate; dur: 1600; loop: true"
-                      onClick={() => navigate(ex.to)}></a-plane>
+                      onClick={() => handlePortalClick(ex)}></a-plane>
                     {/* label */}
                     <a-text value={ex.title} align="center" position="0 2.9 0.1" scale="0.8 0.8 0.8" color="#ffffff"></a-text>
-                    <a-text value={ex.sub} align="center" position="0 2.5 0.1" scale="0.45 0.45 0.45" color={ex.color}></a-text>
+                    <a-text value={active ? 'explode slider below' : ex.sub} align="center" position="0 2.5 0.1" scale="0.45 0.45 0.45" color={ex.color}></a-text>
                     {/* base pad */}
                     <a-cylinder radius="1.1" height="0.06" position="0 0.03 0" color={ex.color} opacity="0.4"></a-cylinder>
+                    {/* the loaded exhibit model attaches here */}
+                    <a-entity id={`exhibit-model-${ex.id}`} position="0 0.1 0"></a-entity>
                   </a-entity>
                 )
               })}
@@ -366,6 +451,15 @@ export default function VRCampus() {
               <a-camera position="0 1.6 0" cursor="rayOrigin: mouse" wasd-controls="acceleration: 40" look-controls></a-camera>
             </a-entity>
           </a-scene>
+        )}
+
+        {activeExhibit && (
+          <div className="exhibit-explode">
+            <label>Explode {EXHIBITS.find((e) => e.id === activeExhibit)?.title}</label>
+            <input type="range" min="0" max="100" value={Math.round(explode * 100)}
+              onChange={(e) => setExplode(Number(e.target.value) / 100)} />
+            <button type="button" onClick={() => { setActiveExhibit(null); setExplode(0) }}>Close</button>
+          </div>
         )}
 
         <SurfaceLinks
