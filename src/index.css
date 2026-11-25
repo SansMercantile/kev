@@ -751,3 +751,10 @@ html { scroll-behavior: smooth; }
 .exhibit-explode label { font-size: 0.85rem; color: #0f172a; font-weight: 600; white-space: nowrap; }
 .exhibit-explode input[type=range] { flex: 1; accent-color: #c9a227; }
 .exhibit-explode button { padding: 0.35rem 0.7rem; font-size: 0.8rem; }
+
+.exhibit-controls { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.exhibit-toggles { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; padding: 0.5rem 0.75rem; background: #fff; border: 1px solid #e6e2d6; border-radius: 0.75rem; }
+.exhibit-toggle-label { font-size: 0.8rem; font-weight: 600; color: #0f172a; margin-right: 0.25rem; }
+.exhibit-toggle { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.6rem; border-radius: 999px; border: 1px solid #d8d4c8; background: #fff; font-size: 0.75rem; cursor: pointer; opacity: 1; }
+.exhibit-toggle.off { opacity: 0.4; }
+.exhibit-toggle .dot { width: 9px; height: 9px; border-radius: 50%; }

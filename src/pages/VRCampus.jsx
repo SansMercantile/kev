@@ -34,7 +34,7 @@ async function loadAtlasModel(url) {
 
 // Attach a loaded atlas to an A-Frame entity, centered + scaled to fit a
 // target size. Returns the entity's object3D.
-function attachAtlasToEntity(entity, atlas, { scale = 1, color = '#8a8a8a', substanceColors = {} } = {}) {
+function attachAtlasToEntity(entity, atlas, { scale = 1, color = '#8a8a8a', substanceColors = {}, texture = null } = {}) {
   const obj = entity.object3D
   // clear previous
   while (obj.children.length) obj.remove(obj.children[0])
@@ -47,11 +47,22 @@ function attachAtlasToEntity(entity, atlas, { scale = 1, color = '#8a8a8a', subs
   const maxDim = Math.max(size.x, size.y, size.z) || 1
   const s = scale / maxDim
   const center = box.getCenter(new T.Vector3())
-  atlas.parts.forEach((p) => {
+  let surfaceTexture = null
+  if (texture) {
+    surfaceTexture = new T.TextureLoader().load(texture)
+    surfaceTexture.colorSpace = T.SRGBColorSpace
+  }
+  atlas.parts.forEach((p, pi) => {
     const isGeologic = p.system === 'geologic'
     const col = substanceColors[p.system] || (isGeologic ? color : '#888888')
-    const mat = new T.MeshStandardMaterial({ color: new T.Color(col), roughness: 0.8, metalness: 0.05, side: T.DoubleSide })
+    const isSurface = pi === 0 && surfaceTexture
+    const mat = new T.MeshStandardMaterial({
+      color: new T.Color(col), map: isSurface ? surfaceTexture : null,
+      roughness: 0.8, metalness: 0.05, side: T.DoubleSide,
+      transparent: p.system === 'ocean_water', opacity: p.system === 'ocean_water' ? 0.75 : 1,
+    })
     const mesh = new T.Mesh(p.geometry, mat)
+    mesh.userData.system = p.system
     mesh.position.sub(center).multiplyScalar(s)
     group.add(mesh)
   })
@@ -87,14 +98,28 @@ const ROOM_COLOR_BY_TYPE = {
 
 const FLOORS = ['basement', 'ground', 'first', 'second', 'third', 'roof']
 
+// Per-system colors for in-world exhibits (civil + anatomy + geology layers).
+const EXHIBIT_COLORS = {
+  geologic: null, foundation: '#7a7a72', concrete: '#9a9a92', steel: '#5a6a7a', lumber: '#b08a5a',
+  masonry: '#a85a4a', drywall: '#e8e0d0', roofing: '#8a4a3a', plumbing: '#4a7a9a', wiring: '#c8a020',
+  insulation: '#e8c860', finish: '#d0c8b8', arch: '#b0a090', cable: '#3a3a42', deck: '#8a8078',
+  pier: '#9a9288', earthwork: '#7a6a4a', skeletal: '#e2d9ba', muscular: '#a85b50', nervous: '#d8b565',
+  respiratory: '#b98991', digestive: '#b8916b', urinary: '#b47961', lymphatic: '#879f7c',
+  endocrine: '#c5a09a', reproductive: '#bda098', cardiac: '#b96760', sensory: '#b0c8ce',
+  arterial: '#c05245', venous: '#527c9f', ocean_water: '#1a5f9e', ice: '#cfe8f5', magma: '#e2562a',
+  iron: '#8a4a3a', gold: '#d4af37', diamond: '#bfe3ef', sulfur: '#e0c020', methane: '#6ab8d8',
+}
+
 // In-world exhibit portals (walk-in gates -> load real 3D atlas models in the
 // scene). Clicking a portal loads that exhibit's geometry at the portal.
 const EXHIBITS = [
-  { id: 'system', title: 'Solar System', sub: 'Planets & orbits', to: '/system', color: '#ffb347', position: [0, 0, -8], model: '/models/atlas-planet-earth.json' },
-  { id: 'planets', title: 'Planetary Interiors', sub: 'Cores & deposits', to: '/planets', color: '#8ac8d8', position: [6, 0, -6], model: '/models/atlas-planet-jupiter.json' },
-  { id: 'civil', title: 'Civil Structures', sub: 'Houses & bridges', to: '/civil', color: '#c9a227', position: [8, 0, 0], model: '/models/atlas-civil-house.json' },
-  { id: 'anatomy', title: 'Anatomy Atlas', sub: 'Skeletons & organs', to: '/anatomy', color: '#e2562a', position: [6, 0, 6], model: '/models/atlas-lion-parts.json' },
-  { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', position: [0, 0, 8], model: null },
+  { id: 'earth', title: 'Earth', sub: 'Layered interior', to: '/planets?body=earth', color: '#2a6fae', model: '/models/atlas-planet-earth.json', texture: '/textures/planets/earth.jpg', position: [0, 0, -8] },
+  { id: 'mars', title: 'Mars', sub: 'InSight core', to: '/planets?body=mars', color: '#b5532a', model: '/models/atlas-planet-mars.json', texture: '/textures/planets/mars.jpg', position: [6, 0, -6] },
+  { id: 'moon', title: 'Moon', sub: 'GRAIL structure', to: '/planets?body=moon', color: '#b8b8b8', model: '/models/atlas-planet-moon.json', texture: '/textures/planets/moon.jpg', position: [8, 0, 0] },
+  { id: 'house', title: 'House', sub: 'Framing & systems', to: '/civil', color: '#c9a227', model: '/models/atlas-civil-house.json', position: [6, 0, 6] },
+  { id: 'skyscraper', title: 'Skyscraper', sub: 'Steel frame', to: '/civil', color: '#5a6a7a', model: '/models/atlas-civil-skyscraper.json', position: [0, 0, 8] },
+  { id: 'lion', title: 'Lion', sub: 'Skeleton + organs', to: '/anatomy', color: '#e2562a', model: '/models/atlas-lion-parts.json', position: [0, 0, 8] },
+  { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', model: null, position: [0, 0, 8] },
 ]
 
 export default function VRCampus() {
@@ -112,35 +137,46 @@ export default function VRCampus() {
   const [xrLoading, setXrLoading] = useState(() => !isAFrameReady())
   const [activeExhibit, setActiveExhibit] = useState(null)
   const [explode, setExplode] = useState(0)
+  const [hiddenSystems, setHiddenSystems] = useState(new Set())
   const sceneRef = useRef(null)
-  const loadedExhibits = useRef({})  // id -> {group, atlas}
+  const loadedExhibits = useRef({})  // id -> {group, atlas, systems}
 
   const handlePortalClick = async (ex) => {
     setActiveExhibit(ex.id)
+    setHiddenSystems(new Set())
     if (loadedExhibits.current[ex.id]) return
     try {
       const atlas = await loadAtlasModel(ex.model)
       const entity = document.getElementById(`exhibit-model-${ex.id}`)
       if (entity) {
-        const group = attachAtlasToEntity(entity, atlas, { scale: 3, color: ex.color, substanceColors: EXHIBIT_COLORS })
-        loadedExhibits.current[ex.id] = { group, atlas }
+        const group = attachAtlasToEntity(entity, atlas, { scale: 3, color: ex.color, substanceColors: EXHIBIT_COLORS, texture: ex.texture || null })
+        const systems = [...new Set(atlas.parts.map((p) => p.system))]
+        loadedExhibits.current[ex.id] = { group, atlas, systems }
       }
     } catch (err) {
       setError(err.message)
     }
   }
 
-  // explode the active exhibit by offsetting parts along their bounding-box centers
+  const toggleSystem = (sys) => {
+    const next = new Set(hiddenSystems)
+    next.has(sys) ? next.delete(sys) : next.add(sys)
+    setHiddenSystems(next)
+  }
+
+  // explode + system visibility for the active exhibit
   useEffect(() => {
     const entry = loadedExhibits.current[activeExhibit]
     if (!entry) return
     entry.group.children.forEach((mesh) => {
+      const sys = mesh.userData.system
+      mesh.visible = !hiddenSystems.has(sys)
       const c = mesh.geometry.boundingSphere ? mesh.geometry.boundingSphere.center : new T.Vector3()
-      const dir = c.clone().sub(new T.Vector3())
+      const dir = c.clone()
       if (dir.lengthSq() > 0.0001) dir.normalize()
       mesh.position.copy(dir.multiplyScalar(c.length() * explode * 0.4))
     })
-  }, [explode, activeExhibit])
+  }, [explode, activeExhibit, hiddenSystems])
 
   useEffect(() => {
     // Leave cleanly if the user navigates away mid-session.
@@ -454,11 +490,25 @@ export default function VRCampus() {
         )}
 
         {activeExhibit && (
-          <div className="exhibit-explode">
-            <label>Explode {EXHIBITS.find((e) => e.id === activeExhibit)?.title}</label>
-            <input type="range" min="0" max="100" value={Math.round(explode * 100)}
-              onChange={(e) => setExplode(Number(e.target.value) / 100)} />
-            <button type="button" onClick={() => { setActiveExhibit(null); setExplode(0) }}>Close</button>
+          <div className="exhibit-controls">
+            <div className="exhibit-explode">
+              <label>Explode {EXHIBITS.find((e) => e.id === activeExhibit)?.title}</label>
+              <input type="range" min="0" max="100" value={Math.round(explode * 100)}
+                onChange={(e) => setExplode(Number(e.target.value) / 100)} />
+              <button type="button" onClick={() => { setActiveExhibit(null); setExplode(0); setHiddenSystems(new Set()) }}>Close</button>
+            </div>
+            {loadedExhibits.current[activeExhibit]?.systems && (
+              <div className="exhibit-toggles">
+                <span className="exhibit-toggle-label">Systems:</span>
+                {loadedExhibits.current[activeExhibit].systems.map((sys) => (
+                  <button key={sys} type="button"
+                    className={`exhibit-toggle ${hiddenSystems.has(sys) ? 'off' : ''}`}
+                    onClick={() => toggleSystem(sys)}>
+                    <span className="dot" style={{ background: EXHIBIT_COLORS[sys] || '#888' }} /> {sys.replace(/_/g, ' ')}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
