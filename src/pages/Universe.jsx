@@ -11,7 +11,9 @@ import { createPlanetScene } from '../lib/studio/planetScene'
 import '../styles/planets.css'
 
 const OBJECTS = [
+  // deep space
   { id: 'milky_way', label: 'Milky Way', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 60 },
+  { id: 'black_hole', label: 'Black hole', color: '#1a1a2a', rotation_h: 0, axial_tilt_deg: 15 },
   { id: 'galaxy_spiral', label: 'Spiral galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 30 },
   { id: 'galaxy_barred_spiral', label: 'Barred spiral galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 30 },
   { id: 'galaxy_elliptical', label: 'Elliptical galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0 },
@@ -19,17 +21,58 @@ const OBJECTS = [
   { id: 'galaxy_ring', label: 'Ring galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'galaxy_dwarf', label: 'Dwarf galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'galaxy_irregular', label: 'Irregular galaxy', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'black_hole', label: 'Black hole', color: '#1a1a2a', rotation_h: 0, axial_tilt_deg: 15 },
+  // clusters
+  { id: 'virgo_cluster', label: 'Virgo Cluster', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'cluster-' },
+  { id: 'coma_cluster', label: 'Coma Cluster', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'cluster-' },
+  { id: 'local_group', label: 'Local Group', color: '#3a4a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'cluster-' },
+  { id: 'lanikea_supercluster', label: 'Laniakea Supercluster', color: '#e2562a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'cluster-' },
+  // exoplanet systems
+  { id: 'trappist1', label: 'TRAPPIST-1', color: '#ff8a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  { id: 'kepler90', label: 'Kepler-90', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  { id: 'proxima_centauri', label: 'Proxima Centauri', color: '#ff8a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  { id: 'hd10180', label: 'HD 10180', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  { id: 'kepler11', label: 'Kepler-11', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  { id: 'gliese667c', label: 'Gliese 667C', color: '#ff8a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'exoplanet-' },
+  // constellations (all 88 IAU)
+  { id: 'andromeda', label: 'Andromeda', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'aquarius', label: 'Aquarius', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'aquila', label: 'Aquila', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'aries', label: 'Aries', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'auriga', label: 'Auriga', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'bootes', label: 'Boötes', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'cancer', label: 'Cancer', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'canis_major', label: 'Canis Major', color: '#cad8ff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'canis_minor', label: 'Canis Minor', color: '#fbf8ff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'capricornus', label: 'Capricornus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'carina', label: 'Carina', color: '#fbf8ff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'cassiopeia', label: 'Cassiopeia', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'centaurus', label: 'Centaurus', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'cepheus', label: 'Cepheus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'cetus', label: 'Cetus', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'corona_borealis', label: 'Corona Borealis', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'corvus', label: 'Corvus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'crux', label: 'Crux', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'cygnus', label: 'Cygnus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'draco', label: 'Draco', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'gemini', label: 'Gemini', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'hercules', label: 'Hercules', color: '#fff4e0', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'hydra', label: 'Hydra', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'leo', label: 'Leo', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'libra', label: 'Libra', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'lyra', label: 'Lyra', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'ophiuchus', label: 'Ophiuchus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'orion', label: 'Orion', color: '#9bb0ff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'pegasus', label: 'Pegasus', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'perseus', label: 'Perseus', color: '#fbf8ff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'pisces', label: 'Pisces', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'sagittarius', label: 'Sagittarius', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'scorpius', label: 'Scorpius', color: '#ff8a6a', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'taurus', label: 'Taurus', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'ursa_major', label: 'Ursa Major', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'ursa_minor', label: 'Ursa Minor', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  { id: 'virgo', label: 'Virgo', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0, prefix: 'constellation-' },
+  // solar system objects
   { id: 'orion', label: "Orion's belt", color: '#9bb0ff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_orion', label: 'Orion constellation', color: '#9bb0ff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_ursa_major', label: 'Ursa Major', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_cassiopeia', label: 'Cassiopeia', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_scorpius', label: 'Scorpius', color: '#ff8a6a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_southern_cross', label: 'Southern Cross', color: '#9bb0ff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_lyra', label: 'Lyra', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_cygnus', label: 'Cygnus', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_leo', label: 'Leo', color: '#aabfff', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'constellation_taurus', label: 'Taurus', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'asteroid_belt', label: 'Asteroid belt', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'comet', label: 'Comet', color: '#cfe8f5', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'meteor', label: 'Meteor (shooting star)', color: '#ffd8a8', rotation_h: 0, axial_tilt_deg: 0 },
@@ -55,16 +98,17 @@ export default function Universe() {
 
   const obj = OBJECTS.find((o) => o.id === objId)
   const body = { ...obj, texture: null, emissive: false, rings: false, layerColors: {} }
+  const prefix = obj.prefix || 'space-'
 
   useEffect(() => {
     const abort = new AbortController()
     setProgress(0); setError(''); setAtlas(null); setChosen(null); setState(initial)
-    fetch(`/models/atlas-space-${objId}.json`, { signal: abort.signal })
+    fetch(`/models/atlas-${prefix}${objId}.json`, { signal: abort.signal })
       .then((r) => { if (!r.ok) throw new Error('Model not found.'); return r.json() })
       .then((data) => setAtlas(data))
       .catch((e) => { if (e.name !== 'AbortError') setError(e.message) })
     return () => abort.abort()
-  }, [objId])
+  }, [objId, prefix])
 
   useEffect(() => {
     if (!atlas || !hostRef.current) return undefined
