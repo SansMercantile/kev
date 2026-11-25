@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth0 } from '@auth0/auth0-react'
 import { authLogin, authForgotPassword, authResetPassword, authResendCode } from '../lib/api'
 import { saveNativeSession } from '../lib/nativeAuth'
 
@@ -16,6 +17,7 @@ function friendlyError(err) {
 
 export default function Login() {
   const navigate = useNavigate()
+  const { loginWithRedirect, isAuthenticated, isLoading: auth0Loading } = useAuth0()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [remember, setRemember] = useState(true)
@@ -25,6 +27,11 @@ export default function Login() {
   const [working, setWorking] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+
+  // If already signed in via Auth0, go straight to the app.
+  React.useEffect(() => {
+    if (isAuthenticated) navigate('/xr-academy', { replace: true })
+  }, [isAuthenticated, navigate])
 
   const submitLogin = async (e) => {
     e.preventDefault()
@@ -94,29 +101,41 @@ export default function Login() {
         {notice && <p style={{ color: '#16a34a' }} role="status">{notice}</p>}
 
         {mode === 'login' && (
-          <form onSubmit={submitLogin} style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-            <label style={{ display: 'grid', gap: '0.25rem' }}>
-              Email
-              <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required autoComplete="email"
-                style={{ padding: '0.55rem', borderRadius: 8, border: '1px solid #e2d8bd', font: 'inherit' }} />
-            </label>
-            <label style={{ display: 'grid', gap: '0.25rem' }}>
-              Password
-              <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required
-                autoComplete="current-password"
-                style={{ padding: '0.55rem', borderRadius: 8, border: '1px solid #e2d8bd', font: 'inherit' }} />
-            </label>
-            <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
-              Keep me signed in on this device
-            </label>
-            <button className="kev-btn kev-btn-primary" type="submit" disabled={working}>
-              {working ? 'Signing in...' : 'Sign in'}
+          <>
+            {/* Auth0 is the main sign-in path (works without email verification). */}
+            <button className="kev-btn kev-btn-primary" type="button" onClick={() => loginWithRedirect()} disabled={auth0Loading}
+              style={{ marginBottom: '1rem' }}>
+              {auth0Loading ? 'Loading...' : 'Continue with Auth0'}
             </button>
-            <button className="kev-btn kev-btn-secondary" type="button" onClick={() => { setMode('forgot'); setError(null) }}>
-              Forgot password?
-            </button>
-          </form>
+            <details style={{ marginBottom: '1rem' }}>
+              <summary style={{ cursor: 'pointer', color: '#5a6a80', fontSize: '0.9rem' }}>
+                Use a KEV account instead (email verification currently unavailable)
+              </summary>
+              <form onSubmit={submitLogin} style={{ display: 'grid', gap: '0.75rem', marginTop: '0.75rem' }}>
+                <label style={{ display: 'grid', gap: '0.25rem' }}>
+                  Email
+                  <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required autoComplete="email"
+                    style={{ padding: '0.55rem', borderRadius: 8, border: '1px solid #e2d8bd', font: 'inherit' }} />
+                </label>
+                <label style={{ display: 'grid', gap: '0.25rem' }}>
+                  Password
+                  <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required
+                    autoComplete="current-password"
+                    style={{ padding: '0.55rem', borderRadius: 8, border: '1px solid #e2d8bd', font: 'inherit' }} />
+                </label>
+                <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                  Keep me signed in on this device
+                </label>
+                <button className="kev-btn kev-btn-secondary" type="submit" disabled={working}>
+                  {working ? 'Signing in...' : 'Sign in with KEV account'}
+                </button>
+                <button className="kev-btn kev-btn-secondary" type="button" onClick={() => { setMode('forgot'); setError(null) }}>
+                  Forgot password?
+                </button>
+              </form>
+            </details>
+          </>
         )}
 
         {mode === 'forgot' && (
@@ -156,6 +175,11 @@ export default function Login() {
 
         <p className="kev-card-text" style={{ marginTop: '1rem' }}>
           New to KEV? <Link to="/signup">Create an account</Link>
+          {' · '}
+          <button type="button" className="kev-btn kev-btn-link" onClick={() => loginWithRedirect({ authorizationParams: { screen_hint: 'signup' } })}
+            style={{ padding: 0, border: 'none', background: 'none', color: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}>
+            Sign up with Auth0
+          </button>
         </p>
       </section>
     </main>
