@@ -152,6 +152,40 @@ OORT_CLOUD = {
     ],
 }
 
+# Additional galaxy types
+GALAXY_BARRED_SPIRAL = {
+    'label': 'Barred spiral galaxy',
+    'components': [
+        ('galaxy', 'central_bar', {'l': 4.0, 'w': 2.0, 'h': 1.5}),
+        ('galaxy', 'disk', {'r_out': 12.0, 'r_in': 2.0, 'h': 0.8}),
+        ('galaxy', 'spiral_arms', {'r_out': 12.0, 'r_in': 4.0, 'arms': 2, 'pitch': 0.4}),
+    ],
+}
+
+GALAXY_LENTICULAR = {
+    'label': 'Lenticular galaxy',
+    'components': [
+        ('galaxy', 'bulge', {'r': 4.0}),
+        ('galaxy', 'disk', {'r_out': 10.0, 'r_in': 4.0, 'h': 0.5}),
+    ],
+}
+
+GALAXY_RING = {
+    'label': 'Ring galaxy',
+    'components': [
+        ('galaxy', 'core', {'r': 2.0}),
+        ('galaxy', 'ring', {'r_out': 10.0, 'r_in': 8.0, 'h': 1.0}),
+    ],
+}
+
+GALAXY_DWARF = {
+    'label': 'Dwarf galaxy',
+    'components': [
+        ('galaxy', 'core', {'r': 1.5}),
+        ('galaxy', 'halo', {'r': 4.0, 'segs': 12}),
+    ],
+}
+
 # Constellations (famous ones with real star positions, schematic brightness)
 CONSTELLATIONS = {
     'orion': {
@@ -178,6 +212,110 @@ CONSTELLATIONS = {
             ('space', 'alkaid', {'r': 0.9, 'type': 'B', 'x': 4.0, 'y': 1.0}),
         ],
     },
+    'cassiopeia': {
+        'label': 'Cassiopeia',
+        'components': [
+            ('space', 'gamma_cas', {'r': 0.9, 'type': 'B', 'x': -2.0, 'y': 1.0}),
+            ('space', 'beta_cas', {'r': 0.9, 'type': 'F', 'x': -1.0, 'y': 0.0}),
+            ('space', 'alpha_cas', {'r': 1.0, 'type': 'K', 'x': 0.0, 'y': -0.5}),
+            ('space', 'delta_cas', {'r': 0.9, 'type': 'A', 'x': 1.0, 'y': 0.0}),
+            ('space', 'epsilon_cas', {'r': 0.9, 'type': 'B', 'x': 2.0, 'y': 1.0}),
+        ],
+    },
+    'scorpius': {
+        'label': 'Scorpius',
+        'components': [
+            ('space', 'antares', {'r': 1.3, 'type': 'M', 'x': 0.0, 'y': 0.0}),
+            ('space', 'acrab', {'r': 0.8, 'type': 'B', 'x': -1.0, 'y': 1.0}),
+            ('space', 'dschubba', {'r': 0.8, 'type': 'B', 'x': -0.5, 'y': 1.5}),
+            ('space', 'pi_sco', {'r': 0.8, 'type': 'B', 'x': -1.5, 'y': 0.5}),
+            ('space', 'sigma_sco', {'r': 0.8, 'type': 'B', 'x': 0.5, 'y': -0.5}),
+            ('space', 'tau_sco', {'r': 0.8, 'type': 'B', 'x': 1.0, 'y': -1.0}),
+            ('space', 'shaula', {'r': 0.9, 'type': 'B', 'x': 1.5, 'y': -2.0}),
+            ('space', 'lesath', {'r': 0.9, 'type': 'B', 'x': 0.5, 'y': -2.5}),
+        ],
+    },
+    'southern_cross': {
+        'label': 'Southern Cross',
+        'components': [
+            ('space', 'acrux', {'r': 1.0, 'type': 'B', 'x': 0.0, 'y': 0.0}),
+            ('space', 'mimosa', {'r': 0.9, 'type': 'B', 'x': 1.0, 'y': 1.0}),
+            ('space', 'gacrux', {'r': 1.0, 'type': 'M', 'x': -0.5, 'y': -1.5}),
+            ('space', 'delta_cru', {'r': 0.9, 'type': 'B', 'x': 0.5, 'y': -0.5}),
+        ],
+    },
+    'lyra': {
+        'label': 'Lyra',
+        'components': [
+            ('space', 'vega', {'r': 1.0, 'type': 'A', 'x': 0.0, 'y': 0.0}),
+            ('space', 'sheliak', {'r': 0.8, 'type': 'B', 'x': 1.0, 'y': -0.5}),
+            ('space', 'sulafat', {'r': 0.8, 'type': 'B', 'x': 1.5, 'y': -1.0}),
+            ('space', 'delta_lyr', {'r': 0.8, 'type': 'B', 'x': -0.5, 'y': -1.0}),
+        ],
+    },
+    'cygnus': {
+        'label': 'Cygnus (Northern Cross)',
+        'components': [
+            ('space', 'deneb', {'r': 1.2, 'type': 'A', 'x': 0.0, 'y': 2.0}),
+            ('space', 'sadr', {'r': 0.9, 'type': 'F', 'x': 0.0, 'y': 0.0}),
+            ('space', 'delta_cyg', {'r': 0.8, 'type': 'B', 'x': -1.5, 'y': 0.5}),
+            ('space', 'albireo', {'r': 0.9, 'type': 'K', 'x': 1.5, 'y': -0.5}),
+            ('space', 'gienah', {'r': 0.8, 'type': 'K', 'x': -1.0, 'y': -0.5}),
+        ],
+    },
+    'leo': {
+        'label': 'Leo',
+        'components': [
+            ('space', 'regulus', {'r': 1.0, 'type': 'B', 'x': 0.0, 'y': 0.0}),
+            ('space', 'denebola', {'r': 0.9, 'type': 'A', 'x': 2.0, 'y': 0.5}),
+            ('space', 'algieba', {'r': 0.9, 'type': 'K', 'x': -1.0, 'y': 1.0}),
+            ('space', 'adhafera', {'r': 0.8, 'type': 'F', 'x': -1.5, 'y': 0.5}),
+        ],
+    },
+    'taurus': {
+        'label': 'Taurus',
+        'components': [
+            ('space', 'aldebaran', {'r': 1.2, 'type': 'K', 'x': 0.0, 'y': 0.0}),
+            ('space', 'elnath', {'r': 0.9, 'type': 'B', 'x': 1.5, 'y': 1.0}),
+            ('space', 'alcyone', {'r': 0.8, 'type': 'B', 'x': -0.5, 'y': 1.5}),
+            ('space', 'maia', {'r': 0.8, 'type': 'B', 'x': -1.0, 'y': 1.0}),
+            ('space', 'electra', {'r': 0.8, 'type': 'B', 'x': -0.5, 'y': 0.5}),
+        ],
+    },
+}
+
+# Additional galaxy types
+GALAXY_BARRED_SPIRAL = {
+    'label': 'Barred spiral galaxy',
+    'components': [
+        ('galaxy', 'central_bar', {'l': 4.0, 'w': 2.0, 'h': 1.5}),
+        ('galaxy', 'disk', {'r_out': 12.0, 'r_in': 2.0, 'h': 0.8}),
+        ('galaxy', 'spiral_arms', {'r_out': 12.0, 'r_in': 4.0, 'arms': 2, 'pitch': 0.4}),
+    ],
+}
+
+GALAXY_LENTICULAR = {
+    'label': 'Lenticular galaxy',
+    'components': [
+        ('galaxy', 'bulge', {'r': 4.0}),
+        ('galaxy', 'disk', {'r_out': 10.0, 'r_in': 4.0, 'h': 0.5}),
+    ],
+}
+
+GALAXY_RING = {
+    'label': 'Ring galaxy',
+    'components': [
+        ('galaxy', 'core', {'r': 1.5}),
+        ('galaxy', 'ring', {'r_out': 10.0, 'r_in': 8.0, 'h': 0.8, 'segs': 24}),
+    ],
+}
+
+GALAXY_DWARF = {
+    'label': 'Dwarf galaxy',
+    'components': [
+        ('galaxy', 'cloud', {'r': 3.0, 'segs': 8}),
+        ('galaxy', 'star_forming_regions', {'r': 3.0, 'n': 4}),
+    ],
 }
 
 SPACE_OBJECTS = {
@@ -190,6 +328,10 @@ SPACE_OBJECTS = {
     'galaxy_spiral': GALAXY_SPIRAL,
     'galaxy_elliptical': GALAXY_ELLIPTICAL,
     'galaxy_irregular': GALAXY_IRREGULAR,
+    'galaxy_barred_spiral': GALAXY_BARRED_SPIRAL,
+    'galaxy_lenticular': GALAXY_LENTICULAR,
+    'galaxy_ring': GALAXY_RING,
+    'galaxy_dwarf': GALAXY_DWARF,
     'nebula_emission': NEBULA_EMISSION,
     'nebula_planetary': NEBULA_PLANETARY,
     'nebula_dark': NEBULA_DARK,
@@ -197,6 +339,13 @@ SPACE_OBJECTS = {
     'oort_cloud': OORT_CLOUD,
     'constellation_orion': CONSTELLATIONS['orion'],
     'constellation_ursa_major': CONSTELLATIONS['ursa_major'],
+    'constellation_cassiopeia': CONSTELLATIONS['cassiopeia'],
+    'constellation_scorpius': CONSTELLATIONS['scorpius'],
+    'constellation_southern_cross': CONSTELLATIONS['southern_cross'],
+    'constellation_lyra': CONSTELLATIONS['lyra'],
+    'constellation_cygnus': CONSTELLATIONS['cygnus'],
+    'constellation_leo': CONSTELLATIONS['leo'],
+    'constellation_taurus': CONSTELLATIONS['taurus'],
 }
 
 # Extra categories

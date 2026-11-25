@@ -19,24 +19,29 @@ const CATEGORY_COLORS = {
 }
 
 const STRUCTURES = [
-  { id: 'house', label: 'House (timber frame)', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'skyscraper', label: 'Skyscraper (steel frame)', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'road', label: 'Road cross-section', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'plumbing_detail', label: 'Plumbing system', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'wiring_detail', label: 'Electrical system', color: '#c8a020', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'beam_bridge', label: 'Beam bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'arch_bridge', label: 'Arch bridge', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'suspension_bridge', label: 'Suspension bridge', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'cable_stayed_bridge', label: 'Cable-stayed bridge', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'truss_bridge', label: 'Truss bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'cantilever_bridge', label: 'Cantilever bridge', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'aqueduct', label: 'Roman aqueduct', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'dam', label: 'Gravity dam', color: '#9a9a92', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'tunnel', label: 'Bored tunnel', color: '#7a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'cathedral', label: 'Gothic cathedral', color: '#a85a4a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'pagoda', label: 'East Asian pagoda', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'stadium', label: 'Stadium', color: '#9a9288', rotation_h: 0, axial_tilt_deg: 0 },
-  { id: 'runway', label: 'Airport runway', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'aqueduct', label: 'Roman aqueduct', era: 'Ancient Rome', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'arch_bridge', label: 'Arch bridge', era: 'Ancient Rome', color: '#b0a090', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'pagoda', label: 'East Asian pagoda', era: 'East Asia (medieval)', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'cathedral', label: 'Gothic cathedral', era: 'Gothic (medieval Europe)', color: '#a85a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'truss_bridge', label: 'Truss bridge', era: 'Industrial Revolution', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'cantilever_bridge', label: 'Cantilever bridge', era: 'Industrial Revolution', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'suspension_bridge', label: 'Suspension bridge', era: '19th century', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'cable_stayed_bridge', label: 'Cable-stayed bridge', era: '20th century', color: '#3a3a42', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'beam_bridge', label: 'Beam bridge', era: 'Modern', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'road', label: 'Road cross-section', era: 'Modern', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'house', label: 'House (timber frame)', era: 'Modern', color: '#b08a5a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'plumbing_detail', label: 'Plumbing system', era: 'Modern', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'wiring_detail', label: 'Electrical system', era: 'Modern', color: '#c8a020', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'skyscraper', label: 'Skyscraper (steel frame)', era: 'Modern', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'stadium', label: 'Stadium', era: 'Modern', color: '#9a9288', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'runway', label: 'Airport runway', era: 'Modern', color: '#8a8078', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'dam', label: 'Gravity dam', era: 'Modern', color: '#9a9a92', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'tunnel', label: 'Bored tunnel', era: 'Modern', color: '#7a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
+]
+
+const ERA_ORDER = [
+  'Ancient Rome', 'East Asia (medieval)', 'Gothic (medieval Europe)',
+  'Industrial Revolution', '19th century', '20th century', 'Modern',
 ]
 
 const initial = { explode: 0, spin: false, visible: null, selected: [] }
@@ -45,6 +50,7 @@ export default function Civil() {
   const hostRef = useRef(null)
   const sceneRef = useRef(null)
   const [structId, setStructId] = useState('house')
+  const [era, setEra] = useState(null)
   const [atlas, setAtlas] = useState(null)
   const [state, setState] = useState(initial)
   const [progress, setProgress] = useState(0)
@@ -97,7 +103,15 @@ export default function Civil() {
           <span className="planet-sub">Explode by system · real proportions</span>
         </div>
         <div className="body-selector">
-          {STRUCTURES.map((s) => (
+          <button type="button" className={!era ? 'body-btn active' : 'body-btn'} onClick={() => setEra(null)}>All eras</button>
+          {ERA_ORDER.filter((e) => STRUCTURES.some((s) => s.era === e)).map((e) => (
+            <button key={e} type="button" className={era === e ? 'body-btn active' : 'body-btn'} onClick={() => setEra(e)}>
+              {e}
+            </button>
+          ))}
+        </div>
+        <div className="body-selector">
+          {STRUCTURES.filter((s) => !era || s.era === era).map((s) => (
             <button key={s.id} type="button"
               className={structId === s.id ? 'body-btn active' : 'body-btn'}
               onClick={() => setStructId(s.id)}>

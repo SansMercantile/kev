@@ -152,11 +152,16 @@ def build_component(builder, p):
         out.append(ring(0, 0, 0, p['r'], p['r']*0.95, 0.05, p['segs']))
     elif builder == 'inner_stable_orbit':
         out.append(ring(0, 0, 0, p['r'], p['r']*0.98, 0.03, p['segs']))
-    elif builder in ('alnitak', 'alnilam', 'mintaka', 'betelgeuse', 'bellatrix', 'saiph', 'rigel',
-                     'dubhe', 'merak', 'phecda', 'megrez', 'alioth', 'mizar', 'alkaid',
-                     'central_star', 'young_stars'):
+    elif builder not in ('central_bar', 'bulge', 'disk', 'spiral_arms', 'halo', 'globular_clusters',
+                          'solar_position', 'event_horizon', 'accretion_disk', 'relativistic_jets',
+                          'photon_sphere', 'inner_stable_orbit', 'orion_nebula', 'horsehead_nebula',
+                          'belt', 'ceres', 'vesta', 'pallas', 'pluto_object', 'eris_object',
+                          'nucleus', 'coma', 'dust_tail', 'ion_tail', 'trail', 'meteoroid',
+                          'core', 'ring', 'cloud', 'star_forming_regions', 'gas_cloud',
+                          'shell', 'dust_cloud'):
+        # any named star or small object: sphere at (x, y)
         x = p.get('x', 0); y = p.get('y', 0)
-        out.append(sphere(x, y, 0, p['r'], seg=12))
+        out.append(sphere(x, y, 0, p.get('r', 0.5), seg=12))
     elif builder == 'orion_nebula':
         out.append(sphere(p['x'], p['y'], 0, p['r'], seg=16))
     elif builder == 'horsehead_nebula':
@@ -179,6 +184,22 @@ def build_component(builder, p):
         out.append(sphere(0, 0, 0, p['r'], seg=8))
     elif builder == 'core':
         out.append(sphere(0, 0, 0, p['r'], seg=16))
+    elif builder == 'cloud':
+        out.append(sphere(0, 0, 0, p['r'], seg=p['segs']))
+    elif builder == 'star_forming_regions':
+        for i in range(p['n']):
+            th = 2 * math.pi * i / p['n']
+            out.append(sphere(math.cos(th)*p['r']*0.5, math.sin(th)*p['r']*0.3, math.sin(th)*p['r']*0.5, 0.4, seg=8))
+    elif builder == 'gas_cloud':
+        out.append(sphere(0, 0, 0, p['r'], seg=p['segs']))
+    elif builder == 'shell':
+        out.append(ring(0, 0, 0, p['r_out'], p['r_in'], 0.5, p['segs']))
+    elif builder == 'dust_cloud':
+        out.append(sphere(0, 0, 0, p['r'], seg=p['segs']))
+    elif builder == 'central_bar':
+        out.append(box(0, 0, 0, p['l'], p['h'], p['w']))
+    elif builder == 'ring':
+        out.append(ring(0, 0, 0, p['r_out'], p['r_in'], p['h'], p['segs']))
     elif builder == 'cloud':
         out.append(sphere(0, 0, 0, p['r'], seg=p['segs']))
     elif builder == 'star_forming_regions':

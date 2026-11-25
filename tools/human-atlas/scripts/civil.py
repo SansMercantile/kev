@@ -284,5 +284,37 @@ STRUCTURES = {
     **BRIDGES,
 }
 
+# Era grouping for the timeline view (structure -> era label)
+ERA = {
+    'aqueduct': 'Ancient Rome',
+    'arch_bridge': 'Ancient Rome',
+    'pagoda': 'East Asia (medieval)',
+    'cathedral': 'Gothic (medieval Europe)',
+    'truss_bridge': 'Industrial Revolution',
+    'cantilever_bridge': 'Industrial Revolution',
+    'suspension_bridge': '19th century',
+    'cable_stayed_bridge': '20th century',
+    'beam_bridge': 'Modern',
+    'road': 'Modern',
+    'house': 'Modern',
+    'plumbing_detail': 'Modern',
+    'wiring_detail': 'Modern',
+    'skyscraper': 'Modern',
+    'stadium': 'Modern',
+    'runway': 'Modern',
+    'dam': 'Modern',
+    'tunnel': 'Modern',
+}
+
+ERA_ORDER = [
+    'Ancient Rome',
+    'East Asia (medieval)',
+    'Gothic (medieval Europe)',
+    'Industrial Revolution',
+    '19th century',
+    '20th century',
+    'Modern',
+]
+
 # extra categories for the new structures
 CATEGORIES.setdefault('stone', {'color': '#a8a098', 'name': 'Stone'})
