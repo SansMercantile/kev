@@ -113,12 +113,14 @@ const EXHIBIT_COLORS = {
 // In-world exhibit portals (walk-in gates -> load real 3D atlas models in the
 // scene). Clicking a portal loads that exhibit's geometry at the portal.
 const EXHIBITS = [
-  { id: 'earth', title: 'Earth', sub: 'Layered interior', to: '/planets?body=earth', color: '#2a6fae', model: '/models/atlas-planet-earth.json', texture: '/textures/planets/earth.jpg', position: [0, 0, -8] },
-  { id: 'mars', title: 'Mars', sub: 'InSight core', to: '/planets?body=mars', color: '#b5532a', model: '/models/atlas-planet-mars.json', texture: '/textures/planets/mars.jpg', position: [6, 0, -6] },
-  { id: 'moon', title: 'Moon', sub: 'GRAIL structure', to: '/planets?body=moon', color: '#b8b8b8', model: '/models/atlas-planet-moon.json', texture: '/textures/planets/moon.jpg', position: [8, 0, 0] },
+  { id: 'earth', title: 'Earth', sub: 'Layered interior', to: '/planets?body=earth', color: '#2a6fae', model: '/models/atlas-planet-earth.json', texture: '/textures/planets/earth.jpg', spin: 23.93, position: [0, 0, -8] },
+  { id: 'mars', title: 'Mars', sub: 'InSight core', to: '/planets?body=mars', color: '#b5532a', model: '/models/atlas-planet-mars.json', texture: '/textures/planets/mars.jpg', spin: 24.62, position: [6, 0, -6] },
+  { id: 'moon', title: 'Moon', sub: 'GRAIL structure', to: '/planets?body=moon', color: '#b8b8b8', model: '/models/atlas-planet-moon.json', texture: '/textures/planets/moon.jpg', spin: 655.7, position: [8, 0, 0] },
   { id: 'house', title: 'House', sub: 'Framing & systems', to: '/civil', color: '#c9a227', model: '/models/atlas-civil-house.json', position: [6, 0, 6] },
   { id: 'skyscraper', title: 'Skyscraper', sub: 'Steel frame', to: '/civil', color: '#5a6a7a', model: '/models/atlas-civil-skyscraper.json', position: [0, 0, 8] },
   { id: 'lion', title: 'Lion', sub: 'Skeleton + organs', to: '/anatomy', color: '#e2562a', model: '/models/atlas-lion-parts.json', position: [0, 0, 8] },
+  { id: 'milky_way', title: 'Milky Way', sub: 'Galaxy structure', to: '/universe', color: '#3a4a6a', model: '/models/atlas-space-milky_way.json', position: [-6, 0, 6] },
+  { id: 'black_hole', title: 'Black Hole', sub: 'Event horizon', to: '/universe', color: '#1a1a2a', model: '/models/atlas-space-black_hole.json', position: [-8, 0, 0] },
   { id: 'xr', title: 'XR Academy', sub: 'Guided labs', to: '/xr-academy', color: '#8cb3d9', model: null, position: [0, 0, 8] },
 ]
 
@@ -177,6 +179,25 @@ export default function VRCampus() {
       mesh.position.copy(dir.multiplyScalar(c.length() * explode * 0.4))
     })
   }, [explode, activeExhibit, hiddenSystems])
+
+  // rotation for in-world planets (real sidereal periods, aesthetic scale)
+  useEffect(() => {
+    const ex = EXHIBITS.find((e) => e.id === activeExhibit)
+    const entry = loadedExhibits.current[activeExhibit]
+    if (!ex?.spin || !entry) return undefined
+    let raf = 0
+    let last = performance.now()
+    const tick = (now) => {
+      raf = requestAnimationFrame(tick)
+      const dt = Math.min((now - last) / 1000, 0.05)
+      last = now
+      const period = Math.abs(ex.spin)
+      const dir = ex.spin < 0 ? -1 : 1
+      entry.group.rotation.y += dt * (1 / (period * 3.6)) * dir * 40
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [activeExhibit])
 
   useEffect(() => {
     // Leave cleanly if the user navigates away mid-session.
@@ -454,6 +475,24 @@ export default function VRCampus() {
                 <a-text value="Learner" align="center" position="0 0.45 0" scale="0.5 0.5 0.5" color="#0b1830"></a-text>
               </a-entity>
             ))}
+
+            {/* Floating per-system toggle chips for the active exhibit (in-world). */}
+            {activeExhibit && loadedExhibits.current[activeExhibit]?.systems && (
+              <a-entity id="exhibit-toggles" position={`${(EXHIBITS.find((e) => e.id === activeExhibit)?.position[0] || 0) - 2.5} 0 ${EXHIBITS.find((e) => e.id === activeExhibit)?.position[2] || 0}`}>
+                {loadedExhibits.current[activeExhibit].systems.map((sys, i) => {
+                  const off = hiddenSystems.has(sys)
+                  const col = EXHIBIT_COLORS[sys] || '#888888'
+                  return (
+                    <a-entity key={sys} position={`0 ${0.5 + i * 0.55} 0`}>
+                      <a-plane width="1.6" height="0.4" position="0 0 0" color={off ? '#333' : col}
+                        material={`shader: flat; opacity: ${off ? 0.5 : 0.9}`}
+                        onClick={() => toggleSystem(sys)}></a-plane>
+                      <a-text value={sys.replace(/_/g, ' ')} align="center" position="0 0 0.01" scale="0.4 0.4 0.4" color={off ? '#888' : '#ffffff'}></a-text>
+                    </a-entity>
+                  )
+                })}
+              </a-entity>
+            )}
 
             {/* In-world exhibit portals: click to load that exhibit's real 3D
                 geometry into the scene at the portal, exploded for inspection. */}
