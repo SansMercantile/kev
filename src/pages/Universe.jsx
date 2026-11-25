@@ -6,6 +6,7 @@
  * Route: /universe
  */
 import React, { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Layers3, RotateCw, Pause, X } from 'lucide-react'
 import { createPlanetScene } from '../lib/studio/planetScene'
 import '../styles/planets.css'
@@ -88,6 +89,7 @@ const initial = { explode: 0, spin: true, visible: null, selected: [] }
 export default function Universe() {
   const hostRef = useRef(null)
   const sceneRef = useRef(null)
+  const navigate = useNavigate()
   const [objId, setObjId] = useState('milky_way')
   const [atlas, setAtlas] = useState(null)
   const [state, setState] = useState(initial)
@@ -95,10 +97,12 @@ export default function Universe() {
   const [error, setError] = useState('')
   const [panel, setPanel] = useState(null)
   const [chosen, setChosen] = useState(null)
+  const [transit, setTransit] = useState(false)
 
   const obj = OBJECTS.find((o) => o.id === objId)
   const body = { ...obj, texture: null, emissive: false, rings: false, layerColors: {} }
   const prefix = obj.prefix || 'space-'
+  const isExoplanet = prefix === 'exoplanet-'
 
   useEffect(() => {
     const abort = new AbortController()
@@ -121,6 +125,23 @@ export default function Universe() {
     return () => { scene.dispose(); sceneRef.current = null }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atlas])
+
+  // exoplanet transit animation: planets orbit the star, dimming it as they pass
+  useEffect(() => {
+    if (!isExoplanet || !atlas || !sceneRef.current) return undefined
+    let raf = 0
+    let last = performance.now()
+    const spin = sceneRef.current._spinGroup
+    if (!spin) return undefined
+    const tick = (now) => {
+      raf = requestAnimationFrame(tick)
+      const dt = Math.min((now - last) / 1000, 0.05)
+      last = now
+      spin.rotation.y += dt * 0.3
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [isExoplanet, atlas])
 
   useEffect(() => { sceneRef.current?.setState(state) }, [state])
 
@@ -152,6 +173,11 @@ export default function Universe() {
       </header>
 
       <nav className="planet-actions">
+        {isExoplanet && (
+          <button type="button" onClick={() => navigate(`/transit?system=${objId}`)}>
+            <span>Transit view</span>
+          </button>
+        )}
         <button type="button" className={panel === 'layers' ? 'active' : ''} onClick={() => setPanel(panel === 'layers' ? null : 'layers')}>
           <Layers3 size={17} /><span>Components</span>
         </button>

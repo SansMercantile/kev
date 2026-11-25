@@ -19,6 +19,8 @@ const Planets = lazy(() => import('./pages/Planets'))
 const System = lazy(() => import('./pages/System'))
 const Civil = lazy(() => import('./pages/Civil'))
 const Universe = lazy(() => import('./pages/Universe'))
+const CosmicScale = lazy(() => import('./pages/CosmicScale'))
+const Transit = lazy(() => import('./pages/Transit'))
 const TeacherStudio = lazy(() => import('./pages/TeacherStudio'))
 const Agents = lazy(() => import('./pages/Agents'))
 const Curriculum = lazy(() => import('./pages/Curriculum'))
@@ -272,6 +274,8 @@ const App = () => {
             <Route path="/system" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading solar system...</section>}><System /></Suspense></RequireAuth>} />
             <Route path="/civil" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading civil engineering...</section>}><Civil /></Suspense></RequireAuth>} />
             <Route path="/universe" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading universe...</section>}><Universe /></Suspense></RequireAuth>} />
+            <Route path="/cosmic" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading cosmic scale...</section>}><CosmicScale /></Suspense></RequireAuth>} />
+            <Route path="/transit" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading transit...</section>}><Transit /></Suspense></RequireAuth>} />
             <Route path="/agents" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading tutors...</section>}><Agents /></Suspense></RequireAuth>} />
             <Route path="/curriculum" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading curriculum...</section>}><Curriculum /></Suspense></RequireAuth>} />
             <Route path="/portal" element={<RequireAuth><Portal /></RequireAuth>} />

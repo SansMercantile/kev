@@ -139,6 +139,22 @@
   align-self: flex-start;
 }
 
+/* cosmic scale controls */
+.scale-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.scale-btn {
+  padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14);
+  background: rgba(10,16,32,0.6); color: #c4d0e0; font-size: 12px; cursor: pointer; backdrop-filter: blur(6px);
+}
+.scale-btn:hover { border-color: #c9a227; color: #fff; }
+.scale-btn.active { background: #c9a227; color: #1a1405; border-color: #c9a227; font-weight: 600; }
+.scale-hint { font-size: 11px; color: #93a3b8; margin-top: 8px; }
+
+/* transit light curve */
+.transit-curve { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #93a3b8; }
+.curve-track { width: 8px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 4px; position: relative; overflow: hidden; }
+.curve-fill { position: absolute; bottom: 0; left: 0; right: 0; background: #c9a227; transition: height 0.1s; }
+.curve-val { color: #c9a227; font-variant-numeric: tabular-nums; }
+
 @media (max-width: 768px) {
   .body-selector { gap: 4px; }
   .body-btn { padding: 4px 8px; font-size: 11px; }
