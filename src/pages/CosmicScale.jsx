@@ -46,10 +46,14 @@ export default function CosmicScale() {
   const hostRef = useRef(null)
   const [level, setLevel] = useState('solar_system')
   const [loading, setLoading] = useState(false)
+  const [zoomT, setZoomT] = useState(0.5)  // 0..1 continuous scrub through scales
   const levelRef = useRef(level)
   const modelCache = useRef({})
   const modelGroupRef = useRef(null)
+  const labelGroupRef = useRef(null)
   useEffect(() => { levelRef.current = level }, [level])
+  const zoomTRef = useRef(zoomT)
+  useEffect(() => { zoomTRef.current = zoomT }, [zoomT])
 
   useEffect(() => {
     const el = hostRef.current
@@ -89,6 +93,12 @@ export default function CosmicScale() {
     scene.add(modelGroup)
     modelGroupRef.current = modelGroup
 
+    // text labels for parts (sprites)
+    // text labels for parts (sprites)
+    const labelGroup = new T.Group()
+    scene.add(labelGroup)
+    labelGroupRef.current = labelGroup
+
     scene.add(new T.AmbientLight(0xffffff, 0.5))
     const key = new T.DirectionalLight(0xfff5e8, 1.2)
     key.position.set(5, 8, 5)
@@ -109,13 +119,21 @@ export default function CosmicScale() {
     const animate = () => {
       raf = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
-      const lv = LEVELS.find((l) => l.id === levelRef.current)
-      const target = lv ? lv.scale * 3.5 : 60
+      // continuous scrub: zoomT 0..1 maps across all levels
+      const t = zoomTRef.current
+      const idx = t * (LEVELS.length - 1)
+      const lo = Math.floor(idx)
+      const hi = Math.min(lo + 1, LEVELS.length - 1)
+      const frac = idx - lo
+      const scale = T.MathUtils.lerp(LEVELS[lo].scale, LEVELS[hi].scale, frac)
+      const target = scale * 3.5
       targetDist.current = T.MathUtils.damp(targetDist.current, target, 3, dt)
       const dir = camera.position.clone().normalize()
       camera.position.copy(dir.multiplyScalar(targetDist.current))
       camera.lookAt(0, 0, 0)
       modelGroup.rotation.y += dt * 0.1
+      // labels face the camera
+      labelGroup.children.forEach((sprite) => sprite.quaternion.copy(camera.quaternion))
       controls.update()
       renderer.render(scene, camera)
     }
@@ -136,7 +154,7 @@ export default function CosmicScale() {
     if (!lv || !modelGroupRef.current) return
     const group = modelGroupRef.current
     if (modelCache.current[level]) {
-      attachModel(group, modelCache.current[level], lv)
+      attachModel(group, labelGroupRef.current, modelCache.current[level], lv)
       return
     }
     setLoading(true)
@@ -144,7 +162,7 @@ export default function CosmicScale() {
       .then((parts) => {
         modelCache.current[level] = parts
         if (levelRef.current === level) {
-          attachModel(group, parts, lv)
+          attachModel(group, labelGroupRef.current, parts, lv)
           setLoading(false)
         }
       })
@@ -169,15 +187,22 @@ export default function CosmicScale() {
             </button>
           ))}
         </div>
-        <span className="scale-hint">Scroll to zoom · click a level to jump · model rotates</span>
+        <div className="zoom-scrub">
+          <label>Free zoom</label>
+          <input type="range" min="0" max="1000" value={Math.round(zoomT * 1000)}
+            onChange={(e) => setZoomT(Number(e.target.value) / 1000)} />
+          <span className="zoom-val">{(zoomT * 100).toFixed(0)}%</span>
+        </div>
+        <span className="scale-hint">Scroll to zoom · click a level to jump · drag the scrubber to move continuously · labels on models</span>
       </header>
     </div>
   )
 }
 
-function attachModel(group, parts, lv) {
+function attachModel(group, labelGroup, parts, lv) {
   // clear previous
   while (group.children.length) group.remove(group.children[0])
+  while (labelGroup.children.length) labelGroup.remove(labelGroup.children[0])
   // compute bounds to center + scale
   const box = new T.Box3()
   parts.forEach((p) => box.union(new T.Box3().setFromBufferAttribute(p.geometry.attributes.position)))
@@ -192,5 +217,25 @@ function attachModel(group, parts, lv) {
     const mesh = new T.Mesh(p.geometry, mat)
     mesh.position.sub(center).multiplyScalar(s)
     group.add(mesh)
+    // label sprite at the part's center
+    const c = p.geometry.boundingSphere ? p.geometry.boundingSphere.center : new T.Vector3()
+    const sprite = makeTextSprite(p.name, lv.color)
+    sprite.position.copy(c.clone().sub(center).multiplyScalar(s).add(new T.Vector3(0, maxDim * s * 0.12, 0)))
+    sprite.scale.set(maxDim * s * 0.08, maxDim * s * 0.04, 1)
+    labelGroup.add(sprite)
   })
+}
+
+function makeTextSprite(text, color) {
+  const c = document.createElement('canvas')
+  c.width = 256; c.height = 128
+  const ctx = c.getContext('2d')
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'
+  ctx.fillRect(0, 0, 256, 128)
+  ctx.font = 'bold 28px system-ui, sans-serif'
+  ctx.fillStyle = '#ffffff'
+  ctx.textAlign = 'center'
+  ctx.fillText(text, 128, 64)
+  const tex = new T.CanvasTexture(c)
+  return new T.Sprite(new T.SpriteMaterial({ map: tex, color, transparent: true, depthWrite: false }))
 }

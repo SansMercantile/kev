@@ -149,6 +149,12 @@
 .scale-btn.active { background: #c9a227; color: #1a1405; border-color: #c9a227; font-weight: 600; }
 .scale-hint { font-size: 11px; color: #93a3b8; margin-top: 8px; }
 
+/* cosmic scale zoom scrubber */
+.zoom-scrub { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.zoom-scrub label { font-size: 12px; color: #93a3b8; white-space: nowrap; }
+.zoom-scrub input[type=range] { flex: 1; accent-color: #c9a227; }
+.zoom-val { font-size: 12px; color: #c9a227; min-width: 40px; text-align: right; }
+
 /* transit light curve */
 .transit-curve { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #93a3b8; }
 .curve-track { width: 8px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 4px; position: relative; overflow: hidden; }
