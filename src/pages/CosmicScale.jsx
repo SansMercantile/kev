@@ -1,6 +1,7 @@
 /**
  * Cosmic scale navigator — zoom from a single planet all the way out to the
- * supercluster. Real relative scales (logarithmic). Click a level to jump.
+ * supercluster, loading the real atlas model at each level (Earth's layers,
+ * the solar system, the Milky Way's spiral arms, the Virgo Cluster's galaxies).
  *
  * Route: /cosmic
  */
@@ -9,21 +10,45 @@ import * as T from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import '../styles/planets.css'
 
-// Each level: name, object scale (scene units), description
+// Each level: real model to load + scale + description
 const LEVELS = [
-  { id: 'planet', label: 'Planet', scale: 1, desc: 'Earth: 12,742 km diameter' },
-  { id: 'solar_system', label: 'Solar system', scale: 40, desc: 'Neptune orbit: 4.5 billion km' },
-  { id: 'nearest_stars', label: 'Nearest stars', scale: 200, desc: 'Alpha Centauri: 4.3 light-years' },
-  { id: 'milky_way', label: 'Milky Way', scale: 800, desc: '100,000 light-years across' },
-  { id: 'local_group', label: 'Local Group', scale: 2000, desc: '10 million light-years' },
-  { id: 'virgo_cluster', label: 'Virgo Cluster', scale: 6000, desc: '110 million light-years' },
-  { id: 'supercluster', label: 'Laniakea Supercluster', scale: 15000, desc: '520 million light-years' },
+  { id: 'planet', label: 'Planet', model: '/models/atlas-planet-earth.json', scale: 5, desc: 'Earth: 12,742 km diameter', color: 0x2a6fae },
+  { id: 'solar_system', label: 'Solar system', model: '/models/atlas-space-asteroid_belt.json', scale: 40, desc: 'Asteroid belt: 2-4 AU from the Sun', color: 0x8a8078 },
+  { id: 'nearest_stars', label: 'Nearest stars', model: '/models/atlas-exoplanet-proxima_centauri.json', scale: 200, desc: 'Proxima Centauri: 4.2 light-years', color: 0xff8a6a },
+  { id: 'milky_way', label: 'Milky Way', model: '/models/atlas-space-milky_way.json', scale: 800, desc: '100,000 light-years across', color: 0x3a4a6a },
+  { id: 'local_group', label: 'Local Group', model: '/models/atlas-cluster-local_group.json', scale: 2000, desc: '10 million light-years', color: 0x3a4a6a },
+  { id: 'virgo_cluster', label: 'Virgo Cluster', model: '/models/atlas-cluster-virgo_cluster.json', scale: 6000, desc: '110 million light-years', color: 0x3a4a6a },
+  { id: 'supercluster', label: 'Laniakea Supercluster', model: '/models/atlas-cluster-lanikea_supercluster.json', scale: 15000, desc: '520 million light-years', color: 0xe2562a },
 ]
+
+async function loadAtlasModel(url) {
+  const manifest = await fetch(url).then((r) => { if (!r.ok) throw new Error('model not found'); return r.json() })
+  const chunk = manifest.chunks[0]
+  const compressed = !!chunk.gzip && typeof DecompressionStream !== 'undefined'
+  const response = await fetch(compressed ? chunk.gzip : chunk.url)
+  const payload = await response.arrayBuffer()
+  const sig = new Uint8Array(payload, 0, Math.min(2, payload.byteLength))
+  const buffer = compressed && sig[0] === 0x1f && sig[1] === 0x8b
+    ? await new Response(new Blob([payload]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer()
+    : payload
+  const parts = []
+  manifest.parts.forEach((p) => {
+    const g = new T.BufferGeometry()
+    g.setAttribute('position', new T.BufferAttribute(new Float32Array(buffer, p.positions, p.vertexCount * 3), 3))
+    g.setAttribute('normal', new T.BufferAttribute(new Int16Array(buffer, p.normals, p.vertexCount * 3), 3, true))
+    g.setIndex(new T.BufferAttribute(new Uint32Array(buffer, p.indices, p.indexCount), 1))
+    parts.push({ geometry: g, system: p.system, name: p.name })
+  })
+  return parts
+}
 
 export default function CosmicScale() {
   const hostRef = useRef(null)
   const [level, setLevel] = useState('solar_system')
+  const [loading, setLoading] = useState(false)
   const levelRef = useRef(level)
+  const modelCache = useRef({})
+  const modelGroupRef = useRef(null)
   useEffect(() => { levelRef.current = level }, [level])
 
   useEffect(() => {
@@ -59,32 +84,15 @@ export default function CosmicScale() {
     sg.setAttribute('position', new T.BufferAttribute(sp, 3))
     scene.add(new T.Points(sg, new T.PointsMaterial({ color: 0xffffff, size: 2, transparent: true, opacity: 0.7 })))
 
-    // build each scale level as concentric reference spheres + labels
-    const levelGroups = {}
-    LEVELS.forEach((lv, i) => {
-      const group = new T.Group()
-      // reference sphere (wireframe) at this scale
-      const sphere = new T.Mesh(
-        new T.SphereGeometry(lv.scale, 48, 32),
-        new T.MeshBasicMaterial({ color: 0x3a4a6a, wireframe: true, transparent: true, opacity: 0.15 })
-      )
-      group.add(sphere)
-      // marker sphere (solid) at the edge
-      const marker = new T.Mesh(
-        new T.SphereGeometry(Math.max(lv.scale * 0.03, lv.scale * 0.01), 16, 12),
-        new T.MeshStandardMaterial({ color: 0xc9a227, emissive: 0xc9a227, emissiveIntensity: 0.5 })
-      )
-      marker.position.x = lv.scale
-      group.add(marker)
-      group.visible = false
-      scene.add(group)
-      levelGroups[lv.id] = { group, marker }
-    })
+    // model group (the active atlas model)
+    const modelGroup = new T.Group()
+    scene.add(modelGroup)
+    modelGroupRef.current = modelGroup
 
-    // sun at center (scales with level)
-    const sun = new T.Mesh(new T.SphereGeometry(0.5, 24, 16), new T.MeshBasicMaterial({ color: 0xffc24a }))
-    scene.add(sun)
-    scene.add(new T.AmbientLight(0xffffff, 0.6))
+    scene.add(new T.AmbientLight(0xffffff, 0.5))
+    const key = new T.DirectionalLight(0xfff5e8, 1.2)
+    key.position.set(5, 8, 5)
+    scene.add(key)
 
     const resize = () => {
       camera.aspect = el.clientWidth / el.clientHeight
@@ -95,7 +103,6 @@ export default function CosmicScale() {
     observer.observe(el)
     resize()
 
-    // animate camera to the active level's scale
     const targetDist = { current: 60 }
     const clock = new T.Clock()
     let raf = 0
@@ -108,11 +115,7 @@ export default function CosmicScale() {
       const dir = camera.position.clone().normalize()
       camera.position.copy(dir.multiplyScalar(targetDist.current))
       camera.lookAt(0, 0, 0)
-      // show/hide level groups
-      LEVELS.forEach((l) => {
-        const entry = levelGroups[l.id]
-        entry.group.visible = (l.id === levelRef.current)
-      })
+      modelGroup.rotation.y += dt * 0.1
       controls.update()
       renderer.render(scene, camera)
     }
@@ -127,6 +130,27 @@ export default function CosmicScale() {
     }
   }, [])
 
+  // load the atlas model for the active level
+  useEffect(() => {
+    const lv = LEVELS.find((l) => l.id === level)
+    if (!lv || !modelGroupRef.current) return
+    const group = modelGroupRef.current
+    if (modelCache.current[level]) {
+      attachModel(group, modelCache.current[level], lv)
+      return
+    }
+    setLoading(true)
+    loadAtlasModel(lv.model)
+      .then((parts) => {
+        modelCache.current[level] = parts
+        if (levelRef.current === level) {
+          attachModel(group, parts, lv)
+          setLoading(false)
+        }
+      })
+      .catch(() => setLoading(false))
+  }, [level])
+
   const current = LEVELS.find((l) => l.id === level)
 
   return (
@@ -135,7 +159,7 @@ export default function CosmicScale() {
       <header className="system-header">
         <span className="planet-kicker">Cosmic scale</span>
         <h1>{current?.label}</h1>
-        <span className="planet-sub">{current?.desc}</span>
+        <span className="planet-sub">{current?.desc}{loading ? ' (loading…)' : ''}</span>
         <div className="scale-controls">
           {LEVELS.map((lv) => (
             <button key={lv.id} type="button"
@@ -145,8 +169,28 @@ export default function CosmicScale() {
             </button>
           ))}
         </div>
-        <span className="scale-hint">Scroll to zoom · click a level to jump</span>
+        <span className="scale-hint">Scroll to zoom · click a level to jump · model rotates</span>
       </header>
     </div>
   )
+}
+
+function attachModel(group, parts, lv) {
+  // clear previous
+  while (group.children.length) group.remove(group.children[0])
+  // compute bounds to center + scale
+  const box = new T.Box3()
+  parts.forEach((p) => box.union(new T.Box3().setFromBufferAttribute(p.geometry.attributes.position)))
+  const size = box.getSize(new T.Vector3())
+  const maxDim = Math.max(size.x, size.y, size.z) || 1
+  const s = lv.scale / maxDim
+  const center = box.getCenter(new T.Vector3())
+  parts.forEach((p) => {
+    const mat = new T.MeshStandardMaterial({
+      color: lv.color, roughness: 0.7, metalness: 0.05, side: T.DoubleSide,
+    })
+    const mesh = new T.Mesh(p.geometry, mat)
+    mesh.position.sub(center).multiplyScalar(s)
+    group.add(mesh)
+  })
 }
