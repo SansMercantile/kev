@@ -155,6 +155,18 @@
 .zoom-scrub input[type=range] { flex: 1; accent-color: #c9a227; }
 .zoom-val { font-size: 12px; color: #c9a227; min-width: 40px; text-align: right; }
 
+/* garage status bar */
+.garage-status {
+  position: absolute; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 11;
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+  padding: 12px 20px; border-radius: 14px;
+  background: rgba(8,13,26,0.85); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(12px);
+  max-width: 90%;
+}
+.status-message { font-size: 13px; color: #c4d0e0; text-align: center; }
+.fault-hint { font-size: 12px; color: #e2562a; }
+.score { font-size: 12px; color: #c9a227; font-variant-numeric: tabular-nums; }
+
 /* transit light curve */
 .transit-curve { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #93a3b8; }
 .curve-track { width: 8px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 4px; position: relative; overflow: hidden; }
