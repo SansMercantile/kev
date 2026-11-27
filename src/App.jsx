@@ -20,6 +20,8 @@ const System = lazy(() => import('./pages/System'))
 const Civil = lazy(() => import('./pages/Civil'))
 const Vehicles = lazy(() => import('./pages/Vehicles'))
 const Garage = lazy(() => import('./pages/Garage'))
+const Exam = lazy(() => import('./pages/Exam'))
+const Pilot = lazy(() => import('./pages/Pilot'))
 const Universe = lazy(() => import('./pages/Universe'))
 const CosmicScale = lazy(() => import('./pages/CosmicScale'))
 const Transit = lazy(() => import('./pages/Transit'))
@@ -276,6 +278,9 @@ const App = () => {
             <Route path="/system" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading solar system...</section>}><System /></Suspense></RequireAuth>} />
             <Route path="/civil" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading civil engineering...</section>}><Civil /></Suspense></RequireAuth>} />
             <Route path="/vehicles" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading vehicles...</section>}><Vehicles /></Suspense></RequireAuth>} />
+            <Route path="/garage" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading garage...</section>}><Garage /></Suspense></RequireAuth>} />
+            <Route path="/exam" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading exam...</section>}><Exam /></Suspense></RequireAuth>} />
+            <Route path="/pilot" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading pilot mode...</section>}><Pilot /></Suspense></RequireAuth>} />
             <Route path="/garage" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading garage...</section>}><Garage /></Suspense></RequireAuth>} />
             <Route path="/universe" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading universe...</section>}><Universe /></Suspense></RequireAuth>} />
             <Route path="/cosmic" element={<RequireAuth><Suspense fallback={<section className="kev-section">Loading cosmic scale...</section>}><CosmicScale /></Suspense></RequireAuth>} />
