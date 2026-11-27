@@ -87,23 +87,17 @@ def build_component(cat, builder, p):
     elif builder == 'wheels':
         sp = p.get('spacing', 0.5)
         tr = p.get('track', 0.5)
+        wd = p.get('width', p.get('w', 0.1))
         for i in range(p['n']):
             if p['n'] == 2:
                 x = -sp/2 + i * sp
-                out.append(cylinder(x, p['diameter']/2, 0, p['diameter']/2, p['width'], axis='z'))
+                out.append(cylinder(x, p['diameter']/2, 0, p['diameter']/2, wd, axis='z'))
             elif p['n'] == 3:
                 x = -sp + i * sp
-                out.append(cylinder(x, p['diameter']/2, 0, p['diameter']/2, p['width'], axis='z'))
-            elif p['n'] == 4:
+                out.append(cylinder(x, p['diameter']/2, 0, p['diameter']/2, wd, axis='z'))
+            elif p['n'] in (4, 6, 8, 12):
                 for (xx, zz) in [(-sp/2, -tr/2), (sp/2, -tr/2), (-sp/2, tr/2), (sp/2, tr/2)]:
-                    out.append(cylinder(xx, p['diameter']/2, zz, p['diameter']/2, p['width'], axis='z'))
-            elif p['n'] == 6:
-                for j, xx in enumerate([-sp, 0, sp]):
-                    for zz in (-tr/2, tr/2):
-                        out.append(cylinder(xx, p['diameter']/2, zz, p['diameter']/2, p['width'], axis='z'))
-            elif p['n'] == 4 and 'rollerblades' in str(p):
-                for j in range(4):
-                    out.append(cylinder(-sp + j*sp/1.5, p['diameter']/2, 0, p['diameter']/2, p['width'], axis='z'))
+                    out.append(cylinder(xx, p['diameter']/2, zz, p['diameter']/2, wd, axis='z'))
     elif builder == 'bearings':
         for i in range(p['n']):
             out.append(sphere(0, 0, 0, p['diameter']/2, seg=8))
@@ -236,6 +230,110 @@ def build_component(cat, builder, p):
             out.append(cylinder(p['x'], math.cos(th)*0.5, math.sin(th)*0.5, p['diameter']/2, 0.5, axis='x'))
     elif builder == 'payload_bay':
         out.append(box(p['x'], 0, 0, p['l'], p['h'], p['w']))
+    # military + space + railway builders
+    elif builder == 'turret':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'cannon':
+        out.append(cylinder(p['x'], p.get('y', 0), 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'tracks':
+        for sign in (-1, 1):
+            out.append(box(0, p['h']/2, sign*p['spacing']/2, p['l'], p['h'], p['w']))
+    elif builder == 'road_wheels':
+        for i in range(p['n']):
+            x = -p.get('l', 6)/2 + i * p.get('l', 6)/p['n']
+            out.append(cylinder(x, p['diameter']/2, p.get('track', 1.5)/2, p['diameter']/2, 0.1, axis='z'))
+    elif builder == 'crew_compartment':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'troop_compartment':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'driver_cab':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'weapon_station':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'gun_turret':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'main_gun':
+        out.append(cylinder(p['x'], p.get('y', 0), 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'propellers':
+        for i in range(p['n']):
+            x = p['x'] + i * 2
+            out.append(cylinder(x, 0, 0, p['diameter']/2, 0.2, axis='x'))
+    elif builder == 'bridge':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'bomb_bay':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'truss':
+        out.append(box(0, 0, 0, p['l'], p['h'], p['w']))
+    elif builder == 'habitat_module':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'node_module':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'solar_arrays':
+        for i in range(p['n']):
+            x = -p['span']/2 + i * p['span']/p['n']
+            out.append(box(x, p['y'], 0, p['span']/p['n'], 0.05, p['chord']))
+    elif builder == 'radiators':
+        out.append(box(p['x'], 0, 0, p['l'], p['w'], 0.05))
+    elif builder == 'docking_port':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, 0.5, axis='x'))
+    elif builder == 'bus':
+        out.append(box(0, 0, 0, p['l'], p['h'], p['w']))
+    elif builder == 'solar_panels':
+        for sign in (-1, 1):
+            out.append(box(0, p['y'], sign*p['span']/4, p['span']/2, 0.05, p['chord']))
+    elif builder == 'instrument_bay':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'antenna':
+        out.append(cylinder(p['x'], p['h']/2, 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'instrument_mast':
+        out.append(cylinder(p['x'], p['h']/2, 0, 0.1, p['h'], axis='y'))
+    elif builder == 'robotic_arm':
+        out.append(cylinder(p['x'], p['y'], 0, 0.1, p['l'], axis='x'))
+    elif builder == 'rtg':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, 0.3, axis='y'))
+    elif builder == 'descent_stage':
+        out.append(box(0, p['h']/2, 0, p['w'], p['h'], p['d']))
+    elif builder == 'ascent_stage':
+        out.append(box(0, p['y'], 0, p['l'], p['h'], p['w']))
+    elif builder == 'descent_engine':
+        out.append(cylinder(p['x'], p['y'], 0, p['diameter']/2, 0.3, axis='y'))
+    elif builder == 'ascent_engine':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, 0.3, axis='y'))
+    elif builder == 'legs':
+        for i in range(p['n']):
+            th = 2 * math.pi * i / p['n']
+            out.append(cylinder(math.cos(th)*1.5, p['h']/2, math.sin(th)*1.5, 0.1, p['h'], axis='y'))
+    elif builder == 'ladder':
+        out.append(box(p['x'], 0, 0, 0.3, p['l'], 0.1))
+    elif builder == 'cab':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'bogies':
+        for i in range(p['n']):
+            x = -p['spacing']/2 + i * p['spacing']
+            out.append(box(x, p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'windows':
+        for i in range(p['n']):
+            x = p.get('x', 0) - p.get('l', 24)/2 + i * (p.get('l', 24)/p['n'])
+            out.append(box(x, p['y'], 0, p['w'], p['h'], 0.05))
+    elif builder == 'boxcar':
+        out.append(box(0, p['y'], 0, p['l'], p['h'], p['w']))
+    elif builder == 'boiler':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'smokestack':
+        out.append(cylinder(p['x'], p['h']/2, 0, 0.2, p['h'], axis='y'))
+    elif builder == 'drivers':
+        for i in range(p['n']):
+            x = -p.get('l', 6)/2 + i * p.get('l', 6)/p['n']
+            out.append(cylinder(x, p['diameter']/2, p.get('track', 1.5)/2, p['diameter']/2, 0.2, axis='z'))
+    elif builder == 'leading_wheels':
+        for sign in (-1, 1):
+            out.append(cylinder(p['x'], p['diameter']/2, sign*p['track']/2, p['diameter']/2, 0.15, axis='z'))
+    elif builder == 'tender':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'nose':
+        out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'pantograph':
+        out.append(box(p['x'], p['y'], 0, 1.0, p['h'], 0.05))
     return out
 
 

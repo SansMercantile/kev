@@ -40,9 +40,24 @@ const VEHICLES = [
   // space
   { id: 'rocket', label: 'Rocket (Falcon 9)', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'space_shuttle', label: 'Space Shuttle', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'iss', label: 'International Space Station', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'satellite', label: 'Satellite (Hubble-class)', group: 'space', color: '#8a8a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'rover', label: 'Mars rover (Perseverance)', group: 'space', color: '#b5532a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'lander', label: 'Lunar lander (Apollo LM)', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
+  // military
+  { id: 'tank', label: 'Main battle tank (M1 Abrams)', group: 'military', color: '#5a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'apc', label: 'Armored personnel carrier', group: 'military', color: '#5a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'warship', label: 'Destroyer (warship)', group: 'military', color: '#4a6a8a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'bomber', label: 'Bomber (B-52)', group: 'military', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  // railway
+  { id: 'locomotive', label: 'Diesel locomotive', group: 'railway', color: '#5a6a7a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'passenger_train', label: 'Passenger train (coach)', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'freight_train', label: 'Freight train (boxcar)', group: 'railway', color: '#8a4a3a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'steam_locomotive', label: 'Steam locomotive', group: 'railway', color: '#2a2a32', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'high_speed_train', label: 'High-speed train (TGV)', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
 ]
 
-const GROUPS = ['all', 'personal', 'road', 'air', 'water', 'space']
+const GROUPS = ['all', 'personal', 'road', 'air', 'water', 'space', 'military', 'railway']
 
 const initial = { explode: 0, spin: false, visible: null, selected: [] }
 

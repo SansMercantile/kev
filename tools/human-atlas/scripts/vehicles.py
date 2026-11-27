@@ -205,6 +205,151 @@ VEHICLES = {
             ('body', 'payload_bay', {'l': 18.0, 'w': 4.5, 'h': 4.0, 'x': -2.0}),
         ],
     },
+    # --- military ---
+    'tank': {
+        'label': 'Main battle tank (M1 Abrams)',
+        'components': [
+            ('hull', 'hull', {'l': 8.0, 'w': 3.5, 'h': 1.5}),
+            ('body', 'turret', {'w': 2.5, 'l': 3.0, 'h': 1.0, 'x': 0.5}),
+            ('blade', 'cannon', {'diameter': 0.12, 'l': 5.0, 'x': 2.0}),
+            ('wheel', 'tracks', {'n': 2, 'l': 6.0, 'w': 0.5, 'h': 1.0, 'spacing': 3.0}),
+            ('wheel', 'road_wheels', {'n': 7, 'diameter': 0.6, 'spacing': 0.8, 'track': 3.0}),
+            ('engine', 'engine', {'w': 1.5, 'h': 0.8, 'l': 2.0, 'x': -2.5}),
+            ('cabin', 'crew_compartment', {'l': 2.0, 'w': 2.0, 'h': 1.0, 'x': 1.0}),
+        ],
+    },
+    'apc': {
+        'label': 'Armored personnel carrier',
+        'components': [
+            ('hull', 'hull', {'l': 6.0, 'w': 2.5, 'h': 1.8}),
+            ('wheel', 'wheels', {'n': 8, 'diameter': 0.8, 'spacing': 1.2, 'track': 2.0}),
+            ('engine', 'engine', {'w': 1.0, 'h': 0.8, 'l': 1.5, 'x': 2.0}),
+            ('cabin', 'troop_compartment', {'l': 3.0, 'w': 2.0, 'h': 1.5, 'x': -1.0}),
+            ('cabin', 'driver_cab', {'l': 1.5, 'w': 2.0, 'h': 1.2, 'x': 2.0}),
+            ('body', 'weapon_station', {'w': 1.0, 'l': 1.5, 'h': 0.5, 'x': 0}),
+        ],
+    },
+    'warship': {
+        'label': 'Destroyer (warship)',
+        'components': [
+            ('hull', 'hull', {'l': 150.0, 'w': 20.0, 'h': 8.0}),
+            ('cabin', 'superstructure', {'l': 20.0, 'w': 15.0, 'h': 12.0, 'x': -40.0}),
+            ('body', 'gun_turret', {'w': 3.0, 'l': 5.0, 'h': 3.0, 'x': 60.0}),
+            ('blade', 'main_gun', {'diameter': 0.3, 'l': 15.0, 'x': 65.0}),
+            ('engine', 'engines', {'n': 2, 'diameter': 2.0, 'x': -60.0}),
+            ('blade', 'propellers', {'n': 2, 'diameter': 4.0, 'x': -70.0}),
+            ('cabin', 'bridge', {'l': 8.0, 'w': 10.0, 'h': 4.0, 'x': -35.0}),
+        ],
+    },
+    'bomber': {
+        'label': 'Bomber (B-52)',
+        'components': [
+            ('frame', 'fuselage', {'l': 49.0, 'diameter': 4.0}),
+            ('wing', 'wings', {'span': 56.0, 'chord': 8.0, 'y': 0.0, 'sweep': 0.5}),
+            ('wing', 'tail', {'span': 18.0, 'chord': 5.0, 'x': -20.0}),
+            ('wing', 'vertical_tail', {'span': 0, 'chord': 0, 'x': -20.0, 'h': 12.0}),
+            ('engine', 'engines', {'n': 8, 'diameter': 1.5, 'l': 4.0, 'x': 5.0, 'y': -2.0}),
+            ('cabin', 'cockpit', {'l': 6.0, 'w': 3.0, 'h': 3.0, 'x': 20.0}),
+            ('body', 'bomb_bay', {'l': 12.0, 'w': 3.0, 'h': 2.0, 'x': 0}),
+        ],
+    },
+    # --- space ---
+    'iss': {
+        'label': 'International Space Station',
+        'components': [
+            ('frame', 'truss', {'l': 100.0, 'w': 5.0, 'h': 5.0}),
+            ('cabin', 'habitat_module', {'l': 15.0, 'diameter': 4.0, 'x': 0}),
+            ('cabin', 'node_module', {'l': 8.0, 'diameter': 4.0, 'x': 15.0}),
+            ('wing', 'solar_arrays', {'span': 80.0, 'chord': 10.0, 'y': 0, 'n': 4}),
+            ('frame', 'radiators', {'l': 20.0, 'w': 2.0, 'x': -20.0}),
+            ('cabin', 'docking_port', {'diameter': 2.0, 'x': 25.0}),
+        ],
+    },
+    'satellite': {
+        'label': 'Satellite (Hubble-class)',
+        'components': [
+            ('frame', 'bus', {'l': 4.0, 'w': 2.0, 'h': 2.0}),
+            ('wing', 'solar_panels', {'span': 12.0, 'chord': 2.0, 'y': 0}),
+            ('cabin', 'instrument_bay', {'l': 2.0, 'diameter': 1.5, 'x': 1.0}),
+            ('body', 'antenna', {'diameter': 1.0, 'h': 2.0, 'x': -1.0}),
+        ],
+    },
+    'rover': {
+        'label': 'Mars rover (Perseverance)',
+        'components': [
+            ('frame', 'chassis', {'l': 3.0, 'w': 2.0, 'h': 1.0}),
+            ('wheel', 'wheels', {'n': 6, 'diameter': 0.5, 'spacing': 2.0, 'track': 1.5}),
+            ('wing', 'solar_panel', {'span': 4.0, 'chord': 2.0, 'y': 1.0}),
+            ('cabin', 'instrument_mast', {'h': 2.0, 'x': 1.0}),
+            ('body', 'robotic_arm', {'l': 2.0, 'x': 1.5, 'y': 0.5}),
+            ('engine', 'rtg', {'diameter': 0.5, 'x': -1.0}),
+        ],
+    },
+    'lander': {
+        'label': 'Lunar lander (Apollo LM)',
+        'components': [
+            ('frame', 'descent_stage', {'w': 4.0, 'd': 4.0, 'h': 2.0}),
+            ('cabin', 'ascent_stage', {'l': 3.0, 'w': 3.0, 'h': 2.5, 'y': 2.5}),
+            ('engine', 'descent_engine', {'diameter': 1.0, 'x': 0, 'y': -1.0}),
+            ('engine', 'ascent_engine', {'diameter': 0.5, 'y': 4.0}),
+            ('frame', 'legs', {'n': 4, 'h': 3.0}),
+            ('blade', 'ladder', {'l': 2.0, 'x': 2.0}),
+        ],
+    },
+    # --- railway ---
+    'locomotive': {
+        'label': 'Diesel locomotive',
+        'components': [
+            ('frame', 'chassis', {'l': 20.0, 'w': 3.0, 'h': 1.5}),
+            ('cabin', 'cab', {'l': 4.0, 'w': 2.8, 'h': 2.5, 'x': 6.0}),
+            ('engine', 'engine', {'w': 2.0, 'h': 1.5, 'l': 4.0, 'x': 0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 4.0, 'w': 2.5, 'h': 0.8, 'spacing': 12.0}),
+            ('wheel', 'wheels', {'n': 12, 'diameter': 0.9, 'spacing': 1.0, 'track': 1.5}),
+            ('fuel', 'tank', {'w': 1.5, 'h': 0.8, 'l': 3.0, 'x': -5.0}),
+        ],
+    },
+    'passenger_train': {
+        'label': 'Passenger train (coach)',
+        'components': [
+            ('frame', 'chassis', {'l': 25.0, 'w': 3.0, 'h': 1.0}),
+            ('cabin', 'cabin_jet', {'l': 24.0, 'diameter': 3.0, 'x': 0, 'y': 1.0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 4.0, 'w': 2.5, 'h': 0.8, 'spacing': 16.0}),
+            ('wheel', 'wheels', {'n': 12, 'diameter': 0.9, 'spacing': 1.0, 'track': 1.5}),
+            ('body', 'windows', {'n': 8, 'w': 1.5, 'h': 0.8, 'x': 0, 'y': 1.5}),
+        ],
+    },
+    'freight_train': {
+        'label': 'Freight train (boxcar)',
+        'components': [
+            ('frame', 'chassis', {'l': 15.0, 'w': 3.0, 'h': 1.0}),
+            ('body', 'boxcar', {'l': 14.0, 'w': 3.0, 'h': 3.0, 'y': 1.0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 3.0, 'w': 2.5, 'h': 0.8, 'spacing': 10.0}),
+            ('wheel', 'wheels', {'n': 8, 'diameter': 0.9, 'spacing': 1.0, 'track': 1.5}),
+        ],
+    },
+    'steam_locomotive': {
+        'label': 'Steam locomotive',
+        'components': [
+            ('frame', 'chassis', {'l': 12.0, 'w': 3.0, 'h': 1.5}),
+            ('engine', 'boiler', {'l': 6.0, 'diameter': 1.5, 'x': 2.0}),
+            ('cabin', 'cab', {'l': 3.0, 'w': 2.5, 'h': 2.5, 'x': -3.0}),
+            ('frame', 'smokestack', {'h': 2.0, 'x': 5.0}),
+            ('wheel', 'drivers', {'n': 3, 'diameter': 1.5, 'spacing': 1.8, 'track': 1.5}),
+            ('wheel', 'leading_wheels', {'n': 2, 'diameter': 0.8, 'x': 5.0, 'track': 1.5}),
+            ('fuel', 'tender', {'l': 6.0, 'w': 2.5, 'h': 2.0, 'x': -8.0}),
+        ],
+    },
+    'high_speed_train': {
+        'label': 'High-speed train (TGV)',
+        'components': [
+            ('frame', 'chassis', {'l': 20.0, 'w': 2.8, 'h': 1.0}),
+            ('cabin', 'nose', {'l': 6.0, 'w': 2.8, 'h': 2.5, 'x': 7.0}),
+            ('cabin', 'cabin', {'l': 14.0, 'w': 2.8, 'h': 2.5, 'x': -2.0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 3.0, 'w': 2.5, 'h': 0.8, 'spacing': 14.0}),
+            ('wheel', 'wheels', {'n': 12, 'diameter': 0.9, 'spacing': 1.0, 'track': 1.5}),
+            ('wing', 'pantograph', {'span': 0, 'chord': 0, 'y': 3.0, 'h': 1.0, 'x': -5.0}),
+        ],
+    },
 }
 
 # Groupings for the selector
@@ -213,5 +358,7 @@ VEHICLE_GROUPS = {
     'road': ['car', 'truck'],
     'air': ['hot_air_balloon', 'prop_plane', 'jet_airliner', 'fighter_jet', 'helicopter'],
     'water': ['sailboat', 'motor_yacht', 'cargo_ship', 'submarine'],
-    'space': ['rocket', 'space_shuttle'],
+    'space': ['rocket', 'space_shuttle', 'iss', 'satellite', 'rover', 'lander'],
+    'military': ['tank', 'apc', 'warship', 'bomber'],
+    'railway': ['locomotive', 'passenger_train', 'freight_train', 'steam_locomotive', 'high_speed_train'],
 }
