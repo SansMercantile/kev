@@ -195,6 +195,31 @@
 .pilot-locked { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; color: #c4d0e0; text-align: center; padding: 40px; }
 .pilot-locked p { max-width: 500px; font-size: 16px; line-height: 1.5; }
 
+/* life science story panels */
+.story-panel {
+  position: absolute; top: 120px; left: 50%; transform: translateX(-50%); z-index: 10;
+  max-width: 500px; padding: 24px; background: rgba(8,13,26,0.9); border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 16px; color: #e8eef6; backdrop-filter: blur(12px);
+}
+.story-panel h2 { margin: 0 0 12px; font-size: 20px; color: #c9a227; }
+.story-panel h3 { margin: 0 0 8px; font-size: 15px; color: #93a3b8; }
+.story-panel p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; color: #c4d0e0; }
+.story-panel ul { margin: 0 0 16px; padding-left: 20px; color: #c4d0e0; font-size: 14px; }
+.story-panel li { margin-bottom: 4px; }
+.story-panel button { width: 100%; padding: 12px; font-size: 14px; }
+.treatment-options { display: flex; flex-direction: column; gap: 8px; }
+.case-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* life science story panels */
+.story-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 20; max-width: 500px; padding: 24px; background: rgba(8,13,26,0.9); border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; color: #e8eef6; text-align: center; backdrop-filter: blur(12px); }
+.story-panel h2 { margin: 0 0 16px; font-size: 22px; }
+.story-panel h3 { margin: 0 0 8px; font-size: 15px; color: #c9a227; }
+.story-panel p { margin: 0 0 20px; font-size: 14px; line-height: 1.5; }
+.story-panel ul { text-align: left; margin: 0 0 16px; padding-left: 20px; }
+.story-panel li { font-size: 13px; color: #c4d0e0; margin-bottom: 4px; }
+.symptoms { margin-bottom: 16px; }
+.treatment-options { display: flex; flex-direction: column; gap: 8px; }
+
 /* transit light curve */
 .transit-curve { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #93a3b8; }
 .curve-track { width: 8px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 4px; position: relative; overflow: hidden; }
