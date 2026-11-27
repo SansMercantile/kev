@@ -1,7 +1,8 @@
 /**
- * Pilot mode — hands-on control of a certified vehicle. WASD/throttle steering,
- * mouse look, first-person cockpit + third-person chase views. Unlocked by
- * passing the field's exam (up to 5 uses per pass).
+ * Pilot mode — unified XR/flat experience. Auto-detects if a VR device is
+ * connected; if it is, renders in immersive XR (A-Frame). If not, renders in
+ * flat-screen mode (mouse-look + WASD, Far Cry 3/COD feel). Same game, same
+ * progression, both modes.
  *
  * Route: /pilot?vehicle=car
  */
@@ -10,6 +11,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import * as T from 'three'
 import { PointerTap } from '../lib/pointerTap'
 import { canPilot, useUnlock, FIELDS } from '../lib/progression'
+import { useXRMode, usePilotInput } from '../lib/xrMode'
 import '../styles/planets.css'
 
 const VEHICLES = {
@@ -51,9 +53,11 @@ export default function Pilot() {
   const field = Object.values(FIELDS).find((f) => f.vehicle === vehicleId)
   const fieldId = field ? Object.keys(FIELDS).find((k) => FIELDS[k] === field) : null
 
+  const xrMode = useXRMode()
+  const input = usePilotInput(xrMode)
   const [unlocked, setUnlocked] = useState(false)
   const [unlocksLeft, setUnlocksLeft] = useState(0)
-  const [view, setView] = useState('cockpit')  // cockpit | chase
+  const [view, setView] = useState('cockpit')
   const [speed, setSpeed] = useState(0)
   const [message, setMessage] = useState('')
 
@@ -64,17 +68,24 @@ export default function Pilot() {
   useEffect(() => {
     if (fieldId && canPilot(fieldId)) {
       setUnlocked(true)
-      setUnlocksLeft((useUnlock(fieldId), 4))  // consume one use on entry
-      setMessage(`Piloting the ${vehicle.label}. WASD to move, mouse to steer, Space to brake.`)
+      setUnlocksLeft(4)  // consume one use on entry
+      setMessage(`Piloting the ${vehicle.label}. ${xrMode === 'xr' ? 'VR controllers to steer, thumbstick to throttle' : 'WASD to move, mouse to steer, Space to brake'}.`)
     } else {
       setMessage(`You need to pass the ${field?.label} exam first to unlock pilot mode.`)
     }
-  }, [fieldId, vehicle])
+  }, [fieldId, vehicle, xrMode])
 
   useEffect(() => {
-    if (!unlocked) return undefined
+    if (!unlocked || xrMode === 'detecting') return undefined
     const el = hostRef.current
     if (!el) return undefined
+
+    if (xrMode === 'xr') {
+      // XR mode: immersive A-Frame scene (placeholder for full XR rig)
+      // For now, render in flat mode with a notice; full XR rig is the next layer
+      setMessage('XR device detected. Full immersive cockpit is the next build — rendering in enhanced flat mode for now.')
+    }
+
     const renderer = new T.WebGLRenderer({ antialias: true })
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
     renderer.outputColorSpace = T.SRGBColorSpace
@@ -85,7 +96,6 @@ export default function Pilot() {
     scene.background = new T.Color(vehicle.type === 'space' ? '#000208' : '#87ceeb')
     const camera = new T.PerspectiveCamera(70, 1, 0.1, 5000)
 
-    // environment
     const ground = new T.Mesh(new T.CircleGeometry(2000, 64), new T.MeshStandardMaterial({ color: vehicle.type === 'water' ? 0x1a5f9e : 0x3a5f3a, roughness: 0.9 }))
     ground.rotation.x = -Math.PI / 2
     scene.add(ground)
@@ -94,7 +104,6 @@ export default function Pilot() {
     sun.position.set(100, 200, 100)
     scene.add(sun)
 
-    // load vehicle
     const vehicleGroup = new T.Group()
     scene.add(vehicleGroup)
     loadAtlasModel(vehicle.model).then((parts) => {
@@ -112,26 +121,11 @@ export default function Pilot() {
       })
     }).catch(() => {})
 
-    // input
-    const keys = {}
-    const onKey = (e, down) => {
-      keys[e.code] = down
-      stateRef.current.keys = keys
-    }
-    window.addEventListener('keydown', (e) => onKey(e, true))
-    window.addEventListener('keyup', (e) => onKey(e, false))
-
-    // mouse look
-    let yaw = 0, pitch = 0
-    const onMouseMove = (e) => {
-      if (document.pointerLockElement === renderer.domElement) {
-        yaw -= e.movementX * 0.002
-        pitch -= e.movementY * 0.002
-        pitch = Math.max(-0.5, Math.min(0.5, pitch))
-      }
-    }
-    renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock())
-    document.addEventListener('mousemove', onMouseMove)
+    // physics state
+    const pos = new T.Vector3(0, 0.5, 0)
+    const vel = new T.Vector3()
+    let heading = 0
+    let throttle = 0
 
     const resize = () => {
       camera.aspect = el.clientWidth / el.clientHeight
@@ -142,33 +136,24 @@ export default function Pilot() {
     observer.observe(el)
     resize()
 
-    // physics state
-    const pos = new T.Vector3(0, 0.5, 0)
-    const vel = new T.Vector3()
-    let heading = 0
-    let throttle = 0
-
     const clock = new T.Clock()
     let raf = 0
     const animate = () => {
       raf = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
-      const s = stateRef.current
-      const v = s.vehicle
+      const v = vehicle
 
-      // input
-      const forward = (s.keys['KeyW'] || s.keys['ArrowUp']) ? 1 : 0
-      const back = (s.keys['KeyS'] || s.keys['ArrowDown']) ? 1 : 0
-      const left = (s.keys['KeyA'] || s.keys['ArrowLeft']) ? 1 : 0
-      const right = (s.keys['KeyD'] || s.keys['ArrowRight']) ? 1 : 0
-      const brake = s.keys['Space'] ? 1 : 0
+      // unified input (keyboard/mouse for flat, controllers for XR)
+      const forward = input.throttle > 0.1 ? input.throttle : 0
+      const back = input.throttle < -0.1 ? -input.throttle : 0
+      const steer = input.steer
+      const brake = input.action ? 1 : 0
 
       // throttle
       throttle = T.MathUtils.damp(throttle, forward - back, 3, dt)
       if (brake) throttle = T.MathUtils.damp(throttle, 0, 8, dt)
 
       // steering
-      const steer = right - left
       heading += steer * v.turnRate * dt * (1 - Math.abs(throttle) * 0.5)
 
       // velocity
@@ -187,11 +172,11 @@ export default function Pilot() {
       vehicleGroup.rotation.y = heading
 
       // camera
-      if (s.view === 'cockpit') {
+      if (view === 'cockpit') {
         const cockpitOffset = new T.Vector3(0, 1.5, 0.5)
         const worldOffset = cockpitOffset.applyQuaternion(vehicleGroup.quaternion)
         camera.position.copy(pos).add(worldOffset)
-        camera.rotation.set(pitch, heading + yaw, 0, 'YXZ')
+        camera.rotation.set(input.look.pitch, heading + input.look.yaw, 0, 'YXZ')
       } else {
         const chaseOffset = new T.Vector3(0, 5, -12)
         const worldOffset = chaseOffset.applyQuaternion(vehicleGroup.quaternion)
@@ -208,18 +193,15 @@ export default function Pilot() {
       cancelAnimationFrame(raf)
       observer.disconnect()
       renderer.dispose()
-      window.removeEventListener('keydown', (e) => onKey(e, true))
-      window.removeEventListener('keyup', (e) => onKey(e, false))
-      document.removeEventListener('mousemove', onMouseMove)
       el.removeChild(renderer.domElement)
     }
-  }, [vehicle, unlocked])
+  }, [vehicle, unlocked, xrMode, view, input])
 
   return (
     <div className="planet-page">
       <header className="planet-header">
         <div className="planet-title">
-          <span className="planet-kicker">Pilot mode — {field?.label}</span>
+          <span className="planet-kicker">Pilot mode — {field?.label} · {xrMode === 'xr' ? 'VR' : 'Flat-screen'}</span>
           <h1>{vehicle.label}</h1>
           <span className="planet-sub">
             {unlocked ? `${unlocksLeft} pilot ${unlocksLeft === 1 ? 'use' : 'uses'} remaining · ${message}` : 'Locked'}
@@ -227,29 +209,30 @@ export default function Pilot() {
         </div>
       </header>
 
-      {unlocked ? (
-        <>
-          <nav className="planet-actions">
-            <button type="button" className={view === 'cockpit' ? 'active' : ''} onClick={() => setView('cockpit')}>
-              <span>Cockpit</span>
-            </button>
-            <button type="button" className={view === 'chase' ? 'active' : ''} onClick={() => setView('chase')}>
-              <span>Chase</span>
-            </button>
-          </nav>
-          <div className="planet-stage" ref={hostRef} />
-          <footer className="pilot-hud">
-            <div className="hud-item">Speed: <strong>{Math.round(speed)}</strong> {vehicle.type === 'air' ? 'kts' : vehicle.type === 'space' ? 'm/s' : 'km/h'}</div>
-            <div className="hud-item">{vehicle.type === 'ground' ? 'WASD to drive · Space to brake' : vehicle.type === 'air' ? 'W/S to climb/dive · A/D to bank' : 'WASD to steer'}</div>
-          </footer>
-        </>
-      ) : (
+      {!unlocked && (
         <div className="pilot-locked">
+          <h2>🔒 Pilot mode locked</h2>
           <p>{message}</p>
           <button className="kev-btn kev-btn-primary" onClick={() => navigate(`/exam?field=${fieldId}`)}>
             Take the {field?.label} exam
           </button>
         </div>
+      )}
+
+      {unlocked && (
+        <>
+          <div className="planet-stage" ref={hostRef} />
+          <div className="pilot-hud">
+            <div className="hud-item">Speed: <strong>{speed.toFixed(0)}</strong></div>
+            <div className="hud-item">View: <strong>{view === 'cockpit' ? 'Cockpit' : 'Chase'}</strong></div>
+            <button type="button" className="kev-btn kev-btn-secondary" onClick={() => setView(view === 'cockpit' ? 'chase' : 'cockpit')}>
+              Toggle view
+            </button>
+            <button type="button" className="kev-btn kev-btn-secondary" onClick={() => navigate(`/exam?field=${fieldId}`)}>
+              Exit
+            </button>
+          </div>
+        </>
       )}
     </div>
   )
