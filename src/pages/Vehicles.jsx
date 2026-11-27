@@ -55,6 +55,18 @@ const VEHICLES = [
   { id: 'freight_train', label: 'Freight train (boxcar)', group: 'railway', color: '#8a4a3a', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'steam_locomotive', label: 'Steam locomotive', group: 'railway', color: '#2a2a32', rotation_h: 0, axial_tilt_deg: 0 },
   { id: 'high_speed_train', label: 'High-speed train (TGV)', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'metro', label: 'Metro / subway', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'tram', label: 'Tram / streetcar', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'monorail', label: 'Monorail', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'maglev', label: 'Maglev train', group: 'railway', color: '#4a7a9a', rotation_h: 0, axial_tilt_deg: 0 },
+  // more military
+  { id: 'attack_helicopter', label: 'Attack helicopter (Apache)', group: 'military', color: '#5a6a4a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'frigate', label: 'Frigate (warship)', group: 'military', color: '#4a6a8a', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'aircraft_carrier', label: 'Aircraft carrier', group: 'military', color: '#4a6a8a', rotation_h: 0, axial_tilt_deg: 0 },
+  // more space
+  { id: 'soyuz', label: 'Soyuz spacecraft', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'dragon_capsule', label: 'Dragon capsule (SpaceX)', group: 'space', color: '#d0c8b8', rotation_h: 0, axial_tilt_deg: 0 },
+  { id: 'space_telescope', label: 'Space telescope (Hubble)', group: 'space', color: '#8a8a9a', rotation_h: 0, axial_tilt_deg: 0 },
 ]
 
 const GROUPS = ['all', 'personal', 'road', 'air', 'water', 'space', 'military', 'railway']

@@ -334,6 +334,71 @@ def build_component(cat, builder, p):
         out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
     elif builder == 'pantograph':
         out.append(box(p['x'], p['y'], 0, 1.0, p['h'], 0.05))
+    # more railway
+    elif builder == 'doors':
+        for i in range(p['n']):
+            x = -p.get('l', 18)/2 + i * (p.get('l', 18)/p['n'])
+            out.append(box(x, p['y'], 0, p['w'], p['h'], 0.05))
+    elif builder == 'beam':
+        out.append(box(0, p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'guideway':
+        out.append(box(0, p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'levitation_skids':
+        for i in range(p['n']):
+            x = -p['spacing']/2 + i * p['spacing']
+            out.append(box(x, p['h']/2, 0, p['l'], p['h'], p['w']))
+    # more military
+    elif builder == 'weapon_pylons':
+        for sign in (-1, 1):
+            out.append(box(p['x'], p['y'], sign*p.get('w', 1.5), p['l'], p['h'], 0.3))
+    elif builder == 'missile_launchers':
+        for i in range(p['n']):
+            out.append(box(p['x'], p['h']/2, 0, p['l'], p['h'], p['w']))
+    elif builder == 'flight_deck':
+        out.append(box(0, p['y'], 0, p['l'], p['t'], p['w']))
+    elif builder == 'island':
+        out.append(box(p['x'], p['y'], 0, p['l'], p['h'], p['w']))
+    elif builder == 'reactors':
+        for i in range(p['n']):
+            out.append(cylinder(p['x'], 0, 0, p['diameter']/2, 0.5, axis='y'))
+    elif builder == 'catapults':
+        for i in range(p['n']):
+            x = -p.get('l', 280)/2 + i * (p.get('l', 280)/p['n'])
+            out.append(box(x, p['y'], 0, p['l'], 0.1, p['w']))
+    elif builder == 'arresting_wires':
+        for i in range(p['n']):
+            x = p['x'] + i * 2
+            out.append(box(x, p['y'], 0, p['l'], 0.05, 0.05))
+    elif builder == 'aircraft':
+        for i in range(p['n']):
+            x = -p.get('l', 280)/2 + i * (p.get('l', 280)/p['n'])
+            out.append(box(x, p['y'], 0, p['l'], p['h'], p['w']))
+    # more space
+    elif builder == 'orbital_module':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['l'], axis='y'))
+    elif builder == 'descent_module':
+        out.append(sphere(0, p['y'], 0, p['diameter']/2, seg=16))
+    elif builder == 'service_module':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['l'], axis='y'))
+    elif builder == 'capsule':
+        out.append(cylinder(0, 0, 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'crew_cabin':
+        out.append(sphere(0, p['y'], 0, p['diameter']/2, seg=16))
+    elif builder == 'draco_thrusters':
+        for i in range(p['n']):
+            th = 2 * math.pi * i / p['n']
+            out.append(cylinder(math.cos(th)*1.5, p['y'], math.sin(th)*1.5, p['diameter']/2, 0.2, axis='y'))
+    elif builder == 'trunk':
+        out.append(cylinder(0, p['y'], 0, p['diameter']/2, p['h'], axis='y'))
+    elif builder == 'tube':
+        out.append(cylinder(0, 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'aperture_door':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, 0.1, axis='x'))
+    elif builder == 'instrument_section':
+        out.append(cylinder(p['x'], 0, 0, p['diameter']/2, p['l'], axis='x'))
+    elif builder == 'antennas':
+        for i in range(p['n']):
+            out.append(cylinder(p['x'], p['h']/2, 0, p['diameter']/2, p['h'], axis='y'))
     return out
 
 

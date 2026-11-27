@@ -350,6 +350,115 @@ VEHICLES = {
             ('wing', 'pantograph', {'span': 0, 'chord': 0, 'y': 3.0, 'h': 1.0, 'x': -5.0}),
         ],
     },
+    # --- more railway ---
+    'metro': {
+        'label': 'Metro / subway train',
+        'components': [
+            ('frame', 'chassis', {'l': 18.0, 'w': 3.0, 'h': 1.0}),
+            ('cabin', 'cabin_jet', {'l': 17.0, 'diameter': 3.0, 'x': 0, 'y': 1.0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 3.0, 'w': 2.5, 'h': 0.8, 'spacing': 12.0}),
+            ('wheel', 'wheels', {'n': 12, 'diameter': 0.8, 'spacing': 1.0, 'track': 1.4}),
+            ('body', 'doors', {'n': 4, 'w': 1.2, 'h': 2.0, 'l': 18.0, 'y': 1.0}),
+        ],
+    },
+    'tram': {
+        'label': 'Tram / streetcar',
+        'components': [
+            ('frame', 'chassis', {'l': 12.0, 'w': 2.5, 'h': 1.0}),
+            ('cabin', 'cabin_jet', {'l': 11.0, 'diameter': 2.5, 'x': 0, 'y': 1.0}),
+            ('wheel', 'bogies', {'n': 2, 'l': 2.0, 'w': 2.0, 'h': 0.8, 'spacing': 8.0}),
+            ('wheel', 'wheels', {'n': 8, 'diameter': 0.6, 'spacing': 0.8, 'track': 1.4}),
+            ('wing', 'pantograph', {'span': 0, 'chord': 0, 'y': 3.0, 'h': 0.8, 'x': 0}),
+        ],
+    },
+    'monorail': {
+        'label': 'Monorail',
+        'components': [
+            ('frame', 'beam', {'l': 20.0, 'w': 0.8, 'h': 1.5}),
+            ('cabin', 'cabin_jet', {'l': 15.0, 'diameter': 3.0, 'x': 0, 'y': 1.5}),
+            ('wheel', 'bogies', {'n': 2, 'l': 2.0, 'w': 1.5, 'h': 1.0, 'spacing': 10.0}),
+            ('wheel', 'wheels', {'n': 8, 'diameter': 0.5, 'spacing': 0.6, 'track': 0.5}),
+        ],
+    },
+    'maglev': {
+        'label': 'Maglev train',
+        'components': [
+            ('frame', 'guideway', {'l': 25.0, 'w': 3.5, 'h': 1.0}),
+            ('cabin', 'nose', {'l': 8.0, 'w': 3.0, 'h': 2.5, 'x': 8.0}),
+            ('cabin', 'cabin', {'l': 17.0, 'w': 3.0, 'h': 2.5, 'x': -2.0}),
+            ('frame', 'levitation_skids', {'n': 4, 'l': 5.0, 'w': 3.0, 'h': 0.3, 'spacing': 6.0}),
+        ],
+    },
+    # --- more military ---
+    'attack_helicopter': {
+        'label': 'Attack helicopter (Apache)',
+        'components': [
+            ('frame', 'fuselage', {'l': 17.0, 'diameter': 2.0}),
+            ('blade', 'main_rotor', {'diameter': 14.0, 'y': 1.5}),
+            ('blade', 'tail_rotor', {'diameter': 3.0, 'x': -8.0, 'y': 1.0}),
+            ('engine', 'engines_jet', {'n': 2, 'diameter': 0.8, 'l': 2.0, 'x': 0, 'y': 0}),
+            ('cabin', 'cockpit', {'l': 4.0, 'w': 1.5, 'h': 1.5, 'x': 5.0}),
+            ('body', 'weapon_pylons', {'n': 2, 'l': 2.0, 'w': 0.5, 'h': 0.3, 'x': 0, 'y': -1.0}),
+            ('wheel', 'landing_gear', {'n': 2, 'l': 2.0, 'w': 0.3, 'spacing': 2.0, 'diameter': 0.4}),
+        ],
+    },
+    'frigate': {
+        'label': 'Frigate (warship)',
+        'components': [
+            ('hull', 'hull', {'l': 120.0, 'w': 15.0, 'h': 6.0}),
+            ('cabin', 'superstructure', {'l': 15.0, 'w': 12.0, 'h': 10.0, 'x': -30.0}),
+            ('body', 'gun_turret', {'w': 2.5, 'l': 4.0, 'h': 2.5, 'x': 45.0}),
+            ('blade', 'main_gun', {'diameter': 0.2, 'l': 10.0, 'x': 50.0}),
+            ('engine', 'engines', {'n': 2, 'diameter': 1.5, 'x': -50.0}),
+            ('blade', 'propellers', {'n': 2, 'diameter': 3.0, 'x': -55.0}),
+            ('cabin', 'bridge', {'l': 6.0, 'w': 8.0, 'h': 3.0, 'x': -25.0}),
+            ('body', 'missile_launchers', {'n': 4, 'w': 1.0, 'h': 0.8, 'l': 2.0, 'x': 10.0}),
+        ],
+    },
+    'aircraft_carrier': {
+        'label': 'Aircraft carrier',
+        'components': [
+            ('hull', 'hull', {'l': 300.0, 'w': 40.0, 'h': 12.0}),
+            ('deck', 'flight_deck', {'l': 280.0, 'w': 35.0, 't': 0.5, 'y': 6.0}),
+            ('cabin', 'island', {'l': 15.0, 'w': 10.0, 'h': 15.0, 'x': -80.0, 'y': 10.0}),
+            ('engine', 'reactors', {'n': 2, 'diameter': 4.0, 'x': -100.0}),
+            ('blade', 'propellers', {'n': 4, 'diameter': 6.0, 'x': -120.0}),
+            ('body', 'catapults', {'n': 4, 'l': 50.0, 'w': 2.0, 'y': 6.0}),
+            ('frame', 'arresting_wires', {'n': 4, 'l': 20.0, 'y': 6.0, 'x': 50.0}),
+            ('body', 'aircraft', {'n': 6, 'l': 15.0, 'w': 10.0, 'h': 3.0, 'y': 6.5}),
+        ],
+    },
+    # --- more space ---
+    'soyuz': {
+        'label': 'Soyuz spacecraft',
+        'components': [
+            ('frame', 'orbital_module', {'diameter': 2.5, 'l': 3.0, 'y': 4.0}),
+            ('cabin', 'descent_module', {'diameter': 2.2, 'h': 2.0, 'y': 0}),
+            ('frame', 'service_module', {'diameter': 2.5, 'l': 2.5, 'y': -3.0}),
+            ('wing', 'solar_panels', {'span': 8.0, 'chord': 2.0, 'y': -3.0}),
+            ('engine', 'engine', {'diameter': 0.8, 'y': -5.0}),
+        ],
+    },
+    'dragon_capsule': {
+        'label': 'Dragon capsule (SpaceX)',
+        'components': [
+            ('frame', 'capsule', {'diameter': 3.7, 'h': 6.0}),
+            ('cabin', 'crew_cabin', {'diameter': 3.0, 'h': 3.0, 'y': 1.0}),
+            ('wing', 'solar_panels', {'span': 8.0, 'chord': 2.0, 'y': -4.0}),
+            ('engine', 'draco_thrusters', {'n': 16, 'diameter': 0.1, 'y': 0}),
+            ('frame', 'trunk', {'diameter': 3.7, 'h': 3.0, 'y': -4.0}),
+        ],
+    },
+    'space_telescope': {
+        'label': 'Space telescope (Hubble)',
+        'components': [
+            ('frame', 'tube', {'diameter': 4.0, 'l': 13.0}),
+            ('cabin', 'aperture_door', {'diameter': 4.0, 'x': 6.5}),
+            ('wing', 'solar_arrays', {'span': 12.0, 'chord': 3.0, 'y': 0, 'n': 2}),
+            ('cabin', 'instrument_section', {'diameter': 3.0, 'l': 3.0, 'x': -5.0}),
+            ('body', 'antennas', {'n': 2, 'diameter': 0.5, 'h': 2.0, 'x': -8.0}),
+        ],
+    },
 }
 
 # Groupings for the selector
