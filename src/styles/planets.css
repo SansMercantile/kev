@@ -220,6 +220,20 @@
 .symptoms { margin-bottom: 16px; }
 .treatment-options { display: flex; flex-direction: column; gap: 8px; }
 
+/* enrollment */
+.enrollment-body { position: absolute; top: 130px; left: 0; right: 0; bottom: 20px; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; align-content: start; }
+.subject-card { background: rgba(8,13,26,0.85); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 18px; color: #e8eef6; backdrop-filter: blur(8px); }
+.subject-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.subject-icon { font-size: 24px; }
+.subject-header h3 { margin: 0; font-size: 16px; flex: 1; }
+.subject-badge { font-size: 11px; color: #16a34a; background: rgba(22,163,74,0.15); border: 1px solid rgba(22,163,74,0.4); padding: 2px 8px; border-radius: 999px; }
+.subject-lessons h4 { font-size: 12px; color: #93a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 8px; }
+.lesson-btn { display: block; width: 100%; text-align: left; padding: 7px 10px; margin-bottom: 5px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: #c4d0e0; font-size: 13px; cursor: pointer; }
+.lesson-btn:hover { border-color: #c9a227; }
+.lesson-btn.complete { color: #16a34a; border-color: rgba(22,163,74,0.4); background: rgba(22,163,74,0.08); }
+.subject-actions { display: flex; gap: 8px; margin-top: 12px; }
+.subject-actions button { flex: 1; padding: 8px; font-size: 12px; }
+
 /* transit light curve */
 .transit-curve { margin-top: 12px; display: flex; align-items: center; gap: 10px; font-size: 12px; color: #93a3b8; }
 .curve-track { width: 8px; height: 60px; background: rgba(255,255,255,0.08); border-radius: 4px; position: relative; overflow: hidden; }
